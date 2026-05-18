@@ -328,18 +328,26 @@ describe('getWeeklyStats', () => {
     const now = Date.now();
     const dayMs = 86400000;
 
-    // 创建本周内 3 个会话
+    // 基于本周起始计算时间戳，确保不受"今天是周几"影响
+    const dayOfWeek = new Date().getDay() || 7; // 1=周一 ... 7=周日
+    const weekStart = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      new Date().getDate() - dayOfWeek + 1
+    ).getTime();
+
+    // 创建本周内 3 个会话（周一、周二、周三）
     const records = [
-      { id: 's1', startTime: now - dayMs, endTime: now - dayMs + 1000, duration: 1000, totalCards: 5, correctCards: 4, accuracy: 80, tagFilter: null, cardDetails: [] },
-      { id: 's2', startTime: now - dayMs * 2, endTime: now - dayMs * 2 + 1000, duration: 1000, totalCards: 3, correctCards: 3, accuracy: 100, tagFilter: null, cardDetails: [] },
-      { id: 's3', startTime: now, endTime: now + 1000, duration: 1000, totalCards: 4, correctCards: 2, accuracy: 50, tagFilter: null, cardDetails: [] },
+      { id: 's1', startTime: weekStart, endTime: weekStart + 1000, duration: 1000, totalCards: 5, correctCards: 4, accuracy: 80, tagFilter: null, cardDetails: [] },
+      { id: 's2', startTime: weekStart + dayMs, endTime: weekStart + dayMs + 1000, duration: 1000, totalCards: 3, correctCards: 3, accuracy: 100, tagFilter: null, cardDetails: [] },
+      { id: 's3', startTime: weekStart + dayMs * 2, endTime: weekStart + dayMs * 2 + 1000, duration: 1000, totalCards: 4, correctCards: 2, accuracy: 50, tagFilter: null, cardDetails: [] },
     ];
     storageData[SESSIONS_KEY] = records;
 
     const stats = await getWeeklyStats();
-    // 至少应有今天和昨天的会话
-    assert.ok(stats.totalSessions >= 2);
-    assert.ok(stats.totalCards >= 7);
+    // 3 个会话全部在本周内
+    assert.equal(stats.totalSessions, 3);
+    assert.equal(stats.totalCards, 12);
   });
 
   it('7 天前的会话不应纳入本周统计', async () => {
