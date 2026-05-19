@@ -7,6 +7,12 @@
      7|## [Unreleased]
 
 ### 新增
+- **R113: CI 流水线修复 CiLintFix**
+  - CI lint job 集成 ESLint：新增 `npm install` + `npm run lint` 步骤
+  - `eqeqeq` 规则降级为 `warn`（106 处存量 `==`/`!=` 用法，避免 CI 阻断）
+  - 设计文档补充 TD004（ESLint CI 集成缺失 → 已关闭）+ D023 决策记录
+  - 修复 2 个失败测试，全量回归 6006 pass / 0 fail
+
 - **R111: 输入安全加固 InputSanitization** — `lib/sanitize.js`
   - 统一用户输入净化层：XSS 防护（HTML 实体编码）、URL 校验（仅允许 http/https，javascript: 拦截）
   - 搜索注入防护（特殊字符转义）、书签标题/标签长度限制

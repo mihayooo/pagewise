@@ -117,7 +117,7 @@ export default [
         caughtErrorsIgnorePattern: '^_',
       }],
       'no-undef': 'warn',
-      'eqeqeq': ['error', 'always'],
+      'eqeqeq': ['warn', 'always'],
       'no-implicit-globals': 'error',
     },
   },

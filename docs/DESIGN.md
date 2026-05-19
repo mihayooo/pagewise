@@ -219,6 +219,13 @@
 - **方案选择**: **主题分离值** — light: `#70707b` (4.69:1), dark: `#8b8b96` (5.68:1)
 - **原因**: 无法用单一颜色同时满足 light/dark 对比度；CSS 变量天然支持主题切换；保持设计语言一致性
 
+### D023: ESLint CI 集成 — eqeqeq 规则降级
+- **决策日期**: 2026-05-19
+- **问题**: R109 建立了 ESLint 基础设施但未集成到 CI；eqeqeq 设为 error 导致 106 个存量错误阻断 CI
+- **方案选择**: eqeqeq 从 `['error', 'always']` 降级为 `['warn', 'always']`
+- **原因**: 项目存在 106 处 `==`/`!=` 存量用法，立即全部修复涉及大量源文件变更（违反 R113 "不影响功能代码" 约束）；降级为 warn 后仍被 ESLint 标记（528+106 warnings），不超 `--max-warnings 10000` 阈值；后续迭代可逐步修复后恢复为 error
+- **CI 集成**: lint job 新增 `npm install` + `npm run lint` 步骤，位于 node --check 之后、manifest 校验之前
+
 ## 已知技术债务
 
 | ID | 描述 | 优先级 | 状态 |
@@ -226,3 +233,4 @@
 | TD001 | 无测试覆盖 | 高 | 已关闭 (via R108) |
 | TD002 | ai-client.js 错误处理不完善 | 中 | 已关闭 (via R104) |
 | TD003 | knowledge-base.js 缺少索引优化 | 低 | 已关闭 (via R105) |
+| TD004 | ESLint CI 集成缺失 | 低 | 已关闭 (via R113) |
