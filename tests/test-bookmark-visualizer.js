@@ -13,6 +13,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 const { BookmarkVisualizer } = await import('../lib/bookmark-visualizer.js');
+const { nodeRadius } = await import('../lib/bookmark-visualizer-physics.js');
 
 // ==================== Mock Canvas API ====================
 
@@ -359,8 +360,8 @@ describe('BookmarkVisualizer', () => {
     assert.ok(node5._degree === 0, `节点 5 连接数应为 0, 实际 ${node5._degree}`);
 
     // node1 的半径应大于 node5
-    const r1 = viz._nodeRadius(node1);
-    const r5 = viz._nodeRadius(node5);
+    const r1 = nodeRadius(node1);
+    const r5 = nodeRadius(node5);
     assert.ok(r1 > r5, `高连接节点半径 ${r1} 应 > 低连接节点半径 ${r5}`);
   });
 

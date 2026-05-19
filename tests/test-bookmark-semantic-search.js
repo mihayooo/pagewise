@@ -18,6 +18,7 @@ const { BookmarkIndexer } = await import('../lib/bookmark-indexer.js');
 const { BookmarkGraphEngine } = await import('../lib/bookmark-graph.js');
 const { BookmarkSearch } = await import('../lib/bookmark-search.js');
 const { BookmarkSemanticSearch } = await import('../lib/bookmark-semantic-search.js');
+const { SearchOperations } = await import('../lib/bookmark-semantic-search-hybrid.js');
 
 // ==================== 辅助: 构造书签 ====================
 
@@ -287,7 +288,7 @@ describe('BookmarkSemanticSearch', () => {
       { id: '3', score: 0.6, bookmark: sampleBookmarks[2], matchType: 'semantic' },
     ];
 
-    const merged = semanticSearch._mergeResults(keyword, semantic, 0.6);
+    const merged = SearchOperations.mergeResults(keyword, semantic, 0.6);
 
     // id '2' 在两个来源都出现 → matchType 应为 'hybrid'
     const id2 = merged.find(r => r.id === '2');

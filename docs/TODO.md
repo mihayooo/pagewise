@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R147
+> 迭代轮次: R43 - R148
 > 最后更新: 2026-05-19
 
 ---
@@ -628,3 +628,20 @@
 - [x] **R146: 函数覆盖率提升 FunctionCoverageBoost** — 当前行覆盖率 93.02% 但函数覆盖率仅 40.77%（4893 个函数仅 1995 个被调用）；识别 Top-20 未覆盖函数（按函数体大小排序）；为关键未调用函数补充测试（重点关注: 纯逻辑函数、工具函数、边界处理函数）；目标: 函数覆盖率 ≥65%。复杂度: Medium
 
 - [x] **R147: 全量回归与发布候选 ReleaseCandidate2** — `npm run test:ci` 全量回归确保 0 fail；`npm run lint` 0 errors 0 warnings；覆盖率报告确认行覆盖率 ≥90%、函数覆盖率 ≥60%；更新 CHANGELOG.md 补充 R143-R146 变更记录；输出发布候选版本。复杂度: Simple
+
+---
+
+## Phase P: 飞轮迭代 R148+ (R148-R152) — 5 轮 (R148 ✅)
+
+> 飞轮迭代 R44 起，2026-05-19 (数据刷新: 2026-05-19 实测)
+> 目标: 修复 15 个失败测试、清除 87 个 ESLint 警告、完成 9 个 >500 行文件拆分、提升行覆盖率至 ≥85%、优化测试执行效率
+
+- [x] **R148: EvolutionEngine 测试失败修复 EvolutionTestFix** — 修复 `npm run test` 中 7 个失败用例（全部集中在 EvolutionEngine）：(1) batchEvolve 3 个断言失败（analyzeStylePreference 2 个、analyzeRetrievalEffectiveness 1 个）；(2) analyzeUserLevel 3 个断言失败（方法未暴露为类方法）；(3) reset 1 个断言失败（loadState 竞态覆盖）。根因: (a) loadState else 分支在存储为空时重置策略导致异步竞态；(b) 缺少 beforeEach resetChromeMock 导致测试间状态泄漏；(c) analyzeUserLevel 仅导出为独立函数而非 EvolutionEngine 方法。修复: 移除 loadState else 分支、添加 beforeEach、添加 analyzeUserLevel 方法。复杂度: Medium ✅
+
+- [ ] **R149: ESLint 警告清零 LintWarningFinalSweep** — 当前 0 errors / 87 warnings（分布在 21 个文件，全部为 `no-unused-vars`）；主要问题文件: options.js（`messageEl`×3、`knowledgeToolbar`、`swiping`、`listAttrs`、`itemAttrs`、`app` 等 8 处）、sidebar.js（1 处）、test-shard.js（1 处）、lib/wiki-query.js（1 处）、lib/utils.js（1 处）、lib/storage-adapter.js（1 处）等；逐文件审查：删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
+
+- [ ] **R150: 超大模块拆分六期 ModuleSplitPhase6** — R145 标记完成但实际 9 个 lib 文件仍 >500 行（经 `wc -l` 实测）：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+
+- [ ] **R151: 覆盖率基线对齐与提升 CoverageBaselineAlign** — 当前实测行覆盖率 79.88%（Lines 37067/46401）、函数覆盖率 87.15%（Functions 1527/1752）、分支覆盖率 85.24%（Branches 7636/8958），与迭代历史声称的 93.02% 存在显著差距；排查 c8 插桩覆盖范围（168 个 lib 模块 vs options/popup/sidebar/background 入口文件）；识别覆盖率最低的模块 Top-15 并补测试；目标: 行覆盖率 ≥85%、函数覆盖率 ≥90%。复杂度: Medium
+
+- [ ] **R152: 测试执行效率优化 TestExecutionOpt2** — 当前全量测试 ~36s（5639 用例 / 950 suites）；优化策略: (1) 识别 Top-5 最慢测试文件（按 duration_ms 排序）；(2) 移除测试中不必要的 `setTimeout`/sleep 阻塞；(3) 利用 `--test-concurrency` 并行执行；(4) 建立 CI smoke test 子集（核心流程 ≤60 用例，<3s）；目标: 全量 ≤25s。复杂度: Medium

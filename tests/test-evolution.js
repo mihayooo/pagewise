@@ -342,6 +342,8 @@ describe('EvolutionEngine.evolve()', () => {
 // ==================== batchEvolve() ====================
 
 describe('EvolutionEngine.batchEvolve()', () => {
+  beforeEach(() => { resetChromeMock(); });
+
   it('交互不足 10 次时不执行', async () => {
     const engine = new EvolutionEngine();
     for (let i = 0; i < 5; i++) {
@@ -411,6 +413,8 @@ describe('EvolutionEngine.batchEvolve()', () => {
 // ==================== analyzeUserLevel() ====================
 
 describe('EvolutionEngine.analyzeUserLevel()', () => {
+  beforeEach(() => { resetChromeMock(); });
+
   it('检测高级用户', () => {
     const engine = new EvolutionEngine();
     for (let i = 0; i < 5; i++) {
@@ -560,6 +564,8 @@ describe('EvolutionEngine.getStats()', () => {
 // ==================== reset() ====================
 
 describe('EvolutionEngine.reset()', () => {
+  beforeEach(() => { resetChromeMock(); });
+
   it('重置所有状态', async () => {
     const engine = new EvolutionEngine();
     engine.recordInteraction({ question: 'test', answer: 'answer' });

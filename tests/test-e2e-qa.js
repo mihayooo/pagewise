@@ -161,8 +161,7 @@ describe('E2E Q&A 链路', () => {
 
   describe('4. 流式响应解析', () => {
     it('parseOpenAIStream 应正确提取 content chunks', async () => {
-      const { AIClient } = await import('../lib/ai-client.js');
-      const client = new AIClient({ apiKey: 'k', protocol: 'openai' });
+      const { parseOpenAIStream } = await import('../lib/ai-client-stream.js');
       
       const chunks = [
         'data: {"choices":[{"delta":{"role":"assistant","content":""}}]}\n\n',
@@ -180,15 +179,14 @@ describe('E2E Q&A 链路', () => {
       });
       
       const results = [];
-      for await (const text of client.parseOpenAIStream({ body: stream })) {
+      for await (const text of parseOpenAIStream({ body: stream })) {
         results.push(text);
       }
       assert.deepEqual(results, ['Hello', ' world']);
     });
 
     it('parseOpenAIStream 应忽略 reasoning_content', async () => {
-      const { AIClient } = await import('../lib/ai-client.js');
-      const client = new AIClient({ apiKey: 'k', protocol: 'openai' });
+      const { parseOpenAIStream } = await import('../lib/ai-client-stream.js');
       
       const chunks = [
         'data: {"choices":[{"delta":{"reasoning_content":"think1"}}]}\n\n',
@@ -205,17 +203,15 @@ describe('E2E Q&A 链路', () => {
       });
       
       const results = [];
-      for await (const text of client.parseOpenAIStream({ body: stream })) {
+      for await (const text of parseOpenAIStream({ body: stream })) {
         results.push(text);
       }
       assert.deepEqual(results, ['answer']);
     });
 
     it('parseOpenAIStream 空 body 应 fallback 到非流式', async () => {
-      const { AIClient } = await import('../lib/ai-client.js');
-      // 不测试实际的 fallback（需要网络），只确认方法存在
-      const client = new AIClient({ apiKey: 'k', protocol: 'openai' });
-      assert.equal(typeof client.parseOpenAIStream, 'function');
+      const { parseOpenAIStream } = await import('../lib/ai-client-stream.js');
+      assert.equal(typeof parseOpenAIStream, 'function');
     });
   });
 

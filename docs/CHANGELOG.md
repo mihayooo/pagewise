@@ -6,6 +6,14 @@
      6|
      7|## [Unreleased]
 
+### 修复
+- **R148: EvolutionEngine 测试失败修复 EvolutionTestFix**
+  - 修复 `npm run test` 中 7 个 EvolutionEngine 失败用例 → 5578 pass / 0 fail
+  - 根因 1: `loadState()` 的 else 分支在存储为空时重置策略，导致异步竞态（loadState 在 `await` 操作期间解析并覆盖测试修改的 state）
+  - 根因 2: `batchEvolve`/`analyzeUserLevel`/`reset` 测试缺少 `beforeEach(() => { resetChromeMock(); })`，导致测试间 chrome.storage 状态泄漏
+  - 根因 3: `analyzeUserLevel` 仅作为独立导出函数存在，未暴露为 `EvolutionEngine` 类方法
+  - 修复: (a) 移除 `loadState()` else 分支（构造函数已设默认值）；(b) 为 3 个 describe 块添加 `beforeEach resetChromeMock`；(c) 在 EvolutionEngine 类中添加 `analyzeUserLevel()` 委托方法
+
 ### 新增
 - **R134: 超大模块拆分三期 ModuleSplitPhase3**
   - 4 个 >500 行文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）
