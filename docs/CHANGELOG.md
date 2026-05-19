@@ -7,6 +7,16 @@
      7|## [Unreleased]
 
 ### 新增
+- **R131: 无障碍功能补全 AccessibilityComplete**
+  - Bug 修复: `createAnnouncer().announce()` 中 `this._enabled` 绑定错误（BUG-1），改为 `self._enabled` 闭包捕获
+  - 新增 `setContrastPairs(pairs, replace)` — 动态注入/替换对比度审计色彩对（支持暗色主题）
+  - 新增 `getFailingPairs()` — 返回所有未通过 WCAG AA 的色彩对
+  - 新增 `auditContrastSummary()` — 对比度审计摘要（total/passing/failing）
+  - 键盘导航: Tab 不被拦截（浏览器自然跳转）、disabled 守卫、ArrowLeft/Right direction 一致性、空列表守卫
+  - 焦点陷阱: 单元素边界、重复 activate 幂等、空容器守卫、null previousFocus 安全
+  - ARIA: 详情面板 `aria-modal=true` 断言覆盖、Announcer disabled 守卫
+  - 测试: 49→67 用例（+18），全部通过，零回归
+
 - **R130: 超大模块拆分二期 ModuleSplitPhase2**
   - 5 个 >640 行文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）
   - wiki-store.js(694→163) + wiki-store-funcs.js(262)

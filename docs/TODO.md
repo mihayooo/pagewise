@@ -572,6 +572,6 @@
 
 - [x] **R130: 超大模块拆分二期 ModuleSplitPhase2** — 仍有 11 个文件 >600 行：wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、bookmark-accessibility.js(598)。优先拆分前 5 个（>640 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex ✅ (5040 pass / 0 fail)
 
-- [ ] **R131: 无障碍功能补全 AccessibilityComplete** — 需求文档 P1 级别（R79）：键盘导航（Tab/Enter/Escape/Arrow Up-Down）、屏幕阅读器（aria-label, role, live regions）、焦点管理（焦点环、焦点陷阱）、颜色对比度 ≥ 4.5:1 审计。`lib/bookmark-accessibility.js` 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块；49 用例覆盖。复杂度: Medium
+- [x] **R131: 无障碍功能补全 AccessibilityComplete** — 需求文档 P1 级别（R79）：键盘导航（Tab/Enter/Escape/Arrow Up-Down）、屏幕阅读器（aria-label, role, live regions）、焦点管理（焦点环、焦点陷阱）、颜色对比度 ≥ 4.5:1 审计。`lib/bookmark-accessibility.js` 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块；67 用例覆盖（+18 新增）。复杂度: Medium ✅ (67 pass / 0 fail)
 
 - [ ] **R132: 引导向导与发布准备 OnboardingPublish** — (1) 需求文档 P1 级别（R81）BookmarkOnboarding：首次安装 4 步引导向导（welcome→features→theme→autoCollect）、核心功能介绍、主题选择、自动采集开关、状态持久化、i18n 双语。`lib/bookmark-onboarding.js` + 72 用例。(2) 更新 manifest.json / _locales / 截图准备。复杂度: Medium

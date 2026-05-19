@@ -2,6 +2,64 @@
 
 ---
 
+## 迭代 R131 — 无障碍功能补全 AccessibilityComplete
+
+> 日期: 2026-05-19
+> 任务: R131 无障碍功能补全 AccessibilityComplete — 基于 R79 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块
+
+### Bug 修复
+
+| 编号 | 问题 | 位置 | 修复 |
+|------|------|------|------|
+| BUG-1 | `createAnnouncer().announce()` 中 `this._enabled` 指向 announcer 对象而非 BookmarkAccessibility 实例 | `bookmark-accessibility.js:509` | 在 `createAnnouncer` 顶部 `const self = this`，`announce()` 中改用 `self._enabled` |
+
+### 新增方法
+
+| 方法 | 类型 | 说明 |
+|------|------|------|
+| `setContrastPairs(pairs, replace)` | static | 动态注入/替换对比度审计色彩对（支持暗色主题） |
+| `getFailingPairs()` | static | 返回所有未通过 WCAG AA 的色彩对 |
+| `auditContrastSummary()` | static | 对比度审计摘要：`{ results, total, passing, failing }` |
+
+### 键盘导航增强 (AC1)
+
+- Tab 键不被 `createKeyHandler` 拦截（浏览器自然跳转到下一 UI 区域）
+- `disabled` 状态下所有按键均不 `preventDefault`
+- Arrow Left/Right direction 参数与 Up/Down 保持一致（up/down）
+- 空列表 Enter/Arrow 均静默忽略
+
+### 焦点陷阱增强 (AC2)
+
+- 单元素边界：容器内只有 1 个可聚焦元素时 Tab/Shift+Tab 均不跳出
+- 重复 `activate()` 幂等：不重复注册事件监听器
+- 容器为空守卫：无可聚焦元素时 activate 不抛异常
+- `previousFocus` 为 null 时 deactivate 安全
+
+### ARIA 增强 (AC3)
+
+- `createAnnouncer()` this 绑定修复
+- Announcer disabled 守卫验证
+- 详情面板 `aria-modal=true` 测试覆盖
+
+### 对比度审计增强 (AC4)
+
+- `setContrastPairs()` 支持追加/替换模式
+- `getFailingPairs()` 便捷过滤
+- `auditContrastSummary()` 摘要统计（向后兼容：不修改 `auditContrast()` 返回值）
+
+### 修改文件
+
+1. **`lib/bookmark-accessibility.js`** — 598→636 行，bug 修复 + 3 个新 static 方法
+2. **`tests/test-bookmark-accessibility.js`** — 49→67 用例（+18 新用例）
+3. **`docs/CHANGELOG.md`** — 新增 R131 条目
+4. **`docs/TODO.md`** — R131 标记完成
+
+### 测试结果
+
+- R131 专项测试: 67 pass / 0 fail
+
+---
+
 ## 迭代 R130 — 超大模块拆分二期 ModuleSplitPhase2
 
 > 日期: 2026-05-19
