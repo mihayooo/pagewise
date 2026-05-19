@@ -605,7 +605,7 @@
 
 - [x] **R139: 红色区域测试补全覆盖率冲刺 CoverageRedZone** — 5 个覆盖率 <40% 的模块重点补测试：(1) bookmark-tag-editor.js(10.0%) — 补充构造函数、addTag/removeTag/setTags、批量编辑、标签规范化、自动补全用例；(2) knowledge-graph-utils.js(10.2%) — 补充图遍历、路径计算、异常处理用例；(3) knowledge-graph-wiki.js(10.9%) — 补充 wiki 查询、缓存、降级用例；(4) skill-store-community.js(24.2%) — 补充社区技能 CRUD、搜索、导入用例；(5) skill-store.js(34.1%) — 补充技能存储、分类、激活用例。目标: 5 个模块全部 ≥80%。复杂度: Medium
 
-- [ ] **R140: 超大模块拆分四期 ModuleSplitPhase4** — 仍有 11 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、evolution.js(547)、bookmark-knowledge-integration.js(547)、bookmark-scheduler.js(544)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 6 个（>540 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+- [x] **R140: 超大模块拆分四期 ModuleSplitPhase4** — 仍有 11 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、evolution.js(547)、bookmark-knowledge-integration.js(547)、bookmark-scheduler.js(544)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 6 个（>540 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
 
 - [ ] **R141: 黄色区域测试补全覆盖率提升 CoverageYellowZone** — 13 个覆盖率 40%-80% 的模块补测试：compilation-report-format.js(47.5%)、knowledge-base-export.js(52.3%)、docmind-client.js(63.7%)、knowledge-panel.js(65.5%)、bookmark-store-prep-checks.js(66.5%)、message-renderer.js(71.2%)、knowledge-panel-batch.js(72.5%)、knowledge-panel-virtual.js(73.5%)、bookmark-folder-suggestions.js(75.8%)、bookmark-accessibility-navigator.js(77.6%)、stats.js(78.7%)、i18n.js(79.2%)、bookmark-store-prep.js(79.4%)。优先补前 6 个（<70%），目标: 至少 9 个模块达 ≥80%。复杂度: Medium
 
