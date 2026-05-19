@@ -71,16 +71,60 @@
     "message": "Core Features",
     "description": "Onboarding features step title"
   },
+  "bookmarkOnboardingFeaturesDesc": {
+    "message": "Discover the three core capabilities of PageWise Bookmark Assistant.",
+    "description": "Onboarding features step description"
+  },
+  "bookmarkOnboardingFeaturesCollect": {
+    "message": "Smart Bookmark Collection",
+    "description": "Core feature: smart bookmark collection"
+  },
+  "bookmarkOnboardingFeaturesGraph": {
+    "message": "Knowledge Graph",
+    "description": "Core feature: knowledge graph"
+  },
+  "bookmarkOnboardingFeaturesAI": {
+    "message": "AI Smart Recommendations",
+    "description": "Core feature: AI smart recommendations"
+  },
   "bookmarkOnboardingThemeTitle": {
     "message": "Choose Theme",
     "description": "Onboarding theme step title"
+  },
+  "bookmarkOnboardingThemeLight": {
+    "message": "Light",
+    "description": "Theme option: light"
+  },
+  "bookmarkOnboardingThemeDark": {
+    "message": "Dark",
+    "description": "Theme option: dark"
+  },
+  "bookmarkOnboardingThemeSystem": {
+    "message": "Follow System",
+    "description": "Theme option: follow system"
   },
   "bookmarkOnboardingAutoCollectTitle": {
     "message": "Auto Collection",
     "description": "Onboarding auto-collect step title"
   },
+  "bookmarkOnboardingAutoCollectDesc": {
+    "message": "Enable automatic bookmark collection? When enabled, PageWise will automatically analyze newly added bookmarks.",
+    "description": "Onboarding auto-collect step description"
+  },
   "bookmarkOnboardingComplete": {
     "message": "Setup complete! Start exploring your bookmark knowledge network.",
     "description": "Onboarding completion message"
+  },
+  "bookmarkOnboardingBtnNext": {
+    "message": "Next",
+    "description": "Onboarding button: next"
+  },
+  "bookmarkOnboardingBtnPrev": {
+    "message": "Back",
+    "description": "Onboarding button: back"
+  },
+  "bookmarkOnboardingBtnSkip": {
+    "message": "Skip",
+    "description": "Onboarding button: skip"
   }
 }

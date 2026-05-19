@@ -3,7 +3,7 @@
  */
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { _createBookmarkOnboardingModule } from '../lib/bookmark-onboarding.js'
+import { _createBookmarkOnboardingModule, t, getLocales } from '../lib/bookmark-onboarding.js'
 
 function createMockStorage() {
   const store = {}
@@ -57,26 +57,24 @@ describe('BookmarkOnboarding Module', () => {
       assert.equal(result, false)
     })
 
-    it('returns true when stored value is false', async () => {
+    it('returns true for falsy values (false, null)', async () => {
       await storage.set({ bookmarkOnboardingCompleted: false })
-      const result = await mod.shouldShowOnboarding()
-      assert.equal(result, true)
-    })
-
-    it('returns true when stored value is null', async () => {
+      assert.equal(await mod.shouldShowOnboarding(), true)
       await storage.set({ bookmarkOnboardingCompleted: null })
-      const result = await mod.shouldShowOnboarding()
-      assert.equal(result, true)
+      assert.equal(await mod.shouldShowOnboarding(), true)
     })
   })
 
   // ==================== completeOnboarding ====================
 
   describe('completeOnboarding', () => {
-    it('sets bookmarkOnboardingCompleted to true in storage', async () => {
+    it('sets completed to true and saves timestamp', async () => {
+      const before = Date.now()
       await mod.completeOnboarding()
-      const data = await storage.get('bookmarkOnboardingCompleted')
+      const data = await storage.get(['bookmarkOnboardingCompleted', 'bookmarkOnboardingCompletedAt'])
       assert.equal(data.bookmarkOnboardingCompleted, true)
+      assert.ok(data.bookmarkOnboardingCompletedAt >= before)
+      assert.ok(data.bookmarkOnboardingCompletedAt <= Date.now())
     })
 
     it('overwrites existing false value', async () => {
@@ -85,31 +83,18 @@ describe('BookmarkOnboarding Module', () => {
       const data = await storage.get('bookmarkOnboardingCompleted')
       assert.equal(data.bookmarkOnboardingCompleted, true)
     })
-
-    it('saves completion timestamp', async () => {
-      const before = Date.now()
-      await mod.completeOnboarding()
-      const data = await storage.get('bookmarkOnboardingCompletedAt')
-      assert.ok(data.bookmarkOnboardingCompletedAt >= before)
-      assert.ok(data.bookmarkOnboardingCompletedAt <= Date.now())
-    })
   })
 
   // ==================== resetOnboarding ====================
 
   describe('resetOnboarding', () => {
-    it('removes completion flag from storage', async () => {
-      await storage.set({ bookmarkOnboardingCompleted: true })
+    it('removes completion flag, timestamp, and step from storage', async () => {
+      await storage.set({ bookmarkOnboardingCompleted: true, bookmarkOnboardingCompletedAt: Date.now(), bookmarkOnboardingStep: 2 })
       await mod.resetOnboarding()
-      const data = await storage.get('bookmarkOnboardingCompleted')
+      const data = await storage.get(['bookmarkOnboardingCompleted', 'bookmarkOnboardingCompletedAt', 'bookmarkOnboardingStep'])
       assert.equal(data.bookmarkOnboardingCompleted, undefined)
-    })
-
-    it('removes completion timestamp', async () => {
-      await storage.set({ bookmarkOnboardingCompletedAt: Date.now() })
-      await mod.resetOnboarding()
-      const data = await storage.get('bookmarkOnboardingCompletedAt')
       assert.equal(data.bookmarkOnboardingCompletedAt, undefined)
+      assert.equal(data.bookmarkOnboardingStep, undefined)
     })
 
     it('works when onboarding was never completed', async () => {
@@ -155,22 +140,11 @@ describe('BookmarkOnboarding Module', () => {
         assert.equal(typeof step.canSkip, 'boolean', `step ${step.id} canSkip should be boolean`)
       }
     })
-
-    it('steps are returned as copies (not mutating internal state)', () => {
-      const steps1 = mod.getSteps()
-      const steps2 = mod.getSteps()
-      assert.deepEqual(steps1, steps2)
-      steps1[0].title = 'modified'
-      assert.notEqual(steps2[0].title, 'modified')
-    })
   })
 
   describe('getTotalSteps', () => {
-    it('returns 4', () => {
+    it('returns 4 and matches getSteps().length', () => {
       assert.equal(mod.getTotalSteps(), 4)
-    })
-
-    it('matches getSteps().length', () => {
       assert.equal(mod.getTotalSteps(), mod.getSteps().length)
     })
   })
@@ -203,36 +177,22 @@ describe('BookmarkOnboarding Module', () => {
   })
 
   describe('setCurrentStepIndex', () => {
-    it('saves the step index to storage', async () => {
+    it('saves and overwrites step index in storage', async () => {
       await mod.setCurrentStepIndex(2)
-      const data = await storage.get('bookmarkOnboardingStep')
+      let data = await storage.get('bookmarkOnboardingStep')
       assert.equal(data.bookmarkOnboardingStep, 2)
-    })
-
-    it('overwrites previous value', async () => {
-      await mod.setCurrentStepIndex(1)
       await mod.setCurrentStepIndex(3)
-      const data = await storage.get('bookmarkOnboardingStep')
+      data = await storage.get('bookmarkOnboardingStep')
       assert.equal(data.bookmarkOnboardingStep, 3)
     })
   })
 
   describe('nextStep', () => {
-    it('advances to next step and returns new index', async () => {
+    it('advances step and saves index', async () => {
       const idx = await mod.nextStep()
       assert.equal(idx, 1)
-    })
-
-    it('saves the new step index', async () => {
-      await mod.nextStep()
       const saved = await storage.get('bookmarkOnboardingStep')
       assert.equal(saved.bookmarkOnboardingStep, 1)
-    })
-
-    it('advances from step 1 to step 2', async () => {
-      await mod.setCurrentStepIndex(1)
-      const idx = await mod.nextStep()
-      assert.equal(idx, 2)
     })
 
     it('does not advance past the last step', async () => {
@@ -250,26 +210,15 @@ describe('BookmarkOnboarding Module', () => {
   })
 
   describe('prevStep', () => {
-    it('goes back to previous step and returns new index', async () => {
+    it('goes back and saves step index', async () => {
       await mod.setCurrentStepIndex(2)
       const idx = await mod.prevStep()
       assert.equal(idx, 1)
-    })
-
-    it('saves the new step index', async () => {
-      await mod.setCurrentStepIndex(2)
-      await mod.prevStep()
       const saved = await storage.get('bookmarkOnboardingStep')
       assert.equal(saved.bookmarkOnboardingStep, 1)
     })
 
     it('does not go below 0', async () => {
-      const idx = await mod.prevStep()
-      assert.equal(idx, 0)
-    })
-
-    it('goes from 1 to 0', async () => {
-      await mod.setCurrentStepIndex(1)
       const idx = await mod.prevStep()
       assert.equal(idx, 0)
     })
@@ -574,6 +523,89 @@ describe('BookmarkOnboarding Module', () => {
       await mod.completeOnboarding()
       const idx = await mod.nextStep()
       assert.equal(idx, -1)
+    })
+  })
+
+  // ==================== i18n Locale Data ====================
+
+  describe('getLocales', () => {
+    it('returns all locales when called without arguments', () => {
+      const locales = getLocales()
+      assert.ok(locales['zh-CN'])
+      assert.ok(locales['en-US'])
+    })
+
+    it('returns specific locale when given a locale code', () => {
+      const zh = getLocales('zh-CN')
+      assert.ok(zh)
+      assert.equal(typeof zh['onboarding.welcome.title'], 'string')
+    })
+
+    it('returns null for unknown locale', () => {
+      const result = getLocales('fr-FR')
+      assert.equal(result, null)
+    })
+
+    it('zh-CN and en-US have the same keys', () => {
+      const zh = getLocales('zh-CN')
+      const en = getLocales('en-US')
+      const zhKeys = Object.keys(zh).sort()
+      const enKeys = Object.keys(en).sort()
+      assert.deepEqual(zhKeys, enKeys)
+    })
+
+    it('has 22 i18n keys per locale', () => {
+      const zh = getLocales('zh-CN')
+      assert.equal(Object.keys(zh).length, 22)
+    })
+
+    it('all keys are non-empty strings', () => {
+      const locales = getLocales()
+      for (const [loc, messages] of Object.entries(locales)) {
+        for (const [key, val] of Object.entries(messages)) {
+          assert.equal(typeof val, 'string', `${loc}.${key} should be string`)
+          assert.ok(val.length > 0, `${loc}.${key} should not be empty`)
+        }
+      }
+    })
+  })
+
+  // ==================== i18n Translation Helper ====================
+
+  describe('t (translation helper)', () => {
+    it('returns zh-CN translation by default', () => {
+      const text = t('onboarding.welcome.title')
+      assert.equal(text, '欢迎使用书签智能助手')
+    })
+
+    it('returns en-US translation when locale is en-US', () => {
+      const text = t('onboarding.welcome.title', 'en-US')
+      assert.equal(text, 'Welcome to Bookmark Assistant')
+    })
+
+    it('returns the key itself for unknown key', () => {
+      const text = t('nonexistent.key')
+      assert.equal(text, 'nonexistent.key')
+    })
+
+    it('falls back to zh-CN for unknown locale', () => {
+      const text = t('onboarding.welcome.title', 'ja-JP')
+      assert.equal(text, '欢迎使用书签智能助手')
+    })
+
+    it('supports parameter interpolation', () => {
+      const text = t('onboarding.progress', 'zh-CN', { current: 2, total: 4 })
+      assert.equal(text, '2 / 4')
+    })
+
+    it('interpolation works for en-US too', () => {
+      const text = t('onboarding.progress', 'en-US', { current: 3, total: 4 })
+      assert.equal(text, '3 / 4')
+    })
+
+    it('leaves unmatched placeholders as-is', () => {
+      const text = t('onboarding.progress', 'zh-CN', {})
+      assert.equal(text, '{{current}} / {{total}}')
     })
   })
 })

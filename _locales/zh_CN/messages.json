@@ -71,16 +71,60 @@
     "message": "核心功能",
     "description": "引导向导功能介绍步骤标题"
   },
+  "bookmarkOnboardingFeaturesDesc": {
+    "message": "了解 PageWise 书签助手的三大核心能力。",
+    "description": "引导向导功能介绍步骤描述"
+  },
+  "bookmarkOnboardingFeaturesCollect": {
+    "message": "智能书签采集",
+    "description": "核心功能: 智能书签采集"
+  },
+  "bookmarkOnboardingFeaturesGraph": {
+    "message": "知识图谱",
+    "description": "核心功能: 知识图谱"
+  },
+  "bookmarkOnboardingFeaturesAI": {
+    "message": "AI 智能推荐",
+    "description": "核心功能: AI 智能推荐"
+  },
   "bookmarkOnboardingThemeTitle": {
     "message": "选择主题",
     "description": "引导向导主题选择步骤标题"
+  },
+  "bookmarkOnboardingThemeLight": {
+    "message": "浅色",
+    "description": "主题选项: 浅色"
+  },
+  "bookmarkOnboardingThemeDark": {
+    "message": "深色",
+    "description": "主题选项: 深色"
+  },
+  "bookmarkOnboardingThemeSystem": {
+    "message": "跟随系统",
+    "description": "主题选项: 跟随系统"
   },
   "bookmarkOnboardingAutoCollectTitle": {
     "message": "自动采集",
     "description": "引导向导自动采集步骤标题"
   },
+  "bookmarkOnboardingAutoCollectDesc": {
+    "message": "是否启用书签自动采集？启用后 PageWise 会自动分析新添加的书签。",
+    "description": "引导向导自动采集步骤描述"
+  },
   "bookmarkOnboardingComplete": {
     "message": "设置完成！开始探索你的书签知识网络吧。",
     "description": "引导向导完成提示"
+  },
+  "bookmarkOnboardingBtnNext": {
+    "message": "下一步",
+    "description": "引导向导按钮: 下一步"
+  },
+  "bookmarkOnboardingBtnPrev": {
+    "message": "上一步",
+    "description": "引导向导按钮: 上一步"
+  },
+  "bookmarkOnboardingBtnSkip": {
+    "message": "跳过",
+    "description": "引导向导按钮: 跳过"
   }
 }
