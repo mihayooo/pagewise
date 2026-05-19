@@ -527,4 +527,4 @@
 
 - [x] **R116: 大模块拆分重构 ModuleRefactor** — 对超大模块进行职责拆分：knowledge-base.js(1866行→拆为 core/crud/query/export)、bookmark-graph.js(1096行)、knowledge-graph.js(1035行)、knowledge-panel.js(907行)、bookmark-organize.js(806行)。拆分后每文件 ≤400 行，保持 API 签名不变确保向后兼容。复杂度: Complex
 
-- [ ] **R117: 健康检查报告更新 HealthCheckUpdate** — 更新 scripts/health-check.sh：新增测试覆盖空白检测（列出无测试的模块）、新增 ESLint 警告趋势统计、新增模块行数 Top-10 排行、修复与 R113/R114/R115 的衔接。输出 HTML + Markdown 双格式报告。复杂度: Simple
+- [x] **R117: 健康检查报告更新 HealthCheckUpdate** — 更新 scripts/health-check.sh：新增测试覆盖空白检测（列出无测试的模块）、新增 ESLint 警告趋势统计、新增模块行数 Top-10 排行、修复与 R113/R114/R115 的衔接。输出 HTML + Markdown 双格式报告。复杂度: Simple
