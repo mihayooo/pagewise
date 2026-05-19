@@ -82,6 +82,9 @@ class MockIDBObjectStore {
     this._records = new Map();
     this._nextId = 1;
     this._indexes = {};
+    this.indexNames = {
+      contains: (name) => !!this._indexes[name],
+    };
   }
 
   createIndex(indexName, keyPath, options = {}) {
@@ -298,6 +301,10 @@ class MockIDBDatabase {
     return store;
   }
 
+  deleteObjectStore(name) {
+    delete this._stores[name];
+  }
+
   transaction(storeNames, mode) {
     return new MockIDBTransaction(this, storeNames, mode);
   }
@@ -326,12 +333,21 @@ export const mockIndexedDB = {
         return;
       }
 
-      const db = new MockIDBDatabase(name, newVersion);
+      // 版本升级：复用已有 DB（保留 stores 和数据），更新版本号
+      const db = existing || new MockIDBDatabase(name, newVersion);
+      if (existing) {
+        db.version = newVersion;
+      }
 
-      // 如果需要升级，触发 onupgradeneeded
+      // 如果需要升级，触发 onupgradeneeded（含 oldVersion 和 transaction）
       if (!existing || newVersion > existingVersion) {
         if (req.onupgradeneeded) {
-          req.onupgradeneeded({ target: { result: db } });
+          // 提供一个可用于升级的 transaction（模拟 versionchange 事务）
+          const upgradeTx = new MockIDBTransaction(db, [], 'versionchange');
+          req.onupgradeneeded({
+            target: { result: db, transaction: upgradeTx },
+            oldVersion: existingVersion,
+          });
         }
       }
 
