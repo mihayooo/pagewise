@@ -677,8 +677,8 @@
 
 - [x] **R159: ESLint 警告清零 LintWarningFinalR55** — 当前 0 errors / 33 warnings（全部 `no-unused-vars`）；sidebar.js 8 处（R158 连带修复）、lib/logger.js 7 处（logWarn/logError/logDebug/getLogs/exportLogs/getRecentMetrics/getPerformanceStats）、其余文件 18 处；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
 
-- [ ] **R160: 覆盖率基础设施修复与行覆盖率回升 CoverageInfraAndBoost** — 当前 `npm run test:coverage` 报告行覆盖率 22.17%（10212/46056），与历史声称的 ≥80% 严重脱节；排查根因：(1) c8 是否正确插桩 sidebar/options/popup/background 入口文件（ESM 动态 import / Chrome API 依赖）；(2) 是否存在 c8 `--all` 标志缺失导致大量模块未计入统计；(3) 修复 c8 配置使所有源码模块纳入覆盖率；目标: 行覆盖率 ≥80%、函数覆盖率 ≥60%。复杂度: Medium
+- [x] **R160: 覆盖率基础设施修复与行覆盖率回升 CoverageInfraAndBoost** — 当前 `npm run test:coverage` 报告行覆盖率 22.17%（10212/46056），与历史声称的 ≥80% 严重脱节；排查根因：(1) c8 是否正确插桩 sidebar/options/popup/background 入口文件（ESM 动态 import / Chrome API 依赖）；(2) 是否存在 c8 `--all` 标志缺失导致大量模块未计入统计；(3) 修复 c8 配置使所有源码模块纳入覆盖率；目标: 行覆盖率 ≥80%、函数覆盖率 ≥60%。复杂度: Medium
 
-- [ ] **R161: 超大 lib 文件拆分八期 ModuleSplitPhase8** — 仍有 25 个 lib 文件 >400 行（Top-5: bookmark-notifier.js 493、batch-summary.js 482、bookmark-search.js 477、bookmark-batch.js 476、bookmark-duplicate-detector.js 474）；优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+- [x] **R161: 超大 lib 文件拆分八期 ModuleSplitPhase8** — 仍有 25 个 lib 文件 >400 行（Top-5: bookmark-notifier.js 493、batch-summary.js 482、bookmark-search.js 477、bookmark-batch.js 476、bookmark-duplicate-detector.js 474）；优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
 - [ ] **R162: 全量回归与发布收尾 ReleaseRegressionR55** — R158-R161 全部完成后执行：(1) `npm run test:ci` 0 fail；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R158-R161 变更记录；(5) 输出发布候选版本号。复杂度: Simple
