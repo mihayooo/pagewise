@@ -2,6 +2,38 @@
 
 ---
 
+## 迭代 R128 — 测试失败批量修复 TestFailureBatchFix2
+
+> 日期: 2026-05-19
+> 任务: R128 测试失败批量修复 TestFailureBatchFix2 — 修复 `npm run test:ci` 中 3 个失败测试（R125 模块拆分遗留：bookmark-folder-suggestions.js 未创建）
+
+### 修改文件
+
+1. **`lib/bookmark-folder-suggestions.js`** — 新建文件（39 行）
+   - R125 模块拆分时遗漏的文件，从未创建
+   - 从 `bookmark-folder-analyzer.js` 的 `BookmarkFolderAnalyzer` 类提取 `suggestOrganization()` 和 `exportFolderTree()` 为独立顶层函数
+   - 保持原有 API 语义：接受 bookmarks 数组 + 可选参数，返回与类方法相同的结果
+
+### 修复的测试
+
+| # | 测试用例 | 失败原因 | 修复方式 |
+|---|---------|----------|----------|
+| F1 | `bookmark-folder-suggestions.js 应 ≤ 400 行` | ENOENT: 文件不存在 | 创建该文件（39 行） |
+| F2 | `应导出 suggestOrganization` | ERR_MODULE_NOT_FOUND | 文件创建后导出函数 |
+| F3 | `应导出 exportFolderTree` | ERR_MODULE_NOT_FOUND | 文件创建后导出函数 |
+
+### 设计决策
+
+- **Wrapper 模式 vs 代码复制**: 选择 wrapper 模式，import BookmarkFolderAnalyzer 后委托调用，避免代码重复，保持单一真源
+- **函数签名**: 顶层函数额外接受 bookmarks 数组参数（类方法通过 constructor 接收），更符合函数式 API 风格
+- **不修改测试**: 测试文件保持原样，仅补全缺失的源码
+
+### 测试结果
+
+- `npm run test:ci`: 4949 pass / 0 fail
+
+---
+
 ## 迭代 R113 — CI 流水线修复 CiLintFix
 
 > 日期: 2026-05-19
@@ -967,4 +999,12 @@ BookmarkI18n (新建, R80)
 
 - 新增: 30 个测试，全部通过
 - 全量回归: 4238 tests, 0 fail
+
+---
+
+## R122: 开发者文档补全 DevDocumentation
+- 创建 CONTRIBUTING.md (开发环境搭建、分支策略、PR 流程、测试规范)
+- 创建 docs/LIB-API-REFERENCE.md (lib/ 公共 API 速查表)
+- 更新 README.md (开发/调试/发布指南)
+- 更新 CONTRIBUTING.md 链接和架构文档链接
    501|

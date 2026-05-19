@@ -7,6 +7,11 @@
      7|## [Unreleased]
 
 ### 新增
+- **R128: 测试失败批量修复 TestFailureBatchFix2**
+  - 创建 `lib/bookmark-folder-suggestions.js`，从 `BookmarkFolderAnalyzer` 提取 `suggestOrganization` / `exportFolderTree` 为独立导出函数
+  - 修复 R125 模块拆分遗留的 3 个测试失败：文件行数检查（文件不存在）+ 导出验证（ERR_MODULE_NOT_FOUND）
+  - 全量回归: 4949 pass / 0 fail
+
 - **R113: CI 流水线修复 CiLintFix**
   - CI lint job 集成 ESLint：新增 `npm install` + `npm run lint` 步骤
   - `eqeqeq` 规则降级为 `warn`（106 处存量 `==`/`!=` 用法，避免 CI 阻断）
@@ -635,4 +640,9 @@
    498|  - 每条 AI 回答新增「🔀 分支」按钮
    499|  - 分支信息条显示当前分支来源问题
    500|  - 「↩️ 返回主对话」按钮快速切换回主线
+
+### R122: 开发者文档补全 DevDocumentation
+- 新增 CONTRIBUTING.md 贡献指南
+- 新增 docs/LIB-API-REFERENCE.md API 速查表
+- 更新 README.md 增加开发/调试/发布指南
    501|
