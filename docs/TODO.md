@@ -623,7 +623,7 @@
 
 - [x] **R144: ESLint 问题清零 LintFinalSweep** — 修复 1 个 parsing error（test-r137-coverage-boost.js 中 `→` 特殊字符导致解析失败）；清理 113 个 `no-unused-vars` 警告（逐文件审查：删除或前缀 `_` 标记未使用变量/导入/参数）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
-- [ ] **R145: 超大模块拆分五期 ModuleSplitPhase5** — 仍有 9 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 5 个（>530 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+- [x] **R145: 超大模块拆分五期 ModuleSplitPhase5** — 仍有 9 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 5 个（>530 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
 
 - [ ] **R146: 函数覆盖率提升 FunctionCoverageBoost** — 当前行覆盖率 93.02% 但函数覆盖率仅 40.77%（4893 个函数仅 1995 个被调用）；识别 Top-20 未覆盖函数（按函数体大小排序）；为关键未调用函数补充测试（重点关注: 纯逻辑函数、工具函数、边界处理函数）；目标: 函数覆盖率 ≥65%。复杂度: Medium
 
