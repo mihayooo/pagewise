@@ -645,3 +645,5 @@
 - [x] **R151: 覆盖率基线对齐与提升 CoverageBaselineAlign** — 当前实测行覆盖率 79.88%（Lines 37067/46401）、函数覆盖率 87.15%（Functions 1527/1752）、分支覆盖率 85.24%（Branches 7636/8958），与迭代历史声称的 93.02% 存在显著差距；排查 c8 插桩覆盖范围（168 个 lib 模块 vs options/popup/sidebar/background 入口文件）；识别覆盖率最低的模块 Top-15 并补测试；目标: 行覆盖率 ≥85%、函数覆盖率 ≥90%。复杂度: Medium
 
 - [x] **R152: 测试执行效率优化 TestExecutionOpt2** — 当前全量测试 ~36s（5639 用例 / 950 suites）；优化策略: (1) 识别 Top-5 最慢测试文件（按 duration_ms 排序）；(2) 移除测试中不必要的 `setTimeout`/sleep 阻塞；(3) 利用 `--test-concurrency` 并行执行；(4) 建立 CI smoke test 子集（核心流程 ≤60 用例，<3s）；目标: 全量 ≤25s。复杂度: Medium
+
+- [x] **R152: 行覆盖率冲刺 85% CoverageSprint85** — 当前行覆盖率 80.24%（R151 实测），目标 ≥85%；识别覆盖最低的 Top-15 模块（按未覆盖行数排序）；优先补充纯逻辑/工具函数的测试（避免 mock 复杂的 Chrome API 调用链）；目标: 行覆盖率 ≥85%、函数覆盖率 ≥90%。复杂度: Medium - 飞轮迭代 R52
