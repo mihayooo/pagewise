@@ -587,8 +587,8 @@
 
 - [x] **R134: 超大模块拆分三期 ModuleSplitPhase3** — 仍有 14 个文件 >500 行：bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-accessibility.js(636)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、contradiction-detector.js(589)、bookmark-semantic-search.js(579)、skill-validator.js(577)、git-repo.js(567)、bookmark-sync.js(561)、bookmark-ai-recommender.js(558)、bookmark-final-polish.js(555)、compilation-report.js(552)。优先拆分前 8 个（>570 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
 
-- [ ] **R135: 测试执行优化 TestExecutionOpt** — 当前全量测试 5061 用例执行耗时 ~29.5s；优化策略: (1) 按模块分片并行执行（`node --test --test-concurrency=4`）；(2) 建立 smoke test 子集（核心流程 ~80 用例，CI 快速门禁 <5s）；(3) 检测并移除测试中的 `setTimeout`/`sleep` 阻塞；(4) 目标: 全量 ≤20s，smoke ≤5s。复杂度: Medium
+- [x] **R135: 测试执行优化 TestExecutionOpt** — 当前全量测试 5061 用例执行耗时 ~29.5s；优化策略: (1) 按模块分片并行执行（`node --test --test-concurrency=4`）；(2) 建立 smoke test 子集（核心流程 ~80 用例，CI 快速门禁 <5s）；(3) 检测并移除测试中的 `setTimeout`/`sleep` 阻塞；(4) 目标: 全量 ≤20s，smoke ≤5s。复杂度: Medium
 
-- [ ] **R136: 核心流程 E2E 测试 CoreFlowE2E** — 补全端到端集成测试覆盖核心用户旅程: 选中文字 → 提问 → AI 回答 → 存入知识库 → 搜索回顾 → 书签关联；模拟 Chrome API stub（tabs/storage/scripting）；覆盖正常路径 + 异常路径（网络超时/存储满/AI 降级）；验证模块间数据流完整性（knowledge-base ↔ bookmark-knowledge-integration ↔ bookmark-semantic-search）；目标: ≥20 用例。复杂度: Medium
+- [x] **R136: 核心流程 E2E 测试 CoreFlowE2E** — 补全端到端集成测试覆盖核心用户旅程: 选中文字 → 提问 → AI 回答 → 存入知识库 → 搜索回顾 → 书签关联；模拟 Chrome API stub（tabs/storage/scripting）；覆盖正常路径 + 异常路径（网络超时/存储满/AI 降级）；验证模块间数据流完整性（knowledge-base ↔ bookmark-knowledge-integration ↔ bookmark-semantic-search）；目标: ≥20 用例。复杂度: Medium
 
 - [ ] **R137: 测试覆盖率提升 TestCoverageBoost** — 当前覆盖率基线待验证（R108 报告 92.15% 但测试报告显示 0 pass/0 fail 脱节）；运行 `npm run test:coverage` 建立准确基线；识别覆盖率 <60% 的模块（重点关注: background service-worker、options/popup/sidebar UI 入口、lib/agent-loop.js、lib/evolution.js）；为目标模块补充边界用例；目标: lib/ 模块行覆盖率 ≥ 80%。复杂度: Medium
