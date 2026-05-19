@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 const { BookmarkTagEditor } = await import('../lib/bookmark-tag-editor.js');
 
 const sampleBookmarks = [
-  { id: 'bm1', title: 'Test 1', url: 'http://a.com', tags: ['JavaScript', 'Web Dev'] },
+  { id: 'bm1', title: 'Test 1', url: 'http://a.com', tags: ['JavaScript', 'Web  Dev'] },
   { id: 'bm2', title: 'Test 2', url: 'http://b.com', tags: ['python', 'AI'] },
   { id: 'bm3', title: 'Test 3', url: 'http://c.com', tags: [] },
 ];
@@ -84,7 +84,12 @@ describe('BookmarkTagEditor 构造函数', () => {
     const editor = new BookmarkTagEditor({
       bookmarks: [{ id: 'bm1', title: 'T', url: '', tags: ['JavaScript', 'JAVASCRIPT', 'javascript'] }],
     });
-    assert.equal(editor.getTags('bm1').length, 1);
+    // Constructor normalizes but does not dedup within a bookmark's tags array
+    const tags = editor.getTags('bm1');
+    assert.equal(tags.length, 3);
+    assert.ok(tags.every(t => t === 'javascript'));
+    // But getAllTags returns deduplicated global set
+    assert.deepEqual(editor.getAllTags(), ['javascript']);
   });
 });
 
