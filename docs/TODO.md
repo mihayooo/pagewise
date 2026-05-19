@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R142
+> 迭代轮次: R43 - R147
 > 最后更新: 2026-05-19
 
 ---
@@ -436,7 +436,8 @@
 | D: 集成 | R73-R82 | 6 个 | 70+ |
 | E: 发布 | R83-R92 | 4 个 | 60+ |
 | N: 测试冲刺 | R138-R142 | 0 个 | 200+ |
-| **总计** | **55 轮** | **34 个** | **560+** |
+| O: 测试修复与覆盖率冲刺 | R143-R147 | 0 个 | 100+ |
+| **总计** | **60 轮** | **34 个** | **660+** |
 
 ---
 
@@ -610,3 +611,20 @@
 - [x] **R141: 黄色区域测试补全覆盖率提升 CoverageYellowZone** — 13 个覆盖率 40%-80% 的模块补测试：compilation-report-format.js(47.5%)、knowledge-base-export.js(52.3%)、docmind-client.js(63.7%)、knowledge-panel.js(65.5%)、bookmark-store-prep-checks.js(66.5%)、message-renderer.js(71.2%)、knowledge-panel-batch.js(72.5%)、knowledge-panel-virtual.js(73.5%)、bookmark-folder-suggestions.js(75.8%)、bookmark-accessibility-navigator.js(77.6%)、stats.js(78.7%)、i18n.js(79.2%)、bookmark-store-prep.js(79.4%)。优先补前 6 个（<70%），目标: 至少 9 个模块达 ≥80%。复杂度: Medium
 
 - [x] **R142: c8 插桩盲区消除 CoverageInstrumentationFix** — 排查 `lib/agent-loop.js`(231行) 和 `lib/evolution.js`(547行) 未被 c8 插桩的根因（ESM 动态 import / Chrome API 全局依赖）；修复 c8 配置使所有 lib/ 模块纳入覆盖率统计；验证修正后 lib/ 整体行覆盖率 ≥85%；若 c8 无法覆盖则用 `--all` 标志并记录排除原因。复杂度: Medium
+
+---
+
+## Phase O: 测试修复与函数覆盖率冲刺 (R143-R147) — 5 轮
+
+> 飞轮迭代 R40 起，2026-05-19
+> 目标: 修复 23 个失败测试、清理 114 个 ESLint 问题、函数覆盖率从 40.77% 提升至 ≥70%、继续超大模块拆分
+
+- [ ] **R143: 测试失败批量修复 TestFailureBatchFix3** — 修复 `npm run test:ci` 中 23 个失败用例：(1) AIClient vision 消息格式 7 个（OpenAI/Claude image_url 数组格式转换、双 /v1 URL 去重）；(2) EvolutionEngine 10 个（evolve/batchEvolve/analyzeUserLevel/reset 行为断言，R142 代码变更后行为漂移）；(3) BookmarkVisualizer 节点半径缩放 1 个；(4) BookmarkSemanticSearch _mergeResults 合并去重 1 个；(5) mergeIngestStats 边界情况 1 个；(6) test-r137-coverage-boost data URL 图片处理 3 个。目标: `npm run test:ci` 5553 pass / 0 fail。复杂度: Medium
+
+- [ ] **R144: ESLint 问题清零 LintFinalSweep** — 修复 1 个 parsing error（test-r137-coverage-boost.js 中 `→` 特殊字符导致解析失败）；清理 113 个 `no-unused-vars` 警告（逐文件审查：删除或前缀 `_` 标记未使用变量/导入/参数）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+
+- [ ] **R145: 超大模块拆分五期 ModuleSplitPhase5** — 仍有 9 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 5 个（>530 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+
+- [ ] **R146: 函数覆盖率提升 FunctionCoverageBoost** — 当前行覆盖率 93.02% 但函数覆盖率仅 40.77%（4893 个函数仅 1995 个被调用）；识别 Top-20 未覆盖函数（按函数体大小排序）；为关键未调用函数补充测试（重点关注: 纯逻辑函数、工具函数、边界处理函数）；目标: 函数覆盖率 ≥65%。复杂度: Medium
+
+- [ ] **R147: 全量回归与发布候选 ReleaseCandidate2** — `npm run test:ci` 全量回归确保 0 fail；`npm run lint` 0 errors 0 warnings；覆盖率报告确认行覆盖率 ≥90%、函数覆盖率 ≥60%；更新 CHANGELOG.md 补充 R143-R146 变更记录；输出发布候选版本。复杂度: Simple
