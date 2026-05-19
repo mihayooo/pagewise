@@ -694,7 +694,7 @@
 
 - [x] **R163: 间隔复习系统 SpacedRepetition** — 新建 `lib/bookmark-spaced-repetition.js`，基于 SM-2 算法实现间隔复习调度：(1) 将已读书签/知识条目纳入复习队列；(2) 按遗忘曲线动态调整复习间隔（首次 1d → 3d → 7d → 14d → 30d）；(3) 复习时展示书签摘要并要求用户评级（Again/Hard/Good/Easy）；(4) 复习统计：当日待复习数、连续打卡天数、记忆保持率；(5) 与 BookmarkNotifications 联动推送"今日待复习"提醒；(6) 测试 ≥30 用例。复杂度: Complex
 
-- [ ] **R164: AI 问答增强 — 上下文感知 ContextAwareAI** — 升级 `lib/ai-client.js` 问答能力：(1) 选中文字提问时自动附加当前页面 URL、标题、已知书签上下文作为 system prompt；(2) 从知识库检索与问题相关的历史条目（top-3），注入 prompt 作为"已有知识"参考；(3) 支持多轮追问（保留最近 5 轮对话上下文）；(4) 新增"解释术语"快捷操作（选中专业术语一键获取解释）；(5) 与 bookmark-semantic-search.js 集成实现知识增强检索。复杂度: Complex
+- [x] **R164: AI 问答增强 — 上下文感知 ContextAwareAI** — 升级 `lib/ai-client.js` 问答能力：(1) 选中文字提问时自动附加当前页面 URL、标题、已知书签上下文作为 system prompt；(2) 从知识库检索与问题相关的历史条目（top-3），注入 prompt 作为"已有知识"参考；(3) 支持多轮追问（保留最近 5 轮对话上下文）；(4) 新增"解释术语"快捷操作（选中专业术语一键获取解释）；(5) 与 bookmark-semantic-search.js 集成实现知识增强检索。复杂度: Complex
 
 - [ ] **R165: 学习周报生成 WeeklyDigest** — 新建 `lib/bookmark-weekly-digest.js`，自动生成用户每周学习摘要：(1) 统计本周新增书签、阅读完成数、提问次数、知识条目增长；(2) 按领域分布生成文字报告 + 数据摘要；(3) 识别本周学习重点领域和薄弱领域（复用 bookmark-gap-detector.js）；(4) 推荐下周学习方向（结合 learning-path.js 和 gap-detector.js）；(5) 通过 BookmarkNotifications 在每周一推送摘要；(6) 支持导出 Markdown/HTML 格式周报；(7) 测试 ≥25 用例。复杂度: Medium
 
