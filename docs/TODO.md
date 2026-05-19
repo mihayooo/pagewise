@@ -553,7 +553,7 @@
 
 - [x] **R124: ESLint 警告彻底清除 LintWarningZero** — 清除剩余 197 个 no-unused-vars 警告：逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 no-unused-vars 规则从 `warn` 收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
-- [ ] **R125: 超大模块拆分收尾 ModuleSplitFinish** — R120 声称完成 Top-5 拆分但实际仍有 9 个文件 >500 行：bookmark-organize.js(806)、auto-classifier.js(728)、stats.js(701)、wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)。优先拆分前 3 个（>700 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
+- [x] **R125: 超大模块拆分收尾 ModuleSplitFinish** — R120 声称完成 Top-5 拆分但实际仍有 9 个文件 >500 行：bookmark-organize.js(806)、auto-classifier.js(728)、stats.js(701)、wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)。优先拆分前 3 个（>700 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
 
 - [ ] **R126: 模块间循环依赖消除 CircularDepElimination** — 利用 R107 健康检查输出，识别并消除模块间循环依赖：梳理依赖图 → 断开环路（接口抽象/事件总线/依赖注入）；将核心模块（knowledge-base、ai-client、bookmark-graph）解耦为单向依赖 DAG；新增循环依赖 CI 门禁脚本。复杂度: Complex
 
