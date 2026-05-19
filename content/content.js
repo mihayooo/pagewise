@@ -157,7 +157,7 @@
   /**
    * 通过 XPath 精确定位并高亮
    */
-  function applyHighlightByXPath(text, xpath, offset) {
+  function applyHighlightByXPath(text, xpath, _offset) {
     const node = getNodeByXPath(xpath);
     if (!node || node.nodeType !== Node.TEXT_NODE) return false;
 
@@ -1145,7 +1145,7 @@
     if (existing) existing.remove();
   }
 
-  function createFloatBtn(selectedText, rect) {
+  function _createFloatBtn(selectedText, rect) {
     removeFloatBtn();
 
     const btn = document.createElement('button');

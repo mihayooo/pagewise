@@ -435,3 +435,26 @@ describe('MyModule', () => {
 ## 许可证
 
 MIT License
+
+---
+
+## npm Scripts
+
+```bash
+# 运行测试
+npm run test
+
+# 代码检查
+npm run lint
+
+# 测试覆盖率
+npm run test:coverage
+```
+
+## 参与贡献
+
+欢迎贡献！请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解开发环境搭建、分支策略、PR 流程和测试规范。
+
+## 架构概览
+
+项目架构详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
