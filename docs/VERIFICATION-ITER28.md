@@ -1,8 +1,9 @@
 # VERIFICATION.md — Iteration #28 Review
 
-> 任务: **L2.5 增量编译** — 不是每次全量重新编译，只处理变化部分
-> 审查日期: 2026-04-30
-> 审查人: Guard Agent
+> 任务: **R131: 无障碍功能补全 AccessibilityComplete**
+> 迭代: 28
+> 日期: 2026-05-19
+> 审查者: Guard Agent
 
 ---
 
@@ -10,145 +11,135 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | **零实现** — 设计文档存在，但无任何代码文件被创建或提交 |
-| 代码质量 | ❌ | 无法评估 — `lib/incremental-compiler.js` 不存在 |
-| 测试覆盖 | ❌ | 无法评估 — `tests/test-incremental-compiler.js` 不存在，测试结果 0 通过 / 0 失败 |
-| 文档同步 | ⚠️ | `docs/DESIGN-ITER28.md` 存在（未跟踪），TODO.md 中 L2.5 未标记完成，CHANGELOG.md 未更新 |
+| 功能完整性 | ⚠️ | AC1-AC4 核心功能均已实现，但 AC3「Announcer 重复创建守卫」既无实现也无测试（需求明确要求） |
+| 代码质量 | ✅ | BUG-1 修复正确（`self._enabled` 闭包捕获）；3 个新 static 方法 API 设计简洁；向后兼容（`auditContrastSummary` 而非修改原方法）；零安全风险 |
+| 测试覆盖 | ⚠️ | 67/67 全通过零回归；+18 新用例有效覆盖新增功能；但 Shift+Tab 缺独立用例、Announcer 重复创建无测试；`afterEach` 作用域局限于 R131 describe 块 |
+| 文档同步 | ✅ | CHANGELOG.md、TODO.md（☐→☑）、IMPLEMENTATION.md、REQUIREMENTS-ITER28.md 均已更新且内容一致 |
 
-**总体判定: ❌ 本轮迭代未完成，需要完全返工。**
+**总评: ⚠️ 有条件通过** — 核心功能完整、质量良好，但有 1 个需求项（AC3 重复创建守卫）完全未实现，建议补充后合并。
 
 ---
 
-## 详细审查
+## 变更文件清单
 
-### 1. 功能完整性 — ❌ 完全缺失
+| 文件 | 行数变化 | 说明 |
+|------|----------|------|
+| `lib/bookmark-accessibility.js` | 598→636 (+38) | BUG-1 修复 + 3 个新 static 方法 |
+| `tests/test-bookmark-accessibility.js` | 49→67 用例 (+18) | 键盘导航(6)、焦点陷阱(4)、ARIA(1)、Announcer(2)、对比度扩展(7) |
+| `docs/CHANGELOG.md` | +10 | R131 条目 |
+| `docs/TODO.md` | ±1 行 | R131 `☐` → `☑` |
+| `docs/IMPLEMENTATION.md` | +58 | R131 实现记录 |
+| `docs/REQUIREMENTS-ITER28.md` | +166 (新文件) | R131 需求文档 |
+| `docs/reports/2026-05-19-R27.md` | -53/+24 | R27 报告精简（与 R131 关联度低，属附带清理） |
 
-设计文档 `docs/DESIGN-ITER28.md` 定义了以下文件，但 **均未创建**：
+---
 
-| 预期文件 | 状态 | 说明 |
-|----------|------|------|
-| `lib/incremental-compiler.js` | ❌ 不存在 | 设计文档要求的主模块（IncrementalCompiler 类 + 13 个核心方法） |
-| `tests/test-incremental-compiler.js` | ❌ 不存在 | 设计文档要求的单元测试文件 |
+## 逐项验收审查
 
-设计文档中定义的功能需求全部未实现：
+### AC1: 键盘导航 ✅
 
-| 设计要求 | 状态 |
-|----------|------|
-| `COMPILE_STATUS` 枚举（pending/compiled/stale/failed） | ❌ 未实现 |
-| `CompileRecord` 数据结构 | ❌ 未实现 |
-| `IncrementalCompiler` 类（13 个方法） | ❌ 未实现 |
-| FNV-1a 内容哈希策略 | ❌ 未实现 |
-| 增量编译计划（toCompile/toReclassify/skipped） | ❌ 未实现 |
-| 实体/概念失效机制（invalidateByEntity/invalidateByConcept） | ❌ 未实现 |
-
-### 2. 代码质量 — ❌ 无法评估
-
-无代码可审查。
-
-设计文档中的一些设计点值得注意（供实现时参考）：
-- ✅ 设计文档明确要求「纯 ES Module，不依赖 IndexedDB 或 Chrome API」— 与 L2.1-L2.4 模块一致
-- ✅ 设计文档定义了明确的方法签名（13 个方法）
-- ✅ 内容哈希策略（FNV-1a 32-bit）合理，输入结构清晰
-- ⚠️ 设计文档未说明与现有 `compilation-report.js`（R27）的集成方式
-- ⚠️ 设计文档未说明与 `auto-classifier.js`（R24）的编译状态同步机制
-
-### 3. 测试覆盖 — ❌ 完全缺失
-
-- 测试文件 `tests/test-incremental-compiler.js` 不存在
-- 测试结果: 0 通过 / 0 失败（根本没有测试可运行）
-
-### 4. 文档同步 — ⚠️ 部分
-
-| 文档 | 状态 | 说明 |
+| 子项 | 状态 | 说明 |
 |------|------|------|
-| `docs/DESIGN-ITER28.md` | ⚠️ 未跟踪 | 文件存在但未 `git add` |
-| `docs/TODO.md` | ❌ 未更新 | L2.5 仍标记为 `[ ]`（未完成） |
-| `docs/CHANGELOG.md` | ❌ 未更新 | 无 R28 相关条目 |
-| 迭代报告 | ❌ 未生成 | 缺少 `docs/reports/2026-04-30-R28.md` |
+| Tab 不被 createKeyHandler 拦截 | ✅ | 测试验证 `preventDefault` 未被调用 |
+| disabled 状态下不干预 | ✅ | `new BookmarkAccessibility({ enabled: false })` 测试覆盖 |
+| ArrowLeft/Right direction 一致性 | ✅ | Left→'up', Right→'down' 测试通过 |
+| 空列表守卫 | ✅ | Enter/ArrowDown 静默忽略 |
 
-### 5. 安全质量 — N/A
+### AC2: 焦点陷阱 ✅
 
-无代码，无安全问题。
+| 子项 | 状态 | 说明 |
+|------|------|------|
+| 单元素边界 | ✅ | 单元素容器 Tab 被拦截 |
+| 重复 activate 幂等 | ✅ | 验证事件监听器只注册一次 (addCount=2) |
+| 容器为空守卫 | ✅ | `doesNotThrow` 验证 |
+| previousFocus 为 null 安全 | ✅ | deactivate 不抛异常 |
 
----
+### AC3: ARIA 属性与 Live Region ⚠️
 
-## 上下文分析
+| 子项 | 状态 | 说明 |
+|------|------|------|
+| Announcer this 绑定修复 (BUG-1) | ✅ | `self._enabled` 闭包捕获，代码正确 |
+| Announcer disabled 守卫 | ✅ | disabled 时 textContent 不被修改 |
+| **Announcer 重复创建守卫** | **❌ 缺失** | 需求文档 AC3 明确要求「同一 container 多次调用 createAnnouncer() 应复用已有 live region 元素」，**既无实现也无测试** |
+| 详情面板 aria-modal=true | ✅ | 测试断言 `aria-modal: 'true'` |
 
-对比历史迭代的执行模式：
+### AC4: 颜色对比度审计 ✅
 
-| 迭代 | 任务 | 状态 | 文件数 |
-|------|------|------|--------|
-| R24 | L2.1 Q&A 自动分类 | ✅ 完成 | `lib/auto-classifier.js` + `tests/test-auto-classifier.js` |
-| R25 | L2.2 知识关联增强 | ✅ 完成 | `lib/knowledge-correlation.js`（推测） |
-| R26 | L2.3 矛盾检测 | ✅ 完成 | `lib/contradiction-detector.js` + `tests/test-contradiction-detector.js` |
-| R27 | L2.4 知识编译报告 | ✅ 完成 | `lib/compilation-report.js`（552行）+ `tests/test-compilation-report.js`（543行） |
-| **R28** | **L2.5 增量编译** | **❌ 未完成** | **0 个文件** |
+| 子项 | 状态 | 说明 |
+|------|------|------|
+| setContrastPairs 动态注入 | ✅ | 追加和替换模式均有测试 |
+| getFailingPairs 过滤 | ✅ | 失败/通过区分、全通过空数组场景 |
+| auditContrastSummary 摘要 | ✅ | 结构正确、混合统计测试通过 |
+| 向后兼容 | ✅ | 新方法而非修改 auditContrast 返回值 |
 
-R27 的迭代报告显示其 Phase 1-3 全部失败（❌），但 Phase 4 验证标记为通过——这表明 R27 实际上是在之前某次迭代中完成了代码实现。而 R28 的情况更加彻底：**完全没有代码产出**。
+### AC5: 测试覆盖 ✅
+
+| 指标 | 值 | 说明 |
+|------|-----|------|
+| 总用例数 | 67 | 要求 ≥62，✅ |
+| 新增用例 | 18 | 49→67 |
+| 通过率 | 100% (67/67) | 零回归 |
+| 用例分布 | 键盘(6) + 焦点(4) + ARIA(1) + Announcer(2) + 对比度扩展(7) | 合理 |
 
 ---
 
 ## 发现的问题
 
-1. **🔴 严重 — 零实现**: 整个迭代没有产出任何代码。`lib/incremental-compiler.js` 和 `tests/test-incremental-compiler.js` 均不存在。
-2. **🟡 中等 — 设计文档未纳入版本控制**: `docs/DESIGN-ITER28.md` 是 untracked 文件，未提交到 Git。
-3. **🟡 中等 — 设计缺少集成说明**: 设计文档没有说明如何与 R27 的 `compilation-report.js` 和 R24 的 `auto-classifier.js` 集成。
-4. **🔵 轻微 — Git Diff 为空**: 提供给 Guard Agent 审查的 Git Diff 为空，说明实现 Agent 可能根本没有执行。
+### P1 — Announcer 重复创建守卫缺失 (AC3)
+
+**严重度**: 中  
+**需求来源**: REQUIREMENTS-ITER28.md AC3:「Announcer 重复创建守卫: 同一 container 多次调用 `createAnnouncer()` 应复用已有 live region 元素，不重复创建」  
+
+**现状**: `createAnnouncer()` 内部 `ensureElement()` 已有 `container.querySelector('[aria-live]')` 查找逻辑，**功能层面上已隐式支持复用**。但：
+- 无独立测试验证此行为
+- `createAnnouncer()` 每次调用都会创建新的闭包对象（`{ announce, destroy }`），前一次返回的 announcer 引用会失效但其 `destroy()` 仍可操作 liveEl
+
+**建议**: 补充 1 个测试用例验证同一 container 调用两次 `createAnnouncer()` 后 DOM 中只有一个 `[aria-live]` 元素。
+
+### P2 — Shift+Tab 测试覆盖不足
+
+**严重度**: 低  
+**需求来源**: AC1「Tab/Shift+Tab 跳转行为（2 用例）」
+
+**现状**: 仅 1 个 Tab 测试用例（`shiftKey: false`），缺 Shift+Tab（`shiftKey: true`）场景。虽然逻辑上 Tab 和 Shift+Tab 都不做拦截（`createKeyHandler` 不处理 Tab 键），但需求明确要求 2 个用例。
+
+**建议**: 补充 1 个 `shiftKey: true` 的 Tab 测试，保持与需求文档一致。
+
+### P3 — afterEach 作用域局限
+
+**严重度**: 低  
+**描述**: 对比度色彩对的 `afterEach` 清理仅在 `BookmarkAccessibility — 对比度审计扩展 (R131)` describe 块内。当前测试执行顺序下不构成问题（对比度扩展测试在最后执行），但若未来测试顺序变化，可能导致全局状态污染。
+
+**建议**: 考虑将色彩对恢复逻辑移至文件级 `afterEach`，或改用测试内部局部设置（`beforeEach` 中固定初始状态）。
+
+### P4 — R27 报告附带修改
+
+**严重度**: 信息  
+**描述**: R131 提交中附带修改了 `docs/reports/2026-05-19-R27.md`（53 行删除、24 行新增），将 R27 报告从详尽格式精简为摘要格式。此改动与 R131 功能无关。
+
+**建议**: 无功能影响，但建议非相关文件变更单独提交以保持 git 历史清晰。
 
 ---
 
 ## 返工任务清单
 
-### 必须完成
+| # | 优先级 | 任务 | 预估工作量 |
+|---|--------|------|------------|
+| 1 | P1 | 补充 Announcer 重复创建守卫测试（1 个用例） | 5 min |
+| 2 | P2 | 补充 Shift+Tab 测试用例（1 个用例） | 3 min |
+| 3 | P3 | afterEach 作用域调整（可选） | 5 min |
 
-| # | 任务 | 优先级 |
-|---|------|--------|
-| 1 | 创建 `lib/incremental-compiler.js`，实现 `IncrementalCompiler` 类及全部 13 个方法 | P0 |
-| 2 | 创建 `tests/test-incremental-compiler.js`，覆盖所有核心逻辑（建议 ≥ 30 个测试用例） | P0 |
-| 3 | 所有测试通过（`node --test tests/test-incremental-compiler.js`） | P0 |
-| 4 | 更新 `docs/TODO.md` — L2.5 标记为 `[x]` | P0 |
-| 5 | 更新 `docs/CHANGELOG.md` — 新增 R28 条目 | P0 |
-| 6 | 生成迭代报告 `docs/reports/2026-04-30-R28.md` | P0 |
-| 7 | 提交所有文件到 Git（含 DESIGN-ITER28.md） | P0 |
-
-### 建议完成
-
-| # | 任务 | 优先级 |
-|---|------|--------|
-| 8 | 补充设计文档：IncrementalCompiler 与 CompilationReport / AutoClassifier 的集成方式 | P1 |
-| 9 | 参考 R27 的实现模式（纯 ES Module + JSDoc + 完整测试），保持代码风格一致 | P1 |
-| 10 | 测试覆盖边界条件：空条目列表、重复 ID、哈希冲突、大量条目性能 | P2 |
+> 若仅修复 P1，总用例数增至 68，仍满足 ≥62 的 AC5 要求。
 
 ---
 
-## 附录：设计文档预期实现清单
+## 代码质量亮点
 
-供实现 Agent 参考，以下为 `lib/incremental-compiler.js` 需要实现的完整 API：
-
-```js
-// 常量
-export const COMPILE_STATUS = { PENDING, COMPILED, STALE, FAILED };
-
-// 主类
-export class IncrementalCompiler {
-  constructor(records?)           // 可选初始化已有记录
-  computeContentHash(entry)       // FNV-1a 32-bit: entry.question + '||' + entry.answer + '||' + entry.tags.join(',')
-  needsCompilation(entry)         // 比较内容哈希与记录
-  filterChangedEntries(entries)   // 批量筛选
-  markCompiled(entryId, result)   // 记录编译结果
-  markStale(entryId)              // 标记过期
-  markFailed(entryId)             // 标记失败
-  getStatus(entryId)              // 查询单条状态
-  getRecord(entryId)              // 查询完整记录
-  getStats()                      // 统计：各状态计数 + 缓存命中率
-  invalidate(entryId)             // 使单条缓存失效
-  invalidateByEntity(entityName)  // 按实体名批量失效
-  invalidateByConcept(conceptName)// 按概念名批量失效
-  getPendingEntries(allEntries)   // 获取待编译条目列表
-  buildIncrementalPlan(allEntries, existingEntities, existingConcepts) // 增量编译计划
-}
-```
+1. **BUG-1 修复精确**: `const self = this` 是最小侵入式修复，仅改变一行代码，不引入 `bind`/箭头函数重写
+2. **向后兼容设计**: `auditContrastSummary()` 而非修改 `auditContrast()` 返回值，零 breaking change
+3. **CONTRAST_PAIRS.length = 0 清空技巧**: 利用 `Array.prototype.length` 直接清空模块级数组，简洁高效
+4. **测试设计**: mock DOM 对象模式（`querySelectorAll`/`addEventListener`/`activeElement`）与项目风格一致，不依赖浏览器环境
 
 ---
 
-*审查报告由 Guard Agent 自动生成 — 2026-04-30*
+*自动生成于 2026-05-19 — Guard Agent Iteration #28 Review*
