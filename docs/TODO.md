@@ -521,7 +521,7 @@
 
 - [x] **R113: CI 流水线修复 CiLintFix** — 修复 2 个失败测试：(1) CI `lint` job 使用 `node --check` 语法检查但测试断言应包含 `npm run lint` 步骤，需将 ESLint 集成到 CI workflow；(2) TD 状态表缺少 ESLint 相关记录导致设计文档验证失败。全量回归 6006 pass / 0 fail。复杂度: Simple
 
-- [ ] **R114: 测试覆盖空白填补 TestCoverageGap** — 为 15 个无测试文件的 lib 模块补充单元测试：agent-loop(231行)、evolution(547行)、importer(297行)、graph-export(197行)、docmind-client(443行)、docmind-sync(414行)、selection-handler、selection-detector-global、selection-handler-global、selection-toolbar-global、explore-mode-global、core-flow-fix、bookmark-core、bookmark-import-export、bookmark-organize。目标: 每模块 ≥10 用例。复杂度: Medium
+- [x] **R114: 测试覆盖空白填补 TestCoverageGap** — 为 15 个无测试文件的 lib 模块补充单元测试：agent-loop(231行)、evolution(547行)、importer(297行)、graph-export(197行)、docmind-client(443行)、docmind-sync(414行)、selection-handler、selection-detector-global、selection-handler-global、selection-toolbar-global、explore-mode-global、core-flow-fix、bookmark-core、bookmark-import-export、bookmark-organize。目标: 每模块 ≥10 用例。复杂度: Medium
 
 - [ ] **R115: 测试套件瘦身 TestSuiteTrim** — 清理测试文件冗余：识别重复覆盖同一模块的测试文件（如 test-qa002-*.js 9 个文件、test-depth-*.js 18 个文件、多个历史迭代残留测试）；合并/去重后测试文件数减少 ≥30%；全量测试执行时间目标 ≤25s（当前 ~36s）。复杂度: Medium
 
