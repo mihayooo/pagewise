@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R153
+> 迭代轮次: R43 - R167
 > 最后更新: 2026-05-19
 
 ---
@@ -681,4 +681,23 @@
 
 - [x] **R161: 超大 lib 文件拆分八期 ModuleSplitPhase8** — 仍有 25 个 lib 文件 >400 行（Top-5: bookmark-notifier.js 493、batch-summary.js 482、bookmark-search.js 477、bookmark-batch.js 476、bookmark-duplicate-detector.js 474）；优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
-- [ ] **R162: 全量回归与发布收尾 ReleaseRegressionR55** — R158-R161 全部完成后执行：(1) `npm run test:ci` 0 fail；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R158-R161 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+- [x] **R162: 全量回归与发布收尾 ReleaseRegressionR55** — R158-R161 全部完成后执行：(1) `npm run test:ci` 0 fail；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R158-R161 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+
+---
+
+## Phase S: 产品体验升级 (R163-R167) — 5 轮
+
+> 飞轮迭代 R61 起，2026-05-19
+> 现状: TODO.md 全部任务已完成，技术债务全部关闭，Lint 0 err / 0 warn，lib/ 模块拆分至 ≤400 行
+> 方向: 从"代码质量基建"转向"产品功能价值"——深化学习闭环、提升 AI 问答体验、增强用户可见价值
+> 任务来源优先级: 新功能探索 > 性能优化 > 代码质量
+
+- [x] **R163: 间隔复习系统 SpacedRepetition** — 新建 `lib/bookmark-spaced-repetition.js`，基于 SM-2 算法实现间隔复习调度：(1) 将已读书签/知识条目纳入复习队列；(2) 按遗忘曲线动态调整复习间隔（首次 1d → 3d → 7d → 14d → 30d）；(3) 复习时展示书签摘要并要求用户评级（Again/Hard/Good/Easy）；(4) 复习统计：当日待复习数、连续打卡天数、记忆保持率；(5) 与 BookmarkNotifications 联动推送"今日待复习"提醒；(6) 测试 ≥30 用例。复杂度: Complex
+
+- [ ] **R164: AI 问答增强 — 上下文感知 ContextAwareAI** — 升级 `lib/ai-client.js` 问答能力：(1) 选中文字提问时自动附加当前页面 URL、标题、已知书签上下文作为 system prompt；(2) 从知识库检索与问题相关的历史条目（top-3），注入 prompt 作为"已有知识"参考；(3) 支持多轮追问（保留最近 5 轮对话上下文）；(4) 新增"解释术语"快捷操作（选中专业术语一键获取解释）；(5) 与 bookmark-semantic-search.js 集成实现知识增强检索。复杂度: Complex
+
+- [ ] **R165: 学习周报生成 WeeklyDigest** — 新建 `lib/bookmark-weekly-digest.js`，自动生成用户每周学习摘要：(1) 统计本周新增书签、阅读完成数、提问次数、知识条目增长；(2) 按领域分布生成文字报告 + 数据摘要；(3) 识别本周学习重点领域和薄弱领域（复用 bookmark-gap-detector.js）；(4) 推荐下周学习方向（结合 learning-path.js 和 gap-detector.js）；(5) 通过 BookmarkNotifications 在每周一推送摘要；(6) 支持导出 Markdown/HTML 格式周报；(7) 测试 ≥25 用例。复杂度: Medium
+
+- [ ] **R166: 弹窗体验优化 PopupExperienceOpt** — 优化 `popup/bookmark-overview.js` 用户体验：(1) 最近浏览历史时间线（今日/本周/本月书签活动可视化）；(2) 快捷操作面板（一键打开图谱/搜索/设置/周报）；(3) 待复习提醒卡片（与 R163 SpacedRepetition 集成）；(4) 学习进度环形图（已读/待读/复习中比例）；(5) 搜索结果即时预览（hover 展示书签摘要）；(6) 首次使用引导入口（与 R81 BookmarkOnboarding 集成）。复杂度: Medium
+
+- [ ] **R167: 全量回归与迭代收尾 IterationCloseR61** — R163-R166 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6200 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R163-R166 变更记录；(5) 输出发布候选版本号。复杂度: Simple

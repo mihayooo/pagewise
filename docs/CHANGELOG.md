@@ -688,3 +688,19 @@
 - 新增 docs/LIB-API-REFERENCE.md API 速查表
 - 更新 README.md 增加开发/调试/发布指南
    501|
+## [迭代 61] - 2026-05-19
+
+### 新增
+- **R163: 间隔复习系统 SpacedRepetition** — 新建 `lib/bookmark-spaced-repetition.js`
+  - `BookmarkSpacedRepetition` 类 — 基于 SM-2 算法的书签间隔复习调度
+  - `addToQueue(bookmark)` — 将已读书签/知识条目纳入复习队列
+  - `removeFromQueue(bookmarkId)` — 从队列移除
+  - `getDueBookmarks(limit?)` — 获取当前到期需复习的书签（按遗忘曲线排序）
+  - `getDueCount()` — 到期书签计数
+  - `recordReview(bookmarkId, difficulty)` — 记录复习评级（Again/Hard/Good/Easy），SM-2 动态调整间隔
+  - `getStats()` — 复习统计：当日待复习数、连续打卡天数、记忆保持率
+  - `sendDailyReminder(notifier)` — 与 BookmarkNotifier/NotificationManager 联动推送"今日待复习"提醒
+  - `getSessionCards(limit?)` — 获取格式化复习会话卡片（含摘要 + 评级选项）
+  - `exportData() / importData(data)` — 序列化/反序列化队列
+  - 间隔调度：首次 1d → 3d → 7d → 14d → 30d（基于 easeFactor 动态调整）
+  - 43 个测试用例 ✅

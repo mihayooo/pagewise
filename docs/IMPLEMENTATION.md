@@ -1203,3 +1203,68 @@ BookmarkI18n (新建, R80)
 - 更新 README.md (开发/调试/发布指南)
 - 更新 CONTRIBUTING.md 链接和架构文档链接
    501|
+---
+
+## 迭代 R163 — 间隔复习系统 BookmarkSpacedRepetition
+
+> 日期: 2026-05-19
+> 任务: R163 间隔复习系统 SpacedRepetition — 基于 SM-2 算法的书签间隔复习调度
+
+### 新增文件
+
+1. **lib/bookmark-spaced-repetition.js** — 书签间隔复习系统
+   - `BookmarkSpacedRepetition` 类 — 基于 SM-2 算法的书签间隔复习调度
+   - `addToQueue(bookmark)` — 将已读书签/知识条目纳入复习队列，初始化默认复习数据
+   - `removeFromQueue(bookmarkId)` — 从队列移除，返回 boolean
+   - `isQueued(bookmarkId)` — 查询是否在队列中
+   - `getQueueSize()` — 获取队列大小
+   - `getDueBookmarks(limit?)` — 获取当前到期需复习的书签，按 nextReview 升序
+   - `getDueCount()` — 到期书签总数（不受 limit 限制）
+   - `recordReview(bookmarkId, difficulty)` — 记录复习评级，SM-2 动态调整间隔
+   - `getBookmarkReview(bookmarkId)` — 获取指定书签的复习数据
+   - `getSessionCards(limit?)` — 获取格式化复习会话卡片（含摘要+评级选项）
+   - `getStats()` — 复习统计（dueCount/totalQueued/totalReviews/retentionRate/currentStreak/longestStreak）
+   - `sendDailyReminder(notifier)` — 与 BookmarkNotifier/NotificationManager 联动推送提醒
+   - `exportData() / importData(data)` — 序列化/反序列化队列
+   - 导出常量: `REVIEW_DIFFICULTY`, `DEFAULT_REVIEW_INTERVALS`, `MS_PER_DAY`, `QUEUE_STORAGE_KEY`, `STREAK_STORAGE_KEY`
+
+2. **tests/test-bookmark-spaced-repetition.js** — 43 个单元测试
+   - 构造函数 (2): 默认/自定义选项
+   - addToQueue (6): 添加/去重/无id报错/isQueued/默认数据/已读接受
+   - removeFromQueue (3): 移除/不存在/移除后查询
+   - getDueBookmarks (5): 空/新书签到期/未到期排除/排序/limit
+   - getDueCount (2): 计数/空队列
+   - recordReview (7): 更新间隔/AGAIN重置/EASY加大EF/不存在返回null/SM-2递增/历史/无效报错
+   - getStats (3): 空统计/待复习数/保持率
+   - streak (2): 首次/同天去重
+   - sendDailyReminder (3): 发送/无待复习/无notifier
+   - getSessionCards (3): 格式化/limit/空
+   - exportData/importData (3): 导出/导入恢复/无效报错
+   - 常量 (2): REVIEW_DIFFICULTY/DEFAULT_REVIEW_INTERVALS
+   - 边界 (2): isQueued空/getBookmarkReview不存在
+
+### 设计决策
+
+- **编排层模式**: BookmarkSpacedRepetition 作为编排层，复用 `spaced-repetition.js` 的 SM-2 核心算法（calculateNextReview/initializeReviewData/DIFFICULTY_MAP），不重复实现
+- **Map 数据结构**: 使用 Map 存储队列，O(1) 查找/删除
+- **新书签立即到期**: addToQueue 时 nextReview=now，新加入的书签首次复习立即可用
+- **四档评级**: AGAIN(1)/HARD(2)/GOOD(3)/EASY(5) 映射到 SM-2 quality 分值
+- **遗忘曲线间隔**: 默认 [1, 3, 7, 14, 30] 天，但实际间隔由 SM-2 easeFactor 动态计算
+- **记忆保持率**: successfulReviews/totalReviews × 100，quality≥3 为成功
+- **通知联动**: 支持 BookmarkNotifier.sendReviewReminder() 和 NotificationManager.notify() 两种接口
+- **依赖注入**: now() 时间源可注入，便于测试
+- **纯 ES Module**: 不依赖 DOM/Chrome API
+
+### 依赖关系
+
+```
+BookmarkSpacedRepetition (新建, R163)
+  ├── spaced-repetition.js (已存在) — SM-2 核心算法 (calculateNextReview/initializeReviewData/DIFFICULTY_MAP)
+  ├── BookmarkNotifier (已存在)     — 通知推送 (可选, sendDailyReminder)
+  └── NotificationManager (已存在)  — 通知管理 (可选, sendDailyReminder)
+```
+
+### 测试结果
+
+- 新增: 43 个测试，全部通过
+- 总测试: 43 (本模块)
