@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R137
+> 迭代轮次: R43 - R142
 > 最后更新: 2026-05-19
 
 ---
@@ -435,7 +435,8 @@
 | C: V2.0 | R63-R72 | 7 个 | 70+ |
 | D: 集成 | R73-R82 | 6 个 | 70+ |
 | E: 发布 | R83-R92 | 4 个 | 60+ |
-| **总计** | **50 轮** | **34 个** | **360+** |
+| N: 测试冲刺 | R138-R142 | 0 个 | 200+ |
+| **总计** | **55 轮** | **34 个** | **560+** |
 
 ---
 
@@ -591,4 +592,21 @@
 
 - [x] **R136: 核心流程 E2E 测试 CoreFlowE2E** — 补全端到端集成测试覆盖核心用户旅程: 选中文字 → 提问 → AI 回答 → 存入知识库 → 搜索回顾 → 书签关联；模拟 Chrome API stub（tabs/storage/scripting）；覆盖正常路径 + 异常路径（网络超时/存储满/AI 降级）；验证模块间数据流完整性（knowledge-base ↔ bookmark-knowledge-integration ↔ bookmark-semantic-search）；目标: ≥20 用例。复杂度: Medium
 
-- [ ] **R137: 测试覆盖率提升 TestCoverageBoost** — 当前覆盖率基线待验证（R108 报告 92.15% 但测试报告显示 0 pass/0 fail 脱节）；运行 `npm run test:coverage` 建立准确基线；识别覆盖率 <60% 的模块（重点关注: background service-worker、options/popup/sidebar UI 入口、lib/agent-loop.js、lib/evolution.js）；为目标模块补充边界用例；目标: lib/ 模块行覆盖率 ≥ 80%。复杂度: Medium
+- [x] **R137: 测试覆盖率提升 TestCoverageBoost** — 当前覆盖率基线待验证（R108 报告 92.15% 但测试报告显示 0 pass/0 fail 脱节）；运行 `npm run test:coverage` 建立准确基线；识别覆盖率 <60% 的模块（重点关注: background service-worker、options/popup/sidebar UI 入口、lib/agent-loop.js、lib/evolution.js）；为目标模块补充边界用例；目标: lib/ 模块行覆盖率 ≥ 80%。复杂度: Medium
+
+---
+
+## Phase N: 测试修复与覆盖率冲刺 (R138-R142) — 5 轮
+
+> 飞轮迭代 R34 起，2026-05-19
+> 目标: 修复 21 个失败测试、5 个红色区域模块覆盖率补至 ≥80%、继续超大模块拆分、消除覆盖率盲区
+
+- [ ] **R138: 测试失败修复 TestFailureFixR34** — 修复 `npm run test:ci` 中 21 个失败用例：(1) test-ai-client.js 7 个 vision 消息格式断言（OpenAI/Claude image_url 转换、双 /v1 URL 去重）；(2) test-evolution.js 5 个断言（evolve/batchEvolve/reset 中 analyzeStylePreference/analyzeRetrievalEffectiveness 行为变更）；(3) test-bookmark-semantic-search.js 1 个 _mergeResults 合并去重；(4) test-bookmark-tag-editor-unit.js 2 个构造函数/标签规范化；(5) test-bookmark-visualizer.js 1 个节点半径缩放；(6) test-r137-coverage-boost.js 4 个 data URL 图片处理；(7) 截图提问 base64 data URL 1 个。目标: `npm run test:ci` 5517+ pass / 0 fail。复杂度: Medium
+
+- [ ] **R139: 红色区域测试补全覆盖率冲刺 CoverageRedZone** — 5 个覆盖率 <40% 的模块重点补测试：(1) bookmark-tag-editor.js(10.0%) — 补充构造函数、addTag/removeTag/setTags、批量编辑、标签规范化、自动补全用例；(2) knowledge-graph-utils.js(10.2%) — 补充图遍历、路径计算、异常处理用例；(3) knowledge-graph-wiki.js(10.9%) — 补充 wiki 查询、缓存、降级用例；(4) skill-store-community.js(24.2%) — 补充社区技能 CRUD、搜索、导入用例；(5) skill-store.js(34.1%) — 补充技能存储、分类、激活用例。目标: 5 个模块全部 ≥80%。复杂度: Medium
+
+- [ ] **R140: 超大模块拆分四期 ModuleSplitPhase4** — 仍有 11 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、evolution.js(547)、bookmark-knowledge-integration.js(547)、bookmark-scheduler.js(544)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 6 个（>540 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+
+- [ ] **R141: 黄色区域测试补全覆盖率提升 CoverageYellowZone** — 13 个覆盖率 40%-80% 的模块补测试：compilation-report-format.js(47.5%)、knowledge-base-export.js(52.3%)、docmind-client.js(63.7%)、knowledge-panel.js(65.5%)、bookmark-store-prep-checks.js(66.5%)、message-renderer.js(71.2%)、knowledge-panel-batch.js(72.5%)、knowledge-panel-virtual.js(73.5%)、bookmark-folder-suggestions.js(75.8%)、bookmark-accessibility-navigator.js(77.6%)、stats.js(78.7%)、i18n.js(79.2%)、bookmark-store-prep.js(79.4%)。优先补前 6 个（<70%），目标: 至少 9 个模块达 ≥80%。复杂度: Medium
+
+- [ ] **R142: c8 插桩盲区消除 CoverageInstrumentationFix** — 排查 `lib/agent-loop.js`(231行) 和 `lib/evolution.js`(547行) 未被 c8 插桩的根因（ESM 动态 import / Chrome API 全局依赖）；修复 c8 配置使所有 lib/ 模块纳入覆盖率统计；验证修正后 lib/ 整体行覆盖率 ≥85%；若 c8 无法覆盖则用 `--all` 标志并记录排除原因。复杂度: Medium

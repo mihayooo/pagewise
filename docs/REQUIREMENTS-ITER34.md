@@ -1,94 +1,165 @@
-# 需求文档 — 迭代 34: L3.6 服务器同步
+# 需求文档 — 迭代 34: 测试覆盖率提升 TestCoverageBoost
 
-> 日期: 2026-04-30
-> 前置: L3.1 Wiki 浏览模式, L1.1-L1.4 导出与 Git 集成, L3.5 Wiki Lint
+> 需求编号: R137  
+> 日期: 2026-05-19  
+> 复杂度: Medium  
+> 状态: 📋 待开发
 
 ---
 
-## 背景
+## 1. 用户故事
 
-PageWise 已完成 LLM Wiki 的完整本地体验（浏览、查询、Lint、Ingest），但知识库仍局限在浏览器 IndexedDB 中。用户（尤其是开发者）希望：
+**作为** PageWise 项目的维护者，  
+**我希望** 了解代码的真实测试覆盖率基线，并将覆盖率低的关键模块补充到 ≥80%，  
+**以便** 在后续迭代中有信心安全地重构和扩展代码，减少回归风险。
 
-- 在服务器上用 Claude Code / Vim / Obsidian 编辑 wiki 页面
-- 在浏览器中通过 PageWise 浏览和提问
-- 两端的修改能自动合并
+---
 
-## 用户故事
+## 2. 背景与问题分析
 
-**US1**: 作为开发者，我在服务器上用 Claude Code 修改了 wiki 页面 `react-hooks.md`，回到浏览器时 PageWise 自动同步了这些变更。
+### 2.1 覆盖率基线失真
 
-**US2**: 作为用户，我在 PageWise 中 Ingest 了一个新网页，生成的 wiki 页面自动同步到服务器目录。
+| 指标 | 报告值 | 实际值 | 问题 |
+|------|--------|--------|------|
+| R108 报告行覆盖率 | 92.15% | — | 基线来自历史快照 |
+| R33 报告测试数 | 0 pass / 0 fail | — | 迭代报告流水线未正确采集 `node --test` 输出 |
+| 当前测试结果 | — | **5496 pass / 21 fail** (5517 total) | 通过 `npm run test:ci` 实测 |
+| 全局语句覆盖率 | — | **93.51%** (37827/40452) | c8 text-summary 实测 (2026-05-19) |
+| lib/ 模块语句覆盖率 | — | **91.6%** (35640/38890) | 但存在两个盲区 |
 
-**US3**: 作为用户，我在没有网络的环境下编辑了 wiki，恢复网络后 PageWise 自动将变更同步到服务器。
+**核心问题**: `lib/agent-loop.js` (231 行) 和 `lib/evolution.js` (547 行) **未出现在 c8 覆盖率数据中**——c8 没有对这两个文件进行插桩，导致整体覆盖率虚高。
 
-**US4**: 作为用户，我可以在设置页面配置同步目标（服务器 URL、认证信息、同步目录）。
+### 2.2 低覆盖率模块清单 (lib/ < 80%)
 
-**US5**: 作为用户，服务器和本地同时修改了同一页面时，PageWise 给出清晰的冲突解决界面。
+| 覆盖率 | 模块 | 行数 | 风险等级 |
+|--------|------|------|----------|
+| **10.0%** | `bookmark-tag-editor.js` | 209 stmts | 🔴 严重 |
+| **10.2%** | `knowledge-graph-utils.js` | 147 stmts | 🔴 严重 |
+| **10.9%** | `knowledge-graph-wiki.js` | 128 stmts | 🔴 严重 |
+| **24.2%** | `skill-store-community.js` | 306 stmts | 🔴 严重 |
+| **34.1%** | `skill-store.js` | 255 stmts | 🔴 严重 |
+| **47.5%** | `compilation-report-format.js` | 255 stmts | 🟡 中等 |
+| **52.3%** | `knowledge-base-export.js` | 279 stmts | 🟡 中等 |
+| **63.7%** | `docmind-client.js` | 443 stmts | 🟡 中等 |
+| **65.5%** | `knowledge-panel.js` | 528 stmts | 🟡 中等 |
+| **66.5%** | `bookmark-store-prep-checks.js` | 316 stmts | 🟡 中等 |
+| **71.2%** | `message-renderer.js` | 539 stmts | 🟠 偏低 |
+| **72.5%** | `knowledge-panel-batch.js` | 193 stmts | 🟠 偏低 |
+| **73.5%** | `knowledge-panel-virtual.js` | 260 stmts | 🟠 偏低 |
+| **75.8%** | `bookmark-folder-suggestions.js` | 33 stmts | 🟠 偏低 |
+| **77.6%** | `bookmark-accessibility-navigator.js` | 147 stmts | 🟠 偏低 |
+| **78.7%** | `stats.js` | 338 stmts | 🟠 偏低 |
+| **79.2%** | `i18n.js` | 418 stmts | 🟠 偏低 |
+| **79.4%** | `bookmark-store-prep.js` | 218 stmts | 🟠 偏低 |
 
-## 功能需求
+共计 **18 个模块**低于 80% 阈值。
 
-### FR1 — 同步协议支持
-- 支持 **WebDAV** 协议（通用，适用于 NAS/Nextcloud 等）
-- 支持 **自定义 REST API** 模式（适用于用户自建服务）
-- 不在本轮实现 Git 同步（复杂度过高，后续迭代考虑）
+### 2.3 21 个失败用例分布
 
-### FR2 — 双向同步
-- **上传 (Push)**: 本地 wiki 页面 → 服务器目录
-- **下载 (Pull)**: 服务器 wiki 目录 → 本地 IndexedDB
-- **双向合并**: 同时存在本地和远程变更时的智能合并
+| 测试文件 | 失败数 | 模块 |
+|----------|--------|------|
+| `test-ai-client.js` | 7 | AIClient vision 消息格式 |
+| `test-bookmark-semantic-search.js` | 1 | _mergeResults 合并去重 |
+| `test-bookmark-tag-editor-unit.js` | 2 | 构造函数 / 标签规范化 |
+| `test-bookmark-visualizer.js` | 1 | 节点半径缩放 |
+| `test-evolution.js` | 5 | evolve / batchEvolve / reset |
+| `test-r137-coverage-boost.js` | 1 | data URL 图片处理 |
+| 其他 | 4 | 待定位 |
 
-### FR3 — 变更检测
-- 本地变更检测: 追踪 IndexedDB 中页面的 `updatedAt` 时间戳
-- 远程变更检测: 通过服务器 API 获取文件列表及 `lastModified` 时间
-- 增量同步: 只传输有变更的文件，而非全量覆盖
+---
 
-### FR4 — 冲突解决
-- 检测本地和远程同时修改了同一页面
-- 提供冲突解决 UI: 保留本地 / 保留远程 / 手动合并
-- 冲突记录持久化，用户可以稍后处理
+## 3. 验收标准
 
-### FR5 — 离线支持
-- 无网络时正常工作，变更记录到本地队列
-- 恢复网络后自动触发同步
-- 同步状态可视化（同步中/已完成/有冲突/离线）
+### AC1: 建立准确覆盖率基线
+- 运行 `npm run test:coverage`，输出完整的 lcov + text-summary 报告
+- 确认 `lib/agent-loop.js` 和 `lib/evolution.js` 出现在 c8 覆盖率数据中（若 c8 无法覆盖则使用 `--all` 或手动标注排除原因）
+- 将基线数据记录到 `docs/reports/2026-05-19-R34-coverage-baseline.md`
 
-### FR6 — 同步配置
-- 服务器 URL
-- 认证方式: Basic Auth / Token
-- 同步目录路径
-- 同步间隔（手动 / 5分钟 / 15分钟 / 1小时）
-- 自动同步开关
+### AC2: 修复现有失败用例
+- `npm run test:ci` 结果: **0 fail**（当前 21 fail）
+- 每个修复需记录失败原因和修复策略
 
-### FR7 — 同步 UI
-- Wiki 标签页顶部显示同步状态栏
-- 手动「立即同步」按钮
-- 同步历史记录（最近 N 次同步的结果）
-- 冲突解决面板
+### AC3: 低覆盖率模块达标
+- **18 个 <80% 的 lib/ 模块**中，至少 **12 个**达到 ≥80% 行覆盖率
+- **红色区域**（<40%）的 5 个模块**全部**达到 ≥80%
+- 特别关注: `bookmark-tag-editor.js`、`knowledge-graph-utils.js`、`knowledge-graph-wiki.js`、`skill-store-community.js`、`skill-store.js`
 
-## 非功能需求
+### AC4: lib/ 整体覆盖率提升
+- `lib/` 模块整体行覆盖率 **≥ 85%**（包含 agent-loop 和 evolution 的真实数据）
+- 覆盖率报告可通过 `npm run test:coverage` 一键生成并验证
 
-### NFR1 — 安全性
-- 认证凭据存储在 chrome.storage.local（非 sync）
-- 传输使用 HTTPS（WebDAV 强制）
-- 不在日志中记录认证信息
+### AC5: 测试基础设施修复
+- 修复迭代报告采集流程，确保 R34 报告正确记录 pass/fail 数量（不再出现 0/0）
+- 新增测试文件遵循 `tests/test-{module-name}.js` 命名规范
 
-### NFR2 — 性能
-- 首次全量同步 < 30 秒（100 个页面）
-- 增量同步 < 5 秒
-- 同步过程不阻塞 UI 操作
+---
 
-### NFR3 — 可靠性
-- 同步中断后可安全重试
-- 不会因同步错误导致本地数据丢失
-- 乐观更新 + 回滚机制
+## 4. 技术约束
 
-## 验收标准
+1. **不修改生产代码逻辑** — 本次迭代仅补充测试，不变更 lib/ 模块的功能行为。修复 21 个失败用例时，优先修正测试代码而非生产代码；若确认生产代码有 bug，需单独标注并记录到 TODO.md
+2. **测试框架** — 使用 Node.js 内置 `node --test`（已有 153 个测试文件、5517 个用例），不引入 Jest/Mocha 等外部框架
+3. **覆盖率工具** — 使用 c8（已在 devDependencies），配置 lcov + text-summary 输出
+4. **Chrome API Mock** — 测试中使用已有的 `tests/helpers/` 和 `tests/e2e/chrome-mock-inject.js` 中的 stub；新增测试需遵循相同模式
+5. **测试隔离** — 每个测试文件独立可运行（`node tests/test-xxx.js`），不依赖测试执行顺序
+6. **c8 插桩问题** — `agent-loop.js` 和 `evolution.js` 可能因 ESM 动态 import 或 Chrome API 全局依赖导致 c8 无法插桩，需排查根因（优先），或在 c8 配置中用 `--include` 显式包含
 
-| ID | 标准 |
-|----|------|
-| AC1 | 配置 WebDAV 服务器后，点击「同步」能成功上传本地 wiki 页面 |
-| AC2 | 服务器上有新的 .md 文件时，同步后能在 PageWise Wiki 标签页中看到 |
-| AC3 | 本地和远程同时修改同一页面时，显示冲突解决面板 |
-| AC4 | 断网时修改页面，恢复网络后自动同步 |
-| AC5 | 同步过程不阻塞用户其他操作 |
-| AC6 | 认证凭据安全存储，不出现在日志中 |
+---
+
+## 5. 依赖关系
+
+| 依赖 | 说明 |
+|------|------|
+| R108 (覆盖率基线) | 历史基线数据 (92.15%)，本次迭代需验证并修正 |
+| R136 (E2E 测试) | 上一迭代产出的 E2E 测试文件（R33），但报告采集流程有 bug |
+| R134 (模块拆分三期) | 多个模块已拆分为子文件（如 `ai-client-stream.js`、`bookmark-accessibility-navigator.js`），测试需覆盖拆分后的子模块 |
+| R133 (Lint 警告清零) | 新增测试代码需通过 lint 检查（`--max-warnings 0`） |
+| `tests/test-agent-loop.js` | 已存在 (406 行)，但 evolution 测试有 5 个失败 |
+| `tests/test-evolution.js` | 已存在 (650 行)，需修复失败用例后提升覆盖率 |
+| `tests/test-bookmark-tag-editor-unit.js` | 已存在 (248 行)，2 个失败且覆盖率仅 10% |
+| `tests/test-knowledge-graph-utils-unit.js` | 已存在 (249 行)，覆盖率仅 10.2% |
+| `tests/test-knowledge-graph-wiki-unit.js` | 已存在 (208 行)，覆盖率仅 10.9% |
+
+---
+
+## 6. 建议执行顺序
+
+### Phase 1: 基线建立与修复 (Day 1)
+1. 运行 `npm run test:coverage`，生成准确基线报告
+2. 排查 `agent-loop.js` 和 `evolution.js` 未被 c8 插桩的原因
+3. 修复 21 个失败用例（分模块逐一修复）
+
+### Phase 2: 红色区域补测试 (Day 1-2)
+4. `bookmark-tag-editor.js` — 补充构造函数、标签操作、批量编辑用例
+5. `knowledge-graph-utils.js` — 补充图遍历、路径计算、异常处理用例
+6. `knowledge-graph-wiki.js` — 补充 wiki 查询、缓存、降级用例
+7. `skill-store-community.js` — 补充社区技能 CRUD、搜索、导入用例
+8. `skill-store.js` — 补充技能存储、分类、激活用例
+
+### Phase 3: 黄色区域提升 (Day 2-3)
+9. `compilation-report-format.js` — 补充格式化、边界值用例
+10. `knowledge-base-export.js` — 补充导出格式、大数据量用例
+11. `knowledge-panel.js` — 补充面板渲染、交互用例
+12. `message-renderer.js` — 补充消息渲染、Markdown 解析用例
+13. `stats.js` — 补充统计计算、边界值用例
+14. 其余 <80% 模块按优先级补充
+
+### Phase 4: 验证与报告 (Day 3)
+15. 运行 `npm run test:coverage`，验证 lib/ ≥85%
+16. 生成 `docs/reports/2026-05-19-R34.md`
+17. 修复迭代报告采集，确保 pass/fail 正确记录
+
+---
+
+## 7. 风险与缓解
+
+| 风险 | 概率 | 影响 | 缓解措施 |
+|------|------|------|----------|
+| c8 无法插桩 agent-loop/evolution | 中 | 基线失真 | 排查 ESM/import 原因；最坏情况用 `--all` 或手动排除并记录 |
+| 21 个失败用例涉及生产代码 bug | 低 | 需跨迭代修复 | 先记录，仅修正测试；生产 bug 另开需求 |
+| 新增测试代码本身引入 lint 错误 | 低 | CI 不通过 | 每个文件提交前运行 `npm run lint` |
+| 大型模块 (knowledge-panel 528 stmts) 测试编写耗时 | 中 | 迭代超时 | 优先覆盖核心路径，非核心路径标记 `// TODO: R138` |
+
+---
+
+*文档遵循飞轮迭代流程，迭代 34*  
+*生成于 2026-05-19*
