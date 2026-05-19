@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R148
+> 迭代轮次: R43 - R153
 > 最后更新: 2026-05-19
 
 ---
@@ -647,3 +647,20 @@
 - [x] **R152: 测试执行效率优化 TestExecutionOpt2** — 当前全量测试 ~36s（5639 用例 / 950 suites）；优化策略: (1) 识别 Top-5 最慢测试文件（按 duration_ms 排序）；(2) 移除测试中不必要的 `setTimeout`/sleep 阻塞；(3) 利用 `--test-concurrency` 并行执行；(4) 建立 CI smoke test 子集（核心流程 ≤60 用例，<3s）；目标: 全量 ≤25s。复杂度: Medium
 
 - [x] **R152: 行覆盖率冲刺 85% CoverageSprint85** — 当前行覆盖率 80.24%（R151 实测），目标 ≥85%；识别覆盖最低的 Top-15 模块（按未覆盖行数排序）；优先补充纯逻辑/工具函数的测试（避免 mock 复杂的 Chrome API 调用链）；目标: 行覆盖率 ≥85%、函数覆盖率 ≥90%。复杂度: Medium - 飞轮迭代 R52
+
+---
+
+## Phase Q: 质量巩固与架构瘦身 (R153-R157) — 5 轮
+
+> 飞轮迭代 R53 起，2026-05-19 (数据刷新: 2026-05-19 实测)
+> 目标: 修复 5 个失败测试、清除 43 个 ESLint 警告、修复覆盖率基础设施、拆分 sidebar.js(7705行)、完成剩余 >500 行 lib 文件拆分
+
+- [x] **R153: 测试失败修复 TestFailureFixR53** — 修复 `npm run test:ci` 中 2 个失败用例（test-selection-handler-global-unit.js）：`_guessLanguage` 中 Python/Go 语言猜测正则表达式因 `\b` 词边界在 `(` 后不匹配而失败；修复方法：将 `\b` 移入分组内仅应用于以单词字符结尾的分支。目标: `npm run test:ci` 6118 pass / 0 fail。复杂度: Simple ✅
+
+- [x] **R154: ESLint 警告清零 LintWarningZeroR53** — 当前 0 errors / 43 warnings（全部 `no-unused-vars`，集中在 options.js 7 处 + 其他文件 36 处）；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 `eslint.config.js` 中 `max-warnings` 收紧为 0；目标: `npm run lint` 0 errors 0 warnings。复杂度: Simple
+
+- [ ] **R155: sidebar.js 超大模块拆分 SidebarModuleSplit** — sidebar.js 当前 7705 行，是全项目最大文件，远超 400 行上限；按职责拆分为独立模块：(1) sidebar-chat.js — 聊天/对话渲染逻辑；(2) sidebar-knowledge.js — 知识库面板逻辑；(3) sidebar-bookmark.js — 书签面板逻辑；(4) sidebar-settings.js — 设置/配置逻辑；(5) sidebar-utils.js — 通用工具函数。保持 sidebar.js 为薄编排层（≤400 行），拆分后每个模块 ≤400 行，保持 UI 行为不变。复杂度: Complex
+
+- [ ] **R156: 覆盖率基础设施修复 CoverageInfraFix** — `npm run test:coverage` 因 `coverage/tmp/` 目录权限问题（EACCES）无法生成覆盖率报告；(1) 修复 c8 tmp 目录权限或添加 `.gitignore` 规则排除旧 tmp 文件；(2) 验证覆盖率报告正常生成并输出 lcov + text-summary；(3) 确认行覆盖率基线 ≥80%；(4) 在 CI 中添加覆盖率门禁（行覆盖率 <80% 则 pipeline 失败）。复杂度: Simple
+
+- [ ] **R157: 超大模块拆分七期 ModuleSplitPhase7** — R150 声称完成但实测 6 个 lib 文件仍 >500 行：bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex

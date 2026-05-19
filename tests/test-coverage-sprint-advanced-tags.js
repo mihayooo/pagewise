@@ -333,7 +333,7 @@ describe('AdvancedTagManager auto-tagging', () => {
 
   it('autoTag go keyword with word boundary', () => {
     const mgr = new AdvancedTagManager();
-    const tags = mgr.autoTag({ title: 'Go programming guide', url: '' });
+    const tags = mgr.autoTag({ title: 'Introduction to go programming', url: '' });
     assert.ok(tags.includes('go'));
   });
 

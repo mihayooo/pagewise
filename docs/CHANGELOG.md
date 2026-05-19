@@ -7,6 +7,12 @@
      7|## [Unreleased]
 
 ### 修复
+- **R153: 测试失败修复 TestFailureFixR53**
+  - 修复 `lib/selection-handler-global.js` 中 `_guessLanguage()` 方法的 Python/Go 语言检测正则表达式
+  - 根因: 正则分组末尾的 `\b` 词边界断言在 `(`（非单词字符）后无法匹配（如 `def hello():` → `\b` 要求 `(` 后是单词字符，但实际是 `)`）
+  - 修复: 将 `\b` 移入分组内部，仅应用于以单词字符结尾的分支（`import\s+\w+\b`、`package\s+\w+\b`、`fmt\.Print\b`），以 `(` 结尾的分支不附加 `\b`
+  - 结果: `npm run test:ci` 6118 pass / 0 fail
+
 - **R148: EvolutionEngine 测试失败修复 EvolutionTestFix**
   - 修复 `npm run test` 中 7 个 EvolutionEngine 失败用例 → 5578 pass / 0 fail
   - 根因 1: `loadState()` 的 else 分支在存储为空时重置策略，导致异步竞态（loadState 在 `await` 操作期间解析并覆盖测试修改的 state）

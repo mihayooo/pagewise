@@ -1155,6 +1155,48 @@ BookmarkI18n (新建, R80)
 
 ---
 
+## R153: 测试失败修复 TestFailureFixR53
+
+### 问题
+
+`npm run test:ci` 中 `test-selection-handler-global-unit.js` 有 2 个失败用例：
+- `should guess python`: `explainCode('def hello(): pass', {})` 返回 `'unknown'` 而非 `'python'`
+- `should guess go`: `explainCode('func main() { fmt.Println("hi") }', {})` 返回 `'unknown'` 而非 `'go'`
+
+### 根因
+
+`lib/selection-handler-global.js` 中 `_guessLanguage()` 方法的正则表达式使用了外层 `\b` 词边界断言：
+
+```js
+/\b(def\s+\w+\s*\(|class\s+\w+(\(.*\))?\s*:|print\s*\(|import\s+\w+)\b/
+```
+
+`\b` 要求匹配末尾字符与下一字符之间存在词边界（一方为 `\w`，另一方为 `\W`）。但 `def\s+\w+\s*\(` 和 `print\s*\(` 分支以 `(` 结尾，后接 `)` 等非单词字符时 `\b` 无法匹配。同理 Go 的 `func\s+\w+\s*\(` 也有相同问题。
+
+### 修复
+
+将 `\b` 移入分组内，仅应用于以单词字符结尾的分支：
+
+**Python 检测（修复后）:**
+```js
+/\b(def\s+\w+\s*\(|class\s+\w+(\(.*\))?\s*:|print\s*\(|import\s+\w+\b)/
+```
+
+**Go 检测（修复后）:**
+```js
+/\b(fmt\.Print\b|func\s+\w+\s*\(|package\s+\w+\b)/
+```
+
+以 `(` 结尾的分支（`def`、`print`、`func`）不附加 `\b`，因为 `(` 本身已提供足够特异性。以单词字符结尾的分支（`import`、`package`、`fmt.Print`）保留 `\b` 以避免部分匹配。
+
+### 测试结果
+
+- 修复前: 6116 pass / 2 fail
+- 修复后: 6118 pass / 0 fail
+- 无回归
+
+---
+
 ## R122: 开发者文档补全 DevDocumentation
 - 创建 CONTRIBUTING.md (开发环境搭建、分支策略、PR 流程、测试规范)
 - 创建 docs/LIB-API-REFERENCE.md (lib/ 公共 API 速查表)

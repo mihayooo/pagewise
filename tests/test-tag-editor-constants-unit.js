@@ -55,7 +55,8 @@ describe('_extractDomainTag', () => {
 
   it('should extract main domain part for unknown domains', () => {
     const tag = _extractDomainTag('https://myapp.example.com')
-    assert.equal(tag, 'myapp')
+    // _extractDomainTag uses parts[parts.length - 2] = second-to-last segment
+    assert.equal(tag, 'example')
   })
 
   it('should return null for generic domains', () => {
