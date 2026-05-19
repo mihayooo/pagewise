@@ -6,6 +6,15 @@
      6|
      7|## [Unreleased]
 
+### 新增
+- **R108: 测试覆盖率度量 TestCoverage**
+  - 引入 `c8` (v10.1.3) 原生 V8 coverage 工具，零插桩零性能损失
+  - `npm run test:coverage` 一键生成覆盖率报告（lcov + text-summary）
+  - `coverage/` 目录加入 `.gitignore`，防止覆盖率产物入库
+  - 关闭 TD001（无测试覆盖 → 覆盖率可量化，lib/ 行覆盖率 92.15%）
+  - 新增 12 个基础设施验证单元测试
+  - 全量回归: 5883 测试通过，0 失败
+
 ### 修复
 - **R103: 测试基础设施修复 TestInfrastructureFix**
   - `package.json` 新增 `scripts.test`: `node --test 'tests/*.js'` — 标准化测试入口

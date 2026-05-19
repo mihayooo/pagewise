@@ -2,6 +2,49 @@
 
 ---
 
+## 迭代 R108 — 测试覆盖率度量 TestCoverage
+
+> 日期: 2026-05-19
+> 任务: R108 测试覆盖率度量 TestCoverage — 引入 c8 原生 V8 coverage，一键生成覆盖率报告
+
+### 修改文件
+
+1. **package.json** — 添加 devDependency 和脚本
+   - `devDependencies.c8`: `^10.1.3` — 基于 V8 原生覆盖率的零插桩覆盖率工具
+   - `scripts.test:coverage`: `c8 --reporter=lcov --reporter=text-summary npm run test:ci` — 一键生成覆盖率报告
+
+2. **.gitignore** — 添加 `coverage/` 目录排除
+   - "Test coverage" 注释段落 + `coverage/` 行
+   - 位于 "Node" (`node_modules/`) 段落之后
+
+3. **docs/DESIGN.md** — TD001 状态更新
+   - `TD001 | 无测试覆盖 | 高 | 待解决` → `TD001 | 无测试覆盖 | 高 | 已关闭 (via R108)`
+
+### 新增文件
+
+1. **tests/test-coverage-infra.js** — 12 个单元测试
+   - package.json 配置验证 (7): c8 在 devDependencies / test:coverage 脚本存在 / 包含 c8 调用 / lcov reporter / text-summary reporter / 基于 test:ci / 原有脚本不变
+   - .gitignore 验证 (2): coverage/ 被忽略 / 注释说明存在
+   - c8 工具可用性 (2): c8 命令可执行 / 版本 >= 10
+   - 设计文档验证 (1): TD001 状态已更新为已关闭
+
+### 设计决策
+
+- **c8 而非 nyc/istanbul**: c8 直接使用 V8 引擎原生 coverage，零插桩零性能损失；nyc 对 ESM 支持不完善；c8 是 Node.js 生态现代标准
+- **不创建 .c8rc.json**: 单一脚本使用 c8，配置内联到 CLI 参数即可，保持"无构建工具、最小配置"设计哲学
+- **基于 test:ci 作为覆盖率基线**: test:ci 排除了 E2E 测试（需要浏览器环境），是覆盖率度量的合理范围
+- **覆盖率目标 60% 度量基线**: 非 CI 强制门禁，首次引入先建立度量基线，待稳定后再逐步收紧
+- **lcov + text-summary 双格式**: lcov 是 CI 集成标准格式；text-summary 提供快速 CLI 可读概览
+
+### 测试结果
+
+- 新增: 12 个测试，全部通过
+- 全量回归 (test:coverage): 5883 pass, 0 fail
+- 覆盖率: Statements 92.15% / Branches 81.23% / Functions 41.75% / Lines 92.15%
+- lib/ 行覆盖率 92.15% >> 60% 目标 ✅
+
+---
+
 ## 迭代 R103 — 测试基础设施修复 TestInfrastructureFix
 
 > 日期: 2026-05-19

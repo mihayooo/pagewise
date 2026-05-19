@@ -679,7 +679,7 @@ describe('边界情况', () => {
   it('handler 中抛出非 Error 对象应正常处理', async () => {
     const { scheduler } = createTestEnv()
     scheduler.registerHandler('cleanup', async () => {
-      throw 'string error'  // eslint-disable-line no-throw-literal
+      throw 'string error'   
     })
 
     const taskId = scheduler.scheduleCleanup(5000)

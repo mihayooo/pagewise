@@ -502,9 +502,9 @@
 > 飞轮迭代 R5 起，2026-05-19
 > 目标: 偿还核心技术债务、建立代码质量基线、修复 R106 审计发现
 
-- [ ] **R108: 测试覆盖率度量 TestCoverage** — 引入 `c8` 原生 V8 coverage；`npm run test:coverage` 一键生成覆盖率报告；目标: lib/ 模块行覆盖率 ≥ 60%；`coverage/` 目录 .gitignore；输出 lcov + text-summary。关闭 TD001。复杂度: Simple
+- [x] **R108: 测试覆盖率度量 TestCoverage** — 引入 `c8` 原生 V8 coverage；`npm run test:coverage` 一键生成覆盖率报告；目标: lib/ 模块行覆盖率 ≥ 60%（实际 92.15%）；`coverage/` 目录 .gitignore；输出 lcov + text-summary。关闭 TD001。复杂度: Simple ✅
 
-- [ ] **R109: 代码静态检查 ESLintSetup** — `eslint.config.js` flat config（ES Modules）；rules: no-unused-vars / no-undef / eqeqeq / no-implicit-globals；`npm run lint` + CI 集成；现有代码基线修复（允许 --max-warnings 从宽收紧）。复杂度: Simple
+- [x] **R109: 代码静态检查 ESLintSetup** — `eslint.config.js` flat config（ES Modules）；rules: no-unused-vars / no-undef / eqeqeq / no-implicit-globals；`npm run lint` + CI 集成；现有代码基线修复（允许 --max-warnings 从宽收紧）。复杂度: Simple
 
 - [ ] **R110: 核心流程改进 CoreFlowFix** — 基于 R106 审计输出，修复选中文字→提问→AI 回答→存入知识库→检索回顾流程中的交互痛点：选区丢失容错（重试 + 提示）、AI 响应超时 UI 反馈、知识库写入失败兜底（本地重试队列）、检索结果空态引导。复杂度: Medium
 

@@ -194,7 +194,7 @@ function createPanel(memory, entries = []) {
     downloadFile: () => {},
     getSearchMode: () => 'keyword',
   };
-  // eslint-disable-next-line no-use-before-define
+   
   const { KnowledgePanel } = globalThis._KP || {};
   const panel = new KnowledgePanel(deps);
   return { panel, deps };
