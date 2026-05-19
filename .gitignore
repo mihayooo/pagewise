@@ -11,6 +11,9 @@ Thumbs.db
 # Node
 node_modules/
 
+# Test coverage
+coverage/
+
 # Chrome extension build artifacts
 *.crx
 *.pem

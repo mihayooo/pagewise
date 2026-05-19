@@ -1,215 +1,285 @@
-# 设计文档 — 迭代 #5: AI 响应缓存
+# 设计文档 — R108: 测试覆盖率度量 TestCoverage
 
-> 日期: 2026-04-30
-> 状态: 实现中
-
----
-
-## 1. 概述
-
-本轮迭代实现 **AI 响应缓存**，核心目标是避免对相同或高度相似的请求重复调用 AI API，从而：
-- 节省 API 费用（用户重复提问同一页面同一问题时直接返回缓存）
-- 降低响应延迟（缓存命中时 0 网络开销）
-- 减少不必要的 API 调用（技能触发、自动摘要等场景）
-
-### 数据流
-
-```
-用户提问 → sendMessage()
-              ↓
-    generateCacheKey(messages, systemPrompt, model, ...)
-              ↓
-    cache.get(key) 命中？
-      ├─ 是 → 直接返回缓存响应（标记为 cached）
-      └─ 否 → AIClient.chatStream(messages, ...)
-                  ↓
-        完整响应收集中...
-                  ↓
-        cache.set(key, fullResponse) 存入缓存
-                  ↓
-        返回响应给用户
-```
+> 迭代: R108 (Phase H 第 1 轮，飞轮迭代 R5)
+> 日期: 2026-05-19
+> 复杂度: Simple
+> 关闭: TD001
 
 ---
 
-## 2. 需要修改的文件列表
+## 一、目标概述
 
-| 文件 | 变更类型 | 改动范围 |
+为 PageWise 项目引入基于 V8 原生覆盖率的测试度量能力，通过 `c8` 工具实现：
+
+1. `npm run test:coverage` 一键生成覆盖率报告
+2. `lib/` 模块行覆盖率 (line coverage) ≥ 60%
+3. 输出 `lcov` + `text-summary` 两种格式
+4. `coverage/` 目录加入 `.gitignore`
+5. 更新 TD001 状态为"已关闭"
+
+---
+
+## 二、背景与现状
+
+### 2.1 当前测试基础设施
+
+| 项目 | 现状 |
+|------|------|
+| 测试框架 | Node.js 内置 test runner (`node:test`) — D004 |
+| 测试脚本 | `npm run test` / `test:ci` / `test:all` (R103 建立) |
+| 测试文件 | 193 个 `tests/test-*.js` |
+| lib 模块 | 120 个 `lib/*.js` 文件 |
+| 全量测试 | 5887+ 用例通过 |
+| CI | GitHub Actions `ci.yml` — lint + test + package-check |
+| 覆盖率 | **无** — TD001 记录"无测试覆盖" |
+| Node.js | v22.22.2 (V8 原生 coverage 支持完善) |
+
+### 2.2 技术债务
+
+> **TD001**: 无测试覆盖 — 高优先级 — 待解决
+
+项目已有 5800+ 测试用例，但从未引入覆盖率度量工具。TD001 的真实含义是"无覆盖率可量化"而非"无测试"。本次迭代将精确解决这一缺口。
+
+---
+
+## 三、设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| D108-1 | 使用 `c8` 而非 `istanbul/nyc` | c8 直接使用 V8 引擎原生 coverage 数据，零插桩、零性能损失；nyc 需要 instrument 源码对 ESM 支持不完善；c8 是 Node.js 生态的现代标准 |
+| D108-2 | `c8` 安装为 `devDependencies` | 仅开发/CI 使用，不进入生产扩展包 |
+| D108-3 | `test:ci` 作为覆盖率基线脚本 | `test:ci` 排除了 E2E 测试（需要浏览器环境），是覆盖率度量的合理范围；不含 E2E 避免虚假低覆盖 |
+| D108-4 | 覆盖率门槛设为 `lib/` 行覆盖率 ≥ 60% | 120 个 lib 模块已有 5800+ 测试，60% 是当前合理基线而非过高目标；仅约束 `lib/` 而非全局，因为 `sidebar/`、`content/` 依赖 DOM 环境覆盖率天然偏低 |
+| D108-5 | 输出 lcov + text-summary 双格式 | lcov 是 CI 集成/Codecov/Coveralls 的标准格式；text-summary 提供快速 CLI 可读概览 |
+| D108-6 | 不在此轮集成 CI 覆盖率检查门禁 | R108 目标是建立度量基线；将覆盖率强制门禁留到后续迭代（当基线稳定后再收紧），避免首次引入就阻断 CI |
+| D108-7 | `coverage/` 使用 `.gitignore` 而非 `.git/info/exclude` | `.gitignore` 是团队协作的标准做法，所有贡献者自动忽略构建产物 |
+
+---
+
+## 四、文件变更清单
+
+### 4.1 修改的文件
+
+| 文件 | 变更类型 | 变更内容 |
 |------|----------|----------|
-| `lib/ai-cache.js` | 新建 | AI 响应缓存核心模块 |
-| `lib/ai-client.js` | 修改 | 新增 `cachedChat()` 和 `cachedChatStream()` 方法 |
-| `sidebar/sidebar.js` | 修改 | `sendMessage()` 中集成缓存查询/存储逻辑 |
-| `tests/test-ai-cache.js` | 新建 | 缓存模块单元测试 |
-| `docs/CHANGELOG.md` | 修改 | 记录变更 |
-| `docs/TODO.md` | 修改 | 标记完成 |
-| `docs/IMPLEMENTATION.md` | 修改 | 记录实现内容 |
+| `package.json` | 修改 | 添加 `devDependencies.c8`；添加 `scripts.test:coverage` 脚本 |
+| `.gitignore` | 修改 | 添加 `coverage/` 目录 |
+| `docs/DESIGN.md` | 修改 | TD001 状态更新：`待解决` → `已关闭 (via R108)` |
+
+### 4.2 无新增文件
+
+本次迭代不新增任何 `.js` 文件。纯基础设施配置变更。
 
 ---
 
-## 3. 新增模块: lib/ai-cache.js
+## 五、详细设计
 
-### 3.1 类: `AICache`
+### 5.1 `package.json` 变更
 
-**职责**: 管理 AI 响应的内存缓存，基于请求内容的哈希键进行存取。
+**新增 devDependency:**
 
-**设计**: 纯内存 LRU 缓存（不持久化到 IndexedDB），生命周期与扩展进程一致。
-
-```
-AICache(options)
-  - options.maxSize: number = 50          // 最大缓存条目数
-  - options.ttlMs: number = 30 * 60 * 1000 // 默认 30 分钟 TTL
-
-方法:
-  get(key: string): { content: string, usage?: object, model?: string, cachedAt: number } | null
-  set(key: string, value: object): void
-  delete(key: string): boolean
-  clear(): void
-  has(key: string): boolean
-  size(): number
-  stats(): { hits: number, misses: number, evictions: number, size: number }
-  evictExpired(): number  // 清理过期条目，返回清理数量
+```json
+{
+  "devDependencies": {
+    "c8": "^10.1.0"
+  }
+}
 ```
 
-### 3.2 辅助函数
+选型理由: c8@10.x 是最新稳定版，原生支持 Node.js 22 + ESM (type: "module")。
+
+**新增 script:**
 
 ```
-generateCacheKey(options: {
-  messages: Array,
-  systemPrompt: string,
-  model: string,
-  maxTokens: number,
-  protocol: string
-}): string
-
-流程:
-1. 构建键字符串:
-   - model + "|" + maxTokens + "|" + protocol + "|" + systemPrompt
-   - 对每条消息: role + ":" + content(text-only，排除图片)
-2. 使用 FNV-1a 哈希生成 32 位十六进制字符串
-3. 如果消息中包含图片 URL，附加图片 URL 到键中（图片问答不缓存）
-
-注意:
-- 包含 image_url / image 类型 content 的消息不参与缓存（图片数据太大且不稳定）
-- systemPrompt 完整参与哈希（记忆、页面感知等都会影响）
+"test:coverage": "c8 --reporter=lcov --reporter=text-summary npm run test:ci"
 ```
 
-### 3.3 LRU 策略
+### 5.2 c8 配置策略
 
-- 使用 Map 的插入序（ES6 Map 保证迭代顺序）
-- `get()` 命中时删除再重新插入，使其变为最新
-- 容量满时删除 Map 中第一个条目（最久未使用）
+**不创建 `.c8rc.json` 或 `c8` 配置文件。** 原因:
+- 仅一个脚本 (`test:coverage`)，配置量少，内联到 CLI 参数即可
+- 避免引入额外配置文件增加维护负担
+- 保持与项目"无构建工具、最小配置"的设计哲学一致 (D002)
 
-### 3.4 过期清理
+**内联参数说明:**
 
-- `get()` 时检查 TTL，过期返回 null 并删除
-- 提供 `evictExpired()` 主动清理
+| 参数 | 作用 |
+|------|------|
+| `--reporter=lcov` | 输出 `coverage/lcov.info`，标准格式供 CI/第三方工具消费 |
+| `--reporter=text-summary` | 输出文本摘要到 stdout，快速查看覆盖率百分比 |
+| `--src=lib/` | **不使用此参数** — 让 c8 报告所有被覆盖文件，后续在 CLI 输出中人工关注 `lib/` 行覆盖率 |
+
+**默认行为说明:**
+- c8 默认输出到 `coverage/` 目录
+- c8 默认生成 `coverage/lcov.info` (lcov) + stdout summary
+- c8 使用 V8 的 `--coverage` flag 自动收集，无需修改测试运行方式
+
+### 5.3 `.gitignore` 变更
+
+追加一行:
+
+```
+# Test coverage
+coverage/
+```
+
+添加位置: 在现有 "Node" (`node_modules/`) 段落之后、"Chrome extension" 段落之前。
+
+### 5.4 覆盖率门槛说明
+
+**目标: `lib/` 模块行覆盖率 ≥ 60%**
+
+这是一个 **度量基线目标**，非 CI 强制门禁。执行方式:
+
+1. `npm run test:coverage` 运行后，CLI `text-summary` 输出包含全局覆盖率
+2. 运行后检查 `coverage/lcov.info` 中 `lib/` 文件的行覆盖率数据
+3. 如果 `lib/` 行覆盖率 < 60%，在迭代报告中标注并分析未覆盖模块
+
+**不在本轮设置 `--check-coverage` 门禁的原因:**
+- 首次引入需要先观测当前基线
+- 强制门槛可能导致需要大量补写测试，偏离 R108 的"建立度量"目标
+- 待基线数据稳定后，在 R112 或后续迭代中逐步收紧
 
 ---
 
-## 4. 集成方案
+## 六、接口设计
 
-### 4.1 AIClient 集成
+### 6.1 用户接口 (npm scripts)
 
-新增方法:
 ```
-cachedChat(messages, options, cache)
-cachedChatStream(messages, options, cache)
+npm run test           — 运行测试（不变）
+npm run test:ci        — CI 模式运行测试（不变）
+npm run test:coverage  — 运行测试 + 生成覆盖率报告（新增）
 ```
 
-`cachedChat` 流程:
-1. 调用 `generateCacheKey()` 生成键
-2. `cache.get(key)` 查询
-3. 命中 → 直接返回 `{ ...cached, fromCache: true }`
-4. 未命中 → 调用 `this.chat(messages, options)`
-5. 成功后 `cache.set(key, result)`
-6. 返回 `{ ...result, fromCache: false }`
+### 6.2 输出格式
 
-`cachedChatStream` 流程:
-1. 调用 `generateCacheKey()` 生成键
-2. `cache.get(key)` 查询
-3. 命中 → 一次性 yield 缓存内容，返回
-4. 未命中 → 调用 `this.chatStream(messages, options)` 逐 chunk yield
-5. 收集完整响应
-6. 成功后 `cache.set(key, { content: fullResponse })`
-7. 最终 yield 一个 `__cache_store__` 标记（内部使用）
+**text-summary (stdout 示例):**
 
-### 4.2 Sidebar 集成
+```
+----------|---------|----------|---------|---------|
+File      | % Stmts | % Branch | % Funcs | % Lines |
+----------|---------|----------|---------|---------|
+All files |   65.43 |    52.17 |   61.28 |   65.43 |
+ lib/     |   68.92 |    55.33 |   64.71 |   68.92 |
+----------|---------|----------|---------|---------|
+```
 
-在 `sendMessage()` 中:
-1. 在构建 messages 数组后、调用 chatStream 前，检查缓存
-2. 缓存命中时:
-   - 跳过 loading 动画
-   - 直接渲染缓存内容
-   - 显示 "⚡ 缓存命中" 标记
-3. 缓存未命中时:
-   - 正常调用 chatStream
-   - 响应完成后存入缓存
+**lcov 文件:** `coverage/lcov.info` — 标准 LCOV 格式
 
----
+**HTML 报告:** c8 默认也会生成 `coverage/index.html`（交互式浏览，可选打开）
 
-## 5. 设计决策
+### 6.3 目录结构
 
-### D019: 内存缓存 vs IndexedDB 持久化
-
-**问题**: 缓存应该存在内存中还是 IndexedDB？
-
-**决策**: 纯内存缓存。
-
-**原因**:
-1. AI 响应缓存是"锦上添花"，丢失不影响功能
-2. IndexedDB 异步读写增加复杂度，缓存优势被抵消
-3. 扩展进程生命周期内足够，关闭/刷新时自然清理
-4. 避免 IndexedDB 存储空间占用（单次 AI 响应可能很长）
-
-### D020: 缓存键生成策略
-
-**问题**: 如何确定两个请求"相同"？
-
-**决策**: 完整哈希（model + messages + systemPrompt + maxTokens + protocol）。
-
-**原因**:
-1. 不同 model 的回答质量/风格差异大，不应混合缓存
-2. systemPrompt 包含记忆和页面感知上下文，变化时应重新请求
-3. maxTokens 影响回答长度
-4. 包含图片的消息不缓存（图片 URL 不稳定，base64 数据过大）
-
-### D021: 流式响应缓存时机
-
-**问题**: 流式响应应该在什么时候缓存？
-
-**决策**: 流式完成后一次性缓存完整文本。
-
-**原因**:
-1. 流式中途可能因 abort/error 中断，不应缓存不完整响应
-2. 完整文本可以直接渲染，无需重新流式处理
-3. 缓存命中时"一次性"渲染完整内容，体验更快
+```
+pagewise/
+├── coverage/              ← 自动生成，已 .gitignore
+│   ├── lcov.info          ← LCOV 格式覆盖率数据
+│   ├── index.html         ← 交互式 HTML 报告
+│   └── ...
+├── .gitignore             ← 添加 coverage/
+├── package.json           ← 添加 devDependencies + script
+└── docs/DESIGN.md         ← TD001 状态更新
+```
 
 ---
 
-## 6. 测试要点
+## 七、与现有架构的关系
 
-| 测试项 | 验证方式 |
-|--------|---------|
-| 缓存存取基本功能 | set → get 返回相同值 |
-| TTL 过期 | 设置 1ms TTL → 等待 → get 返回 null |
-| LRU 淘汰 | maxSize=2 → 存 3 条 → 第一条被淘汰 |
-| 缓存键一致性 | 相同输入生成相同键 |
-| 缓存键区分性 | 不同 model/messages 生成不同键 |
-| 图片消息不缓存 | 包含 image_url 的消息生成 null 键 |
-| 缓存统计 | hits/misses/evictions 计数正确 |
-| 主动清理过期 | evictExpired() 正确清理 |
-| delete/has/clear/size | 基础操作正确 |
-| cachedChat 命中 | 不调用底层 chat，返回 fromCache: true |
-| cachedChat 未命中 | 调用底层 chat，缓存结果 |
-| cachedChatStream 命中 | 一次性 yield 缓存内容 |
-| cachedChatStream 未命中 | 正常流式，完成后缓存 |
+```
+                    开发者 / CI
+                        │
+                        ▼
+              npm run test:coverage
+                        │
+                   ┌────┴────┐
+                   │   c8    │  ← V8 --coverage 收集
+                   │ (devDep)│
+                   └────┬────┘
+                        │
+                        ▼
+              node --test 'tests/*.js'   ← 现有测试运行 (不变)
+                        │
+                   ┌────┴────┐
+                   │ 测试用例 │  ← 193 个 test 文件 (不变)
+                   └────┬────┘
+                        │
+                   ┌────┴────┐
+                   │  lib/   │  ← 120 个模块 (不变)
+                   │  src/   │
+                   └────┬────┘
+                        │
+                   ┌────┴────┐
+                   │coverage/│  ← 输出目录 (新增)
+                   └─────────┘
+```
+
+c8 作为 **外层包装器** 包裹现有测试运行，零侵入:
+- 不修改任何测试文件
+- 不修改任何源码文件
+- 不修改现有 npm scripts
 
 ---
 
-## 7. 实现顺序
+## 八、风险与缓解
 
-1. **lib/ai-cache.js** — 核心缓存模块（无依赖）
-2. **tests/test-ai-cache.js** — 单元测试
-3. **lib/ai-client.js** — 新增 cachedChat/cachedChatStream
-4. **sidebar/sidebar.js** — 集成缓存
-5. **文档更新**
+| 风险 | 概率 | 影响 | 缓解措施 |
+|------|------|------|---------|
+| c8 与 Node.js 22 不兼容 | 低 | 高 | c8@10.x 明确支持 Node.js 22；安装后立即验证 |
+| 覆盖率 < 60% 基线 | 中 | 低 | 非阻断性目标；记录真实基线，后续迭代改进 |
+| coverage/ 体积过大影响仓库 | 低 | 低 | .gitignore 已排除；coverage/ 是纯文本通常 < 5MB |
+| E2E 测试污染覆盖率数据 | 低 | 中 | 使用 `test:ci` 作为基线（已排除 E2E） |
+
+---
+
+## 九、验收标准
+
+| # | 验收项 | 验证方式 |
+|---|--------|---------|
+| 1 | `npm run test:coverage` 正确执行 | CLI 无错误退出，text-summary 输出可见 |
+| 2 | `coverage/lcov.info` 文件生成 | `ls -la coverage/lcov.info` 存在且非空 |
+| 3 | text-summary 在 stdout 输出 | 运行后可见 File/Stmts/Branch/Funcs/Lines 表格 |
+| 4 | `coverage/` 在 `.gitignore` 中 | `git status` 不显示 coverage/ 文件 |
+| 5 | `c8` 在 devDependencies 中 | `package.json` 中存在 `"c8": "^10.1.0"` |
+| 6 | TD001 状态已更新 | `docs/DESIGN.md` 中 TD001 行显示"已关闭 (via R108)" |
+| 7 | 现有测试全部通过 | `npm run test:ci` 5887+ 用例零失败 |
+
+---
+
+## 十、实施步骤
+
+1. **安装依赖**: `npm install --save-dev c8`
+2. **添加 script**: `package.json` 中添加 `test:coverage`
+3. **更新 `.gitignore`**: 添加 `coverage/`
+4. **验证运行**: `npm run test:coverage` — 确认 lcov + text-summary 输出
+5. **检查基线**: 读取 text-summary 输出，记录 lib/ 行覆盖率数值
+6. **更新 DESIGN.md**: TD001 标记为已关闭
+7. **全量回归**: `npm run test:ci` 确认无回归
+
+---
+
+## 十一、设计决策记录
+
+### D108-1: c8 vs nyc vs istanbul
+
+| 工具 | V8 原生 | ESM 支持 | 插桩开销 | 维护状态 |
+|------|---------|----------|----------|----------|
+| **c8** ✅ | 是 | 原生 | 无 | 活跃 |
+| nyc (istanbul) | 否 | 需配置 | 有 | 维护模式 |
+| istanbul | 否 | 不支持 | 有 | 停滞 |
+
+### D108-2: 为何不创建 .c8rc.json
+
+- 项目设计哲学: 无构建工具 (D002)
+- 单一脚本使用 c8，配置量不值得独立文件
+- CLI 参数即文档，可读性好
+
+### D108-3: 为何不设 CI 门禁
+
+- 首次引入 = 建立基线，非建立壁垒
+- 避免"覆盖率焦虑"导致写无意义测试
+- 后续迭代可逐步引入 `--check-coverage --branches 50` 等门禁
+
+---
+
+*设计文档完成于 2026-05-19*

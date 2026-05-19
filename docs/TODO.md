@@ -494,3 +494,20 @@
 - [x] **R106: 核心流程端到端审计 CoreFlowAudit** — 走查核心用户体验流程：选中文字 → 提问 → AI 回答 → 存入知识库 → 检索回顾；记录交互痛点、性能瓶颈、边界 case；输出改进清单供 R107 消化。复杂度: Simple
 
 - [x] **R107: 代码健康度仪表盘 CodeHealthDashboard** — 建立项目健康度指标：模块依赖图可视化、循环依赖检测、未使用导出检测、文件大小/行数监控；`scripts/health-check.sh` 一键生成报告。复杂度: Medium
+
+---
+
+## Phase H: 基础设施加固 (R108-R112) — 5 轮
+
+> 飞轮迭代 R5 起，2026-05-19
+> 目标: 偿还核心技术债务、建立代码质量基线、修复 R106 审计发现
+
+- [ ] **R108: 测试覆盖率度量 TestCoverage** — 引入 `c8` 原生 V8 coverage；`npm run test:coverage` 一键生成覆盖率报告；目标: lib/ 模块行覆盖率 ≥ 60%；`coverage/` 目录 .gitignore；输出 lcov + text-summary。关闭 TD001。复杂度: Simple
+
+- [ ] **R109: 代码静态检查 ESLintSetup** — `eslint.config.js` flat config（ES Modules）；rules: no-unused-vars / no-undef / eqeqeq / no-implicit-globals；`npm run lint` + CI 集成；现有代码基线修复（允许 --max-warnings 从宽收紧）。复杂度: Simple
+
+- [ ] **R110: 核心流程改进 CoreFlowFix** — 基于 R106 审计输出，修复选中文字→提问→AI 回答→存入知识库→检索回顾流程中的交互痛点：选区丢失容错（重试 + 提示）、AI 响应超时 UI 反馈、知识库写入失败兜底（本地重试队列）、检索结果空态引导。复杂度: Medium
+
+- [ ] **R111: 输入安全加固 InputSanitization** — 统一用户输入净化层 `lib/sanitize.js`：XSS 防护（HTML 实体编码）、URL 校验（仅允许 http/https/javascript: 拦截）、搜索注入防护（特殊字符转义）、书签标题/标签长度限制；替换现有散落的 escapeHtml 调用为集中模块。复杂度: Medium
+
+- [ ] **R112: 技术债务结算 TechDebtCleanup** — 更新 TD 表（TD001→已关闭 via R108, TD002→已关闭 via R104, TD003→已关闭 via R105）；清理 lib/test-r97.js 测试残留文件；README 更新（badge: CI/coverage/lint）；CHANGELOG 补充 R103-R107 变更记录。复杂度: Simple
