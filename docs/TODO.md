@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R107
+> 迭代轮次: R43 - R127
 > 最后更新: 2026-05-19
 
 ---
@@ -541,3 +541,20 @@
 - [x] **R120: 超大模块拆分续 LargeModuleSplit** — R116 仅完成 knowledge-base.js 拆分，剩余 56 个 >400 行文件需继续拆分，优先处理 Top-5：bookmark-graph.js(1096行)、knowledge-panel.js(907行)、bookmark-organize.js(806行)、auto-classifier.js(728行)、stats.js(701行)。拆分后每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
 - [x] **R121: 测试稳定性加固 TestStabilityHardening** — 建立测试质量基线：新增 flaky test 检测脚本（连续 3 次运行结果一致性校验）；测试隔离度审计（确保无共享可变状态泄漏）；建立 smoke test 子集（核心流程 ~50 用例，CI 快速门禁 <5s）。复杂度: Medium
 - [x] **R122: 开发者文档补全 DevDocumentation** — 补充项目开发者文档：CONTRIBUTING.md（开发环境搭建、分支策略、PR 流程、测试规范）；架构概览图（模块依赖关系 + 数据流）；lib/ 公共 API 速查表；README 更新（开发/调试/发布指南）。复杂度: Simple
+
+---
+
+## Phase K: 质量修复与深度优化 (R123-R127) — 5 轮
+
+> 飞轮迭代 R20 起，2026-05-19
+> 目标: 修复 49 个失败测试、清理 197 个 ESLint 警告、完成剩余超大模块拆分、加强模块解耦与缓存策略
+
+- [ ] **R123: 测试失败批量修复 TestFailureBatchFix** — 修复全量回归中 49 个失败测试：(1) BookmarkBackup 21+ 个断言失败（createBackup/validateBackup/restoreBackup 结构与预期不匹配，疑似 R116 模块拆分后 API 变更）；(2) BookmarkAdvancedSearch 3 个组合过滤断言失败；(3) sanitize 模块 6 个断言失败（escapeHtml/escapeHtmlAttr/escapeSearchQuery/sanitizeBookmarkTitle）；(4) R122 文档验收 12 个断言失败（LIB-API-REFERENCE.md 未生成、README/CHANGELOG/IMPLEMENTATION 未更新）。目标: `npm run test:ci` 0 fail。复杂度: Medium
+
+- [ ] **R124: ESLint 警告彻底清除 LintWarningZero** — 清除剩余 197 个 no-unused-vars 警告：逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 no-unused-vars 规则从 `warn` 收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+
+- [ ] **R125: 超大模块拆分收尾 ModuleSplitFinish** — R120 声称完成 Top-5 拆分但实际仍有 9 个文件 >500 行：bookmark-organize.js(806)、auto-classifier.js(728)、stats.js(701)、wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)。优先拆分前 3 个（>700 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
+
+- [ ] **R126: 模块间循环依赖消除 CircularDepElimination** — 利用 R107 健康检查输出，识别并消除模块间循环依赖：梳理依赖图 → 断开环路（接口抽象/事件总线/依赖注入）；将核心模块（knowledge-base、ai-client、bookmark-graph）解耦为单向依赖 DAG；新增循环依赖 CI 门禁脚本。复杂度: Complex
+
+- [ ] **R127: 缓存与性能策略统一 CachePerfUnify** — 统一散落在各模块中的缓存策略：review-session.js LRU、bookmark-performance.js LRU、knowledge-base 查询缓存、bookmark-semantic-search 缓存 → 提取公共 `lib/cache-manager.js`（LRU + TTL + 失效策略）；替换各模块自实现缓存为统一层；1000+ 书签场景性能基准回归确保无退化。复杂度: Medium
