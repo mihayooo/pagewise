@@ -7,7 +7,7 @@
  *   isValidSemver / compareVersions / RELEASE_CHECKLIST
  */
 
-import { describe, it } from 'node:test'
+import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 const {
@@ -410,8 +410,7 @@ describe('BookmarkRelease', () => {
  *   bookmark-backup, bookmark-exporter, bookmark-error-handler, bookmark-store-prep
  */
 
-import { describe, it, beforeEach } from 'node:test'
-import assert from 'node:assert/strict'
+// R118: removed duplicate import statements (describe/it/beforeEach/assert), using top-level declarations
 
 const { BookmarkImportExport } = await import('../lib/bookmark-io.js')
 const { BookmarkDedup } = await import('../lib/bookmark-dedup.js')

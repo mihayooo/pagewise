@@ -29,8 +29,8 @@ const {
 
 // ==================== 辅助函数 ====================
 
-function bm(id, title, url, folderPath = [], tags = []) {
-  return { id: String(id), title, url, folderPath, tags }
+function bm(id, title, url, folderPath = [], tags = [], status = 'unread', dateAdded = 0) {
+  return { id: String(id), title, url, folderPath, tags, status, dateAdded }
 }
 
 function createTestBookmarks(count) {
@@ -630,35 +630,7 @@ const {
   restoreBackup,
 } = await import('../lib/bookmark-backup.js')
 
-// ==================== 辅助函数 ====================
-
-/**
- * 创建单个书签对象
- *
- * @param {number|string} id
- * @param {string} title
- * @param {string} url
- * @param {string[]} [folderPath]
- * @param {string[]} [tags]
- * @returns {object}
- */
-function bm(id, title, url, folderPath = [], tags = []) {
-  return { id: String(id), title, url, folderPath, tags }
-}
-
-/**
- * 批量创建测试书签
- *
- * @param {number} count
- * @returns {object[]}
- */
-function createTestBookmarks(count) {
-  const bookmarks = []
-  for (let i = 0; i < count; i++) {
-    bookmarks.push(bm(i, `Bookmark ${i}`, `https://example.com/page${i}`, ['folder'], ['tag']))
-  }
-  return bookmarks
-}
+// R118: helper functions bm() / createTestBookmarks() already defined at top level
 
 // ==================== 常量 ====================
 

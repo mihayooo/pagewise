@@ -528,3 +528,16 @@
 - [x] **R116: 大模块拆分重构 ModuleRefactor** — 对超大模块进行职责拆分：knowledge-base.js(1866行→拆为 core/crud/query/export)、bookmark-graph.js(1096行)、knowledge-graph.js(1035行)、knowledge-panel.js(907行)、bookmark-organize.js(806行)。拆分后每文件 ≤400 行，保持 API 签名不变确保向后兼容。复杂度: Complex
 
 - [x] **R117: 健康检查报告更新 HealthCheckUpdate** — 更新 scripts/health-check.sh：新增测试覆盖空白检测（列出无测试的模块）、新增 ESLint 警告趋势统计、新增模块行数 Top-10 排行、修复与 R113/R114/R115 的衔接。输出 HTML + Markdown 双格式报告。复杂度: Simple
+
+---
+
+## Phase J: 飞轮迭代 R15+ (R118-R122) — 5 轮
+
+> 飞轮迭代 R15 起，2026-05-19
+> 目标: 修复测试红灯、清除 ESLint 警告存量、完成大模块拆分、加固测试稳定性、补全开发者文档
+
+- [x] **R118: 测试失败修复 TestFailureFix** — 修复 3 个失败测试：test-bookmark-backup-restore.js（备份恢复相关断言失败）、test-bookmark-release.js（发布流程断言失败）；修复 2 个 ESLint parsing error（标识符重复声明）；目标: 全量回归 0 fail。复杂度: Simple
+- [ ] **R119: ESLint 警告清理 LintWarningCleanup** — 清除 633 个 eqeqeq 警告：将存量 `==`/`!=` 全部替换为 `===`/`!==`（106 处影响文件）；清理后将 eqeqeq 规则从 `warn` 恢复为 `error`；目标: `npm run lint` 0 warnings 0 errors。复杂度: Medium
+- [ ] **R120: 超大模块拆分续 LargeModuleSplit** — R116 仅完成 knowledge-base.js 拆分，剩余 56 个 >400 行文件需继续拆分，优先处理 Top-5：bookmark-graph.js(1096行)、knowledge-panel.js(907行)、bookmark-organize.js(806行)、auto-classifier.js(728行)、stats.js(701行)。拆分后每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
+- [ ] **R121: 测试稳定性加固 TestStabilityHardening** — 建立测试质量基线：新增 flaky test 检测脚本（连续 3 次运行结果一致性校验）；测试隔离度审计（确保无共享可变状态泄漏）；建立 smoke test 子集（核心流程 ~50 用例，CI 快速门禁 <5s）。复杂度: Medium
+- [ ] **R122: 开发者文档补全 DevDocumentation** — 补充项目开发者文档：CONTRIBUTING.md（开发环境搭建、分支策略、PR 流程、测试规范）；架构概览图（模块依赖关系 + 数据流）；lib/ 公共 API 速查表；README 更新（开发/调试/发布指南）。复杂度: Simple
