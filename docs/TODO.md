@@ -675,7 +675,7 @@
 
 - [x] **R158: sidebar.js 超大模块拆分落地 SidebarModuleSplitActual** — R155 标记完成但 `wc -l` 实测 sidebar.js 仍为 7705 行，拆分未生效；按职责实际执行拆分：(1) sidebar-chat.js — 聊天/对话渲染逻辑；(2) sidebar-knowledge.js — 知识库面板逻辑；(3) sidebar-bookmark.js — 书签面板逻辑；(4) sidebar-settings.js — 设置/配置逻辑；(5) sidebar-utils.js — 通用工具函数；保持 sidebar.js 为薄编排层（≤400 行），拆分后每个子模块 ≤400 行；同步消除 sidebar.js 中 8 处 `no-unused-vars` lint 警告；验证拆分后 UI 行为不变 + 全量回归 0 fail。复杂度: Complex
 
-- [ ] **R159: ESLint 警告清零 LintWarningFinalR55** — 当前 0 errors / 33 warnings（全部 `no-unused-vars`）；sidebar.js 8 处（R158 连带修复）、lib/logger.js 7 处（logWarn/logError/logDebug/getLogs/exportLogs/getRecentMetrics/getPerformanceStats）、其余文件 18 处；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
+- [x] **R159: ESLint 警告清零 LintWarningFinalR55** — 当前 0 errors / 33 warnings（全部 `no-unused-vars`）；sidebar.js 8 处（R158 连带修复）、lib/logger.js 7 处（logWarn/logError/logDebug/getLogs/exportLogs/getRecentMetrics/getPerformanceStats）、其余文件 18 处；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
 
 - [ ] **R160: 覆盖率基础设施修复与行覆盖率回升 CoverageInfraAndBoost** — 当前 `npm run test:coverage` 报告行覆盖率 22.17%（10212/46056），与历史声称的 ≥80% 严重脱节；排查根因：(1) c8 是否正确插桩 sidebar/options/popup/background 入口文件（ESM 动态 import / Chrome API 依赖）；(2) 是否存在 c8 `--all` 标志缺失导致大量模块未计入统计；(3) 修复 c8 配置使所有源码模块纳入覆盖率；目标: 行覆盖率 ≥80%、函数覆盖率 ≥60%。复杂度: Medium
 

@@ -1,7 +1,7 @@
 /**
  * sidebar-utils.js — 通用工具函数与页面上下文逻辑
  */
-import { logInfo, logWarn, logError, logDebug, getLogs, clearLogs as clearLogStore, exportLogs, recordMetric, getRecentMetrics, getPerformanceStats, clearMetrics } from '../lib/log-store.js';
+import { clearLogs as clearLogStore, recordMetric, clearMetrics } from '../lib/log-store.js';
 
 export function setupUtils(SidebarApp) {
 

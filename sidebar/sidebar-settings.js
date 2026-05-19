@@ -4,8 +4,8 @@
 import { AIClient } from '../lib/ai-client.js';
 import { storageGet, storageSet } from '../lib/storage-adapter.js';
 import { getSettings, saveSettings, saveProfiles, loadProfiles } from '../lib/utils.js';
-import { getShortcuts, matchShortcut } from '../lib/shortcuts.js';
-import { getLogs, clearLogs as clearLogStore, exportLogs, recordMetric, getRecentMetrics, getPerformanceStats, clearMetrics } from '../lib/log-store.js';
+import { getShortcuts } from '../lib/shortcuts.js';
+import { getLogs, exportLogs, getRecentMetrics, getPerformanceStats } from '../lib/log-store.js';
 
 /** 提供商预设 */
 export const PROVIDERS = {
