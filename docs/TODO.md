@@ -640,7 +640,7 @@
 
 - [x] **R149: ESLint 警告清零 LintWarningFinalSweep** — 当前 0 errors / 87 warnings（分布在 21 个文件，全部为 `no-unused-vars`）；主要问题文件: options.js（`messageEl`×3、`knowledgeToolbar`、`swiping`、`listAttrs`、`itemAttrs`、`app` 等 8 处）、sidebar.js（1 处）、test-shard.js（1 处）、lib/wiki-query.js（1 处）、lib/utils.js（1 处）、lib/storage-adapter.js（1 处）等；逐文件审查：删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
 
-- [ ] **R150: 超大模块拆分六期 ModuleSplitPhase6** — R145 标记完成但实际 9 个 lib 文件仍 >500 行（经 `wc -l` 实测）：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+- [x] **R150: 超大模块拆分六期 ModuleSplitPhase6** — R145 标记完成但实际 9 个 lib 文件仍 >500 行（经 `wc -l` 实测）：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
 - [ ] **R151: 覆盖率基线对齐与提升 CoverageBaselineAlign** — 当前实测行覆盖率 79.88%（Lines 37067/46401）、函数覆盖率 87.15%（Functions 1527/1752）、分支覆盖率 85.24%（Branches 7636/8958），与迭代历史声称的 93.02% 存在显著差距；排查 c8 插桩覆盖范围（168 个 lib 模块 vs options/popup/sidebar/background 入口文件）；识别覆盖率最低的模块 Top-15 并补测试；目标: 行覆盖率 ≥85%、函数覆盖率 ≥90%。复杂度: Medium
 
