@@ -638,7 +638,7 @@
 
 - [x] **R148: EvolutionEngine 测试失败修复 EvolutionTestFix** — 修复 `npm run test` 中 7 个失败用例（全部集中在 EvolutionEngine）：(1) batchEvolve 3 个断言失败（analyzeStylePreference 2 个、analyzeRetrievalEffectiveness 1 个）；(2) analyzeUserLevel 3 个断言失败（方法未暴露为类方法）；(3) reset 1 个断言失败（loadState 竞态覆盖）。根因: (a) loadState else 分支在存储为空时重置策略导致异步竞态；(b) 缺少 beforeEach resetChromeMock 导致测试间状态泄漏；(c) analyzeUserLevel 仅导出为独立函数而非 EvolutionEngine 方法。修复: 移除 loadState else 分支、添加 beforeEach、添加 analyzeUserLevel 方法。复杂度: Medium ✅
 
-- [ ] **R149: ESLint 警告清零 LintWarningFinalSweep** — 当前 0 errors / 87 warnings（分布在 21 个文件，全部为 `no-unused-vars`）；主要问题文件: options.js（`messageEl`×3、`knowledgeToolbar`、`swiping`、`listAttrs`、`itemAttrs`、`app` 等 8 处）、sidebar.js（1 处）、test-shard.js（1 处）、lib/wiki-query.js（1 处）、lib/utils.js（1 处）、lib/storage-adapter.js（1 处）等；逐文件审查：删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
+- [x] **R149: ESLint 警告清零 LintWarningFinalSweep** — 当前 0 errors / 87 warnings（分布在 21 个文件，全部为 `no-unused-vars`）；主要问题文件: options.js（`messageEl`×3、`knowledgeToolbar`、`swiping`、`listAttrs`、`itemAttrs`、`app` 等 8 处）、sidebar.js（1 处）、test-shard.js（1 处）、lib/wiki-query.js（1 处）、lib/utils.js（1 处）、lib/storage-adapter.js（1 处）等；逐文件审查：删除或前缀 `_` 标记有意忽略项；确认 `npm run lint` 0 errors 0 warnings。复杂度: Simple
 
 - [ ] **R150: 超大模块拆分六期 ModuleSplitPhase6** — R145 标记完成但实际 9 个 lib 文件仍 >500 行（经 `wc -l` 实测）：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 

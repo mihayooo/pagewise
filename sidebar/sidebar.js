@@ -8,13 +8,13 @@ import { AICache } from '../lib/ai-cache.js';
 import { SkillEngine } from '../lib/skill-engine.js';
 import { PageSense } from '../lib/page-sense.js';
 import { MemorySystem } from '../lib/memory.js';
-import { AgentLoop } from '../lib/agent-loop.js';
+
 import { EvolutionEngine } from '../lib/evolution.js';
 import { allBuiltinSkills } from '../skills/builtin-skills.js';
 import { parseImportFiles } from '../lib/importer.js';
-import { saveHighlight, getHighlightsByUrl, getAllHighlightsFlat, deleteHighlight, deleteHighlightsByUrl } from '../lib/highlight-store.js';
-import { calculateNextReview, getDueCards, getDueCardCount, formatReviewDate, initializeReviewData, getReviewStreak, recordReviewDay, DIFFICULTY_MAP } from '../lib/spaced-repetition.js';
-import { buildGraphData, forceDirectedLayout, TAG_COLORS, applyZoomTransform, screenToWorld, computeMinimapViewport, filterGraphByTags, buildTooltipText, buildWikiGraphData, extractSubgraph, exportGraphToDataURL, NODE_SHAPES, EDGE_TYPES } from '../lib/knowledge-graph.js';
+import { getAllHighlightsFlat, deleteHighlight, deleteHighlightsByUrl } from '../lib/highlight-store.js';
+import { calculateNextReview, getDueCards, getDueCardCount, initializeReviewData, recordReviewDay } from '../lib/spaced-repetition.js';
+import { buildGraphData, forceDirectedLayout } from '../lib/knowledge-graph.js';
 import { getSettings, saveSettings, renderMarkdown, formatTime, debounce, throttle, saveConversation, loadConversation, clearConversation, saveProfiles, loadProfiles } from '../lib/utils.js';
 import { saveConversation as saveConversationIDB, getConversationByUrl, getAllConversations, deleteConversation, deleteOldConversations, searchConversations } from '../lib/conversation-store.js';
 import { saveSkill as saveCustomSkill, getAllSkills as getAllCustomSkills, getSkillById as getCustomSkillById, deleteSkill as deleteCustomSkill, toggleSkill as toggleCustomSkill, renderTemplate } from '../lib/custom-skills.js';
@@ -22,28 +22,31 @@ import { buildTopicStats, buildLearningPathPrompt, parseLearningPathResponse, va
 import { getAllTemplates, saveTemplate as savePromptTemplate, deleteTemplate as deletePromptTemplate, renderTemplate as renderPromptTemplate } from '../lib/prompt-templates.js';
 import { getStats, incrementCounter, recordDailyUsage, recordSkillUsage, getTopSkills, getUsageTrend, resetStats, getLearningStreak, getTopTags, getWordFrequencies, getWeeklyGrowth } from '../lib/stats.js';
 import { SkillStore } from '../lib/skill-store.js';
-import { classifyAIError, classifyContentError, classifyStorageError, retryWithBackoff, installGlobalErrorHandler, ErrorType, CONTENT_ERROR_MESSAGES } from '../lib/error-handler.js';
+import { classifyAIError, classifyContentError, installGlobalErrorHandler, ErrorType } from '../lib/error-handler.js';
 import { onboarding } from '../lib/onboarding.js';
-import { logInfo, logWarn, logError, logDebug, getLogs, clearLogs as clearLogStore, exportLogs, recordMetric, getMetrics, getRecentMetrics, getPerformanceStats, clearMetrics } from '../lib/log-store.js';
+import { logInfo, logWarn, logError, logDebug, getLogs, clearLogs as clearLogStore, exportLogs, recordMetric, getRecentMetrics, getPerformanceStats, clearMetrics } from '../lib/log-store.js';
 import { MessageRenderer } from '../lib/message-renderer.js';
 import { KnowledgePanel } from '../lib/knowledge-panel.js';
 import { getShortcuts, matchShortcut } from '../lib/shortcuts.js';
-import { addOfflineAnswer, getOfflineAnswer, searchOfflineAnswers, evictOverflow, getOfflineStats } from '../lib/offline-answer-store.js';
-import { detectLanguage, detectQuestionLanguage, determineResponseLanguage, buildMultilingualPrompt } from '../lib/i18n-detector.js';
-import { ReviewSession, saveSession, getRecentSessions, getWeeklyStats } from '../lib/review-session.js';
-import { detectContradictions, findCandidateEntries, filterContradictions, buildContradictionWarningHtml, CONTRADICTION_SEVERITY } from '../lib/contradiction-detector.js';
-import { WikiStore, PAGE_TYPE_LABELS, PAGE_TYPE_ICONS, renderWikilinks } from '../lib/wiki-store.js';
+
+
+import { detectQuestionLanguage, determineResponseLanguage, buildMultilingualPrompt } from '../lib/i18n-detector.js';
+
+
+
+
+import { WikiStore } from '../lib/wiki-store.js';
 import { BookmarkCollector } from '../lib/bookmark-collector.js';
 import { BookmarkIndexer } from '../lib/bookmark-indexer.js';
 import { BookmarkGraphEngine } from '../lib/bookmark-graph.js';
 import { BookmarkSearch } from '../lib/bookmark-search.js';
 import { BookmarkClusterer } from '../lib/bookmark-clusterer.js';
-import { BookmarkStatusManager, VALID_STATUSES } from '../lib/bookmark-status.js';
+import { BookmarkStatusManager } from '../lib/bookmark-status.js';
 import { BookmarkTagger } from '../lib/bookmark-tagger.js';
 import { BookmarkDedup } from '../lib/bookmark-dedup.js';
 import { BookmarkFolderAnalyzer } from '../lib/bookmark-folder-analyzer.js';
-import { BookmarkGapDetector } from '../lib/bookmark-gap-detector.js';
-import { BookmarkImportExport } from '../lib/bookmark-io.js';
+
+
 import { BookmarkDetailPanel } from '../lib/bookmark-detail-panel.js';
 import { BookmarkAccessibility } from '../lib/bookmark-accessibility.js';
 import { PageSummarizer } from '../lib/page-summarizer.js';
@@ -1698,7 +1701,7 @@ class SidebarApp {
     // 代码块列表
     if (codeBlocks && codeBlocks.length > 0) {
       let codeHtml = '<div class="page-preview-code-header">代码块</div>';
-      codeBlocks.forEach((block, i) => {
+      codeBlocks.forEach((block, _i) => {
         const lang = block.lang || 'text';
         const preview = block.code.slice(0, 500);
         const codeTruncated = block.code.length > 500;
