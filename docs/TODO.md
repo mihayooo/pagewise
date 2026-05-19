@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R128
+> 迭代轮次: R43 - R137
 > 最后更新: 2026-05-19
 
 ---
@@ -575,3 +575,20 @@
 - [x] **R131: 无障碍功能补全 AccessibilityComplete** — 需求文档 P1 级别（R79）：键盘导航（Tab/Enter/Escape/Arrow Up-Down）、屏幕阅读器（aria-label, role, live regions）、焦点管理（焦点环、焦点陷阱）、颜色对比度 ≥ 4.5:1 审计。`lib/bookmark-accessibility.js` 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块；67 用例覆盖（+18 新增）。复杂度: Medium ✅ (67 pass / 0 fail)
 
 - [x] **R132: 引导向导与发布准备 OnboardingPublish** — (1) 需求文档 P1 级别（R81）BookmarkOnboarding：首次安装 4 步引导向导（welcome→features→theme→autoCollect）、核心功能介绍、主题选择、自动采集开关、状态持久化、i18n 双语。`lib/bookmark-onboarding.js` + 72 用例。(2) 更新 manifest.json / _locales / 截图准备。复杂度: Medium
+
+---
+
+## Phase M: 持续质量优化 (R133-R137) — 5 轮
+
+> 飞轮迭代 R30 起，2026-05-19
+> 目标: 清除剩余 lint 警告、继续大模块拆分、优化测试执行效率、补全核心流程 E2E 覆盖、提升测试覆盖率基线
+
+- [ ] **R133: Lint 警告清零 LintWarningFinal** — 40 个文件仍存在 115 个 `no-unused-vars` 警告（agent-loop.js、ai-client.js、bookmark-visualizer.js、bookmark-semantic-search.js 等）；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记；将 `no-unused-vars` 规则收紧为 `error`（`eslint.config.js` max-warnings → 0）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+
+- [ ] **R134: 超大模块拆分三期 ModuleSplitPhase3** — 仍有 14 个文件 >500 行：bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-accessibility.js(636)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、contradiction-detector.js(589)、bookmark-semantic-search.js(579)、skill-validator.js(577)、git-repo.js(567)、bookmark-sync.js(561)、bookmark-ai-recommender.js(558)、bookmark-final-polish.js(555)、compilation-report.js(552)。优先拆分前 8 个（>570 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+
+- [ ] **R135: 测试执行优化 TestExecutionOpt** — 当前全量测试 5061 用例执行耗时 ~29.5s；优化策略: (1) 按模块分片并行执行（`node --test --test-concurrency=4`）；(2) 建立 smoke test 子集（核心流程 ~80 用例，CI 快速门禁 <5s）；(3) 检测并移除测试中的 `setTimeout`/`sleep` 阻塞；(4) 目标: 全量 ≤20s，smoke ≤5s。复杂度: Medium
+
+- [ ] **R136: 核心流程 E2E 测试 CoreFlowE2E** — 补全端到端集成测试覆盖核心用户旅程: 选中文字 → 提问 → AI 回答 → 存入知识库 → 搜索回顾 → 书签关联；模拟 Chrome API stub（tabs/storage/scripting）；覆盖正常路径 + 异常路径（网络超时/存储满/AI 降级）；验证模块间数据流完整性（knowledge-base ↔ bookmark-knowledge-integration ↔ bookmark-semantic-search）；目标: ≥20 用例。复杂度: Medium
+
+- [ ] **R137: 测试覆盖率提升 TestCoverageBoost** — 当前覆盖率基线待验证（R108 报告 92.15% 但测试报告显示 0 pass/0 fail 脱节）；运行 `npm run test:coverage` 建立准确基线；识别覆盖率 <60% 的模块（重点关注: background service-worker、options/popup/sidebar UI 入口、lib/agent-loop.js、lib/evolution.js）；为目标模块补充边界用例；目标: lib/ 模块行覆盖率 ≥ 80%。复杂度: Medium
