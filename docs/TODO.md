@@ -619,9 +619,9 @@
 > 飞轮迭代 R40 起，2026-05-19
 > 目标: 修复 23 个失败测试、清理 114 个 ESLint 问题、函数覆盖率从 40.77% 提升至 ≥70%、继续超大模块拆分
 
-- [ ] **R143: 测试失败批量修复 TestFailureBatchFix3** — 修复 `npm run test:ci` 中 23 个失败用例：(1) AIClient vision 消息格式 7 个（OpenAI/Claude image_url 数组格式转换、双 /v1 URL 去重）；(2) EvolutionEngine 10 个（evolve/batchEvolve/analyzeUserLevel/reset 行为断言，R142 代码变更后行为漂移）；(3) BookmarkVisualizer 节点半径缩放 1 个；(4) BookmarkSemanticSearch _mergeResults 合并去重 1 个；(5) mergeIngestStats 边界情况 1 个；(6) test-r137-coverage-boost data URL 图片处理 3 个。目标: `npm run test:ci` 5553 pass / 0 fail。复杂度: Medium
+- [x] **R143: 测试失败批量修复 TestFailureBatchFix3** — 修复 `npm run test:ci` 中 23 个失败用例：(1) AIClient vision 消息格式 7 个（OpenAI/Claude image_url 数组格式转换、双 /v1 URL 去重）；(2) EvolutionEngine 10 个（evolve/batchEvolve/analyzeUserLevel/reset 行为断言，R142 代码变更后行为漂移）；(3) BookmarkVisualizer 节点半径缩放 1 个；(4) BookmarkSemanticSearch _mergeResults 合并去重 1 个；(5) mergeIngestStats 边界情况 1 个；(6) test-r137-coverage-boost data URL 图片处理 3 个。目标: `npm run test:ci` 5553 pass / 0 fail。复杂度: Medium
 
-- [ ] **R144: ESLint 问题清零 LintFinalSweep** — 修复 1 个 parsing error（test-r137-coverage-boost.js 中 `→` 特殊字符导致解析失败）；清理 113 个 `no-unused-vars` 警告（逐文件审查：删除或前缀 `_` 标记未使用变量/导入/参数）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+- [x] **R144: ESLint 问题清零 LintFinalSweep** — 修复 1 个 parsing error（test-r137-coverage-boost.js 中 `→` 特殊字符导致解析失败）；清理 113 个 `no-unused-vars` 警告（逐文件审查：删除或前缀 `_` 标记未使用变量/导入/参数）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
 - [ ] **R145: 超大模块拆分五期 ModuleSplitPhase5** — 仍有 9 个文件 >500 行：bookmark-learning-progress.js(551)、wiki-query.js(548)、bookmark-tag-editor-v2.js(548)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。优先拆分前 5 个（>530 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
 

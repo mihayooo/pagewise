@@ -204,7 +204,7 @@ describe('BookmarkTagEditor — 补充边界用例', () => {
   });
 
   it('normalizeTag: 含 emoji 的标签', () => {
-    const result = Emoji → emoji is removed
+    const result = BookmarkTagEditor.normalizeTag('Emoji \u{1F600}');
     const result2 = BookmarkTagEditor.normalizeTag('code\u{1F600}');
     assert.equal(result2, 'code');
   });
