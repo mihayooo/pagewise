@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (response?.totalEntries !== undefined) {
       statsInfo.textContent = `${response.totalEntries} 条知识 · ${response.totalTags} 个标签`;
     }
-  } catch (e) {
+  } catch (_e) {
     statsInfo.textContent = '';
   }
 
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const current = statsInfo.textContent;
       statsInfo.textContent = current ? `${current} · ${count} 个书签` : `${count} 个书签`;
     }
-  } catch (e) {
+  } catch (_e) {
     // 忽略错误
   }
 });

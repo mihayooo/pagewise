@@ -549,9 +549,9 @@
 > 飞轮迭代 R20 起，2026-05-19
 > 目标: 修复 49 个失败测试、清理 197 个 ESLint 警告、完成剩余超大模块拆分、加强模块解耦与缓存策略
 
-- [ ] **R123: 测试失败批量修复 TestFailureBatchFix** — 修复全量回归中 49 个失败测试：(1) BookmarkBackup 21+ 个断言失败（createBackup/validateBackup/restoreBackup 结构与预期不匹配，疑似 R116 模块拆分后 API 变更）；(2) BookmarkAdvancedSearch 3 个组合过滤断言失败；(3) sanitize 模块 6 个断言失败（escapeHtml/escapeHtmlAttr/escapeSearchQuery/sanitizeBookmarkTitle）；(4) R122 文档验收 12 个断言失败（LIB-API-REFERENCE.md 未生成、README/CHANGELOG/IMPLEMENTATION 未更新）。目标: `npm run test:ci` 0 fail。复杂度: Medium
+- [x] **R123: 测试失败批量修复 TestFailureBatchFix** — 修复全量回归中 49 个失败测试：(1) BookmarkBackup 21+ 个断言失败（createBackup/validateBackup/restoreBackup 结构与预期不匹配，疑似 R116 模块拆分后 API 变更）；(2) BookmarkAdvancedSearch 3 个组合过滤断言失败；(3) sanitize 模块 6 个断言失败（escapeHtml/escapeHtmlAttr/escapeSearchQuery/sanitizeBookmarkTitle）；(4) R122 文档验收 12 个断言失败（LIB-API-REFERENCE.md 未生成、README/CHANGELOG/IMPLEMENTATION 未更新）。目标: `npm run test:ci` 0 fail。复杂度: Medium
 
-- [ ] **R124: ESLint 警告彻底清除 LintWarningZero** — 清除剩余 197 个 no-unused-vars 警告：逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 no-unused-vars 规则从 `warn` 收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+- [x] **R124: ESLint 警告彻底清除 LintWarningZero** — 清除剩余 197 个 no-unused-vars 警告：逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 no-unused-vars 规则从 `warn` 收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
 - [ ] **R125: 超大模块拆分收尾 ModuleSplitFinish** — R120 声称完成 Top-5 拆分但实际仍有 9 个文件 >500 行：bookmark-organize.js(806)、auto-classifier.js(728)、stats.js(701)、wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)。优先拆分前 3 个（>700 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
 

@@ -373,7 +373,7 @@ export class BookmarkPanel {
 
     try {
       await this.init();
-    } catch (err) {
+    } catch (_err) {
       // init 失败时 error 已设置在 init() 内部
     }
 

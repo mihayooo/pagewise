@@ -60,7 +60,7 @@
         XPathResult.FIRST_ORDERED_NODE_TYPE, null
       );
       return result.singleNodeValue;
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   }
@@ -202,7 +202,7 @@
       mark.className = 'pagewise-highlight';
       range.surroundContents(mark);
       return true;
-    } catch (e) {
+    } catch (_e) {
       // surroundContents 可能在跨节点选区时失败
       return false;
     }
@@ -356,7 +356,7 @@
         }, 3000);
 
         return { success: true };
-      } catch (e) {
+      } catch (_e) {
         // range.surroundContents 可能在跨节点选区时失败，继续查找下一个匹配
         continue;
       }
@@ -452,7 +452,7 @@
       try {
         const rect = el.getBoundingClientRect();
         if (rect.height === 0) continue;
-      } catch (e) {
+      } catch (_e) {
         continue;
       }
 
@@ -509,7 +509,7 @@
     let blocks;
     try {
       blocks = el.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, td, th');
-    } catch (e) {
+    } catch (_e) {
       return [];
     }
     return [...blocks]
@@ -729,7 +729,7 @@
       if (typeof parsed === 'string') {
         try {
           parsed = JSON.parse(parsed);
-        } catch (e) {
+        } catch (_e) {
           return null;
         }
       }
@@ -751,7 +751,7 @@
 
       const xmlText = await response.text();
       return parseSubtitleXML(xmlText);
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   }

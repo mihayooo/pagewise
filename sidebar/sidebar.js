@@ -235,7 +235,7 @@ class SidebarApp {
     // 清理超过 30 天的旧对话
     try {
       await deleteOldConversations(30);
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
 
@@ -1220,7 +1220,7 @@ class SidebarApp {
         await chrome.storage.session.remove('pendingAction');
         this.handlePendingAction(pendingAction);
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   handlePendingAction(data) {
@@ -1538,7 +1538,7 @@ class SidebarApp {
           pageIcon.textContent = isPdf ? '📑' : isYouTube ? '📺' : '📄';
         }
       }
-    } catch (e) {
+    } catch (_e) {
       this.pageTitle.textContent = '无法获取页面信息';
     }
   }
@@ -1763,7 +1763,7 @@ class SidebarApp {
           }
         });
       });
-    } catch (e) {
+    } catch (_e) {
       // content script 可能未注入，静默处理
     }
   }
@@ -2791,7 +2791,7 @@ class SidebarApp {
           this.pageTitle.textContent || '',
           this.conversationHistory
         );
-      } catch (e) {
+      } catch (_e) {
         // IndexedDB 保存失败不影响主流程
       }
 
@@ -3455,7 +3455,7 @@ class SidebarApp {
       } else {
         this.addSystemMessage(`❌ ${response?.error || '未找到视频字幕，可能视频未开启字幕功能'}`);
       }
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -3545,13 +3545,13 @@ ${fullText.slice(0, 8000)}
             videoTitle,
             this.conversationHistory
           );
-        } catch (e) {}
+        } catch (_e) {}
 
       } catch (error) {
         loadingEl.remove();
         this.addSystemMessage(`总结失败：${error.message}`);
       }
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -3589,7 +3589,7 @@ ${fullText.slice(0, 8000)}
         this.isApiDocPage = true;
         this.showApiDocQuickActions();
       }
-    } catch (e) {
+    } catch (_e) {
       // content script 可能未加载，忽略
     }
   }
@@ -3699,7 +3699,7 @@ ${fullText.slice(0, 8000)}
         { role: 'user', content: '📋 提取 API 端点' },
         { role: 'assistant', content: display }
       );
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -3796,13 +3796,13 @@ ${endpointText}
             apiTitle,
             this.conversationHistory
           );
-        } catch (e) {}
+        } catch (_e) {}
 
       } catch (error) {
         loadingEl.remove();
         this.addSystemMessage(`生成摘要失败：${error.message}`);
       }
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -3825,7 +3825,7 @@ ${endpointText}
         const pageIcon = document.querySelector('.page-icon');
         if (pageIcon) pageIcon.textContent = '🐙';
       }
-    } catch (e) {
+    } catch (_e) {
       // content script 可能未加载，忽略
     }
   }
@@ -3930,7 +3930,7 @@ ${endpointText}
         { role: 'assistant', content: display }
       );
 
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -4036,13 +4036,13 @@ ${readme || '无法提取 README 内容'}
             `分析仓库: ${repoLabel}`,
             this.conversationHistory
           );
-        } catch (e) {}
+        } catch (_e) {}
 
       } catch (error) {
         loadingEl.remove();
         this.addSystemMessage(`生成仓库概览失败：${error.message}`);
       }
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -4065,7 +4065,7 @@ ${readme || '无法提取 README 内容'}
         const pageIcon = document.querySelector('.page-icon');
         if (pageIcon) pageIcon.textContent = '📑';
       }
-    } catch (e) {
+    } catch (_e) {
       // content script 可能未加载，忽略
     }
   }
@@ -4159,7 +4159,7 @@ ${readme || '无法提取 README 内容'}
         const icons = sense.types.map(t => `${t.icon} ${t.label}`).join(' | ');
         this.addSystemMessage(`页面类型：${icons}`);
       }
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -4226,7 +4226,7 @@ ${readme || '无法提取 README 内容'}
       };
 
       this.sendPdfAnalysisRequest(content, title || 'PDF 文档', pdfUrl);
-    } catch (e) {
+    } catch (_e) {
       this.addSystemMessage('提取失败：请刷新页面后重试');
     }
   }
@@ -4295,7 +4295,7 @@ ${sendContent}
           `分析 PDF: ${title}`,
           this.conversationHistory
         );
-      } catch (e) {}
+      } catch (_e) {}
 
     } catch (error) {
       loadingEl.remove();
@@ -4350,7 +4350,7 @@ ${sendContent}
       }
 
       return textParts.join(' ').slice(0, 50000);
-    } catch (e) {
+    } catch (_e) {
       return '';
     }
   }
@@ -5041,7 +5041,7 @@ ${sendContent}
           await this.removeHighlight(url, id);
         });
       });
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
   }
@@ -5083,7 +5083,7 @@ ${sendContent}
   getDomain(url) {
     try {
       return new URL(url).hostname;
-    } catch (e) {
+    } catch (_e) {
       return url;
     }
   }
@@ -5241,7 +5241,7 @@ ${sendContent}
       let entries = [];
       try {
         entries = await this.memory.kb.getAllEntries(10000);
-      } catch (e) {
+      } catch (_e) {
         // 静默处理
       }
 
@@ -5394,7 +5394,7 @@ ${sendContent}
           </div>`;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
   }
@@ -5824,7 +5824,7 @@ ${sendContent}
       if (iframe.parentNode) {
         iframe.parentNode.removeChild(iframe);
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
   }
@@ -6027,7 +6027,7 @@ ${sendContent}
         this.addSystemMessage('已恢复之前的对话');
         return;
       }
-    } catch (e) {
+    } catch (_e) {
       // IndexedDB 失败，回退到 session storage
     }
 
@@ -6047,7 +6047,7 @@ ${sendContent}
         }
         this.addSystemMessage('已恢复之前的对话');
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默失败
     }
   }
@@ -6149,7 +6149,7 @@ ${sendContent}
 
       // R10: Swipe-to-delete for mobile
       this._bindSwipeToDelete();
-    } catch (e) {
+    } catch (_e) {
       this.historyList.innerHTML = `<div class="empty-state"><p>加载失败</p></div>`;
     }
   }
@@ -6362,7 +6362,7 @@ ${sendContent}
 
       this._updateTabSelectorCount();
       this.tabSelectorModal.classList.remove('hidden');
-    } catch (e) {
+    } catch (_e) {
       this.showToast('获取标签页列表失败', 'error');
     }
   }
@@ -6529,7 +6529,7 @@ ${sendContent}
           btn.textContent = '复制';
           btn.classList.remove('copied');
         }, 2000);
-      } catch (err) {
+      } catch (_err) {
         this.showToast('复制失败', 'error');
       }
     });
@@ -6614,7 +6614,7 @@ ${sendContent}
           this.reviewBadge.classList.add('hidden');
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
   }
@@ -6643,7 +6643,7 @@ ${sendContent}
       this.reviewSummary.classList.add('hidden');
       this.reviewCard.classList.remove('hidden');
       this.showCurrentReviewCard();
-    } catch (e) {
+    } catch (_e) {
       this.showToast('启动复习失败', 'error');
     }
   }
@@ -6714,7 +6714,7 @@ ${sendContent}
       if (quality >= 3) {
         this.reviewCorrect++;
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
 
@@ -6752,7 +6752,7 @@ ${sendContent}
           this.streakBestCount.textContent = streak.longestStreak;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // streak 记录失败不影响主流程
     }
 
@@ -6959,7 +6959,7 @@ ${sendContent}
       if (shouldShow) {
         await this.showOnboarding();
       }
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
   }
@@ -6968,7 +6968,7 @@ ${sendContent}
   async showOnboarding() {
     try {
       this.onboardingSteps = await onboarding.getRecommendedSteps();
-    } catch (e) {
+    } catch (_e) {
       this.onboardingSteps = onboarding.getStepConfig();
     }
     this.onboardingStep = 0;
@@ -7092,7 +7092,7 @@ ${sendContent}
       }
       resultEl.textContent = '✅ API Key 已配置，连接设置看起来正常！';
       resultEl.style.color = '#27ae60';
-    } catch (e) {
+    } catch (_e) {
       resultEl.textContent = '⚠️ 无法验证连接，请确认设置页中的配置';
       resultEl.style.color = '#f39c12';
     } finally {
@@ -7128,7 +7128,7 @@ ${sendContent}
   async onboardingComplete() {
     try {
       await onboarding.completeOnboarding();
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
     this.hideOnboarding();
@@ -7139,7 +7139,7 @@ ${sendContent}
   async retriggerOnboarding() {
     try {
       await onboarding.resetOnboarding();
-    } catch (e) {
+    } catch (_e) {
       // 静默处理
     }
     this.switchTab('chat');

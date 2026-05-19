@@ -181,7 +181,7 @@ if (PW.commands?.onCommand) {
           if (openSidePanels.has(tab.id)) {
             try {
               await closeSidePanel(tab.id);
-            } catch (e) {}
+            } catch (_e) {}
             openSidePanels.delete(tab.id);
           } else {
             await openSidePanel(tab.id);
@@ -325,7 +325,7 @@ PW.runtime.onMessage.addListener((request, sender, sendResponse) => {
     logError('message-router', '消息处理异常', { error: e.message, action: request?.action });
     try {
       sendResponse({ error: e.message });
-    } catch (sendErr) {
+    } catch (_sendErr) {
       // sendResponse 可能已失效
     }
   }
