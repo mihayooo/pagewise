@@ -585,7 +585,7 @@
 
 - [x] **R133: Lint 警告清零 LintWarningFinal** — 40 个文件仍存在 115 个 `no-unused-vars` 警告（agent-loop.js、ai-client.js、bookmark-visualizer.js、bookmark-semantic-search.js 等）；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记；将 `no-unused-vars` 规则收紧为 `error`（`eslint.config.js` max-warnings → 0）；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
-- [ ] **R134: 超大模块拆分三期 ModuleSplitPhase3** — 仍有 14 个文件 >500 行：bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-accessibility.js(636)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、contradiction-detector.js(589)、bookmark-semantic-search.js(579)、skill-validator.js(577)、git-repo.js(567)、bookmark-sync.js(561)、bookmark-ai-recommender.js(558)、bookmark-final-polish.js(555)、compilation-report.js(552)。优先拆分前 8 个（>570 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
+- [x] **R134: 超大模块拆分三期 ModuleSplitPhase3** — 仍有 14 个文件 >500 行：bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-accessibility.js(636)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、contradiction-detector.js(589)、bookmark-semantic-search.js(579)、skill-validator.js(577)、git-repo.js(567)、bookmark-sync.js(561)、bookmark-ai-recommender.js(558)、bookmark-final-polish.js(555)、compilation-report.js(552)。优先拆分前 8 个（>570 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）。复杂度: Complex
 
 - [ ] **R135: 测试执行优化 TestExecutionOpt** — 当前全量测试 5061 用例执行耗时 ~29.5s；优化策略: (1) 按模块分片并行执行（`node --test --test-concurrency=4`）；(2) 建立 smoke test 子集（核心流程 ~80 用例，CI 快速门禁 <5s）；(3) 检测并移除测试中的 `setTimeout`/`sleep` 阻塞；(4) 目标: 全量 ≤20s，smoke ≤5s。复杂度: Medium
 

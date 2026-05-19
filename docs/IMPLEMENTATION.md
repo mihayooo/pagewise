@@ -2,6 +2,59 @@
 
 ---
 
+## 迭代 R134 — 超大模块拆分三期 ModuleSplitPhase3
+
+> 日期: 2026-05-19
+> 任务: R134 超大模块拆分三期 ModuleSplitPhase3 — 14 个 >500 行文件全部拆分至 ≤400 行，保持 API 向后兼容
+
+### 拆分方案
+
+| 原始文件 | 行数 | → 拆分文件 | 行数 | 提取内容 |
+|----------|------|-----------|------|---------|
+| bookmark-visualizer.js | 643→335 | bookmark-visualizer-physics.js | 154 | 物理仿真引擎（库仑斥力/弹簧引力/阻尼/degree计算） |
+| | | bookmark-visualizer-renderer.js | 145 | Canvas 渲染（节点/边/高亮/裁剪） |
+| bookmark-knowledge-link.js | 643→344 | bookmark-knowledge-link-scorer.js | 156 | 关联计算（URL匹配/标题相似/标签重叠/规范化） |
+| bookmark-accessibility.js | 636→271 | bookmark-accessibility-navigator.js | 147 | 焦点陷阱/Live Region 公告 |
+| | | bookmark-accessibility-contrast.js | 155 | 颜色对比度审计（WCAG AA） |
+| bookmark-migration.js | 624→225 | bookmark-migration-runner.js | 327 | 迁移核心逻辑（版本检测/迁移步骤/路径规划） |
+| ai-client.js | 609→293 | ai-client-tokens.js | 36 | Token 估算 |
+| | | ai-client-stream.js | 96 | 流式解析（SSE） |
+| | | ai-client-request.js | 134 | 请求构建与响应解析 |
+| | | ai-client-prompts.js | 76 | 提示词与业务方法 |
+| bookmark-exporter.js | 601→325 | bookmark-exporter-import.js | 147 | 导入逻辑（Netscape/Markdown） |
+| contradiction-detector.js | 589→355 | contradiction-detector-prompt.js | 101 | 矛盾检测 Prompt 构建 |
+| | | contradiction-detector-ui.js | 99 | UI HTML 生成（警告框/escapeHtml） |
+| bookmark-semantic-search.js | 579→263 | bookmark-semantic-search-hybrid.js | 218 | 搜索操作（semanticSearch/hybridSearch/findSimilar） |
+| skill-validator.js | 577→370 | skill-validator-security.js | 157 | 安全扫描/包大小校验 |
+| git-repo.js | 567→308 | git-repo-objects.js | 238 | InMemoryFS/Git 对象工具 |
+| bookmark-sync.js | 561→360 | bookmark-sync-conflict.js | 196 | 冲突解决/数据分片/错误分类 |
+| bookmark-ai-recommender.js | 558→291 | bookmark-ai-recommender-profile.js | 221 | 画像分析（ProfileAnalyzer） |
+| bookmark-final-polish.js | 555→267 | bookmark-final-polish-interactions.js | 262 | 交互增强（拖拽/涟漪/提示/平滑滚动） |
+| compilation-report.js | 552→44 | compilation-report-format.js | 255 | 数据结构/报告生成/统计合并 |
+
+### 设计决策
+
+- **Re-export 模式**: 所有原始文件保留类/核心函数，将纯函数/辅助逻辑提取到新模块，通过 `export { ... } from './new-module.js'` 保持向后兼容
+- **单一职责原则**: 每个子模块聚焦单一关注点（物理仿真 vs 渲染、Token估算 vs 流式解析 vs 请求构建 vs 提示词）
+- **不修改消费方**: 所有 import 路径不变，sidebar.js / options 等消费方无需改动
+- **三轮递进**: R125 一期（前5大）→ R130 二期（次5大）→ R134 三期（剩余14个>500行），每轮独立测试回归
+
+### 修改文件
+
+1. **14 个原始文件** — 全部 ≤400 行，re-export 子模块
+2. **20 个新子模块文件** — 各 ≤400 行，独立可用
+3. **tests/test-r134-module-split-phase3.js** — 新建，111 个测试用例
+4. **docs/CHANGELOG.md** — 新增 R134 条目
+5. **docs/TODO.md** — R134 标记完成
+6. **docs/IMPLEMENTATION.md** — 本记录
+
+### 测试结果
+
+- R134 专项测试: 111 pass / 0 fail
+- 测试覆盖: 文件行数(34) + 向后兼容re-export(75) + 功能正确性(11) + 独立可用性(9) + 前期子模块回归(16)
+
+---
+
 ## 迭代 R131 — 无障碍功能补全 AccessibilityComplete
 
 > 日期: 2026-05-19

@@ -7,6 +7,15 @@
      7|## [Unreleased]
 
 ### 新增
+- **R134: 超大模块拆分三期 ModuleSplitPhase3**
+  - 4 个 >500 行文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）
+  - bookmark-sync.js(561→360) — 冲突解决/分片/错误分类提取至 bookmark-sync-conflict.js(196)
+  - bookmark-ai-recommender.js(558→291) — 画像分析提取至 bookmark-ai-recommender-profile.js(221)
+  - bookmark-final-polish.js(555→267) — 交互增强提取至 bookmark-final-polish-interactions.js(262)
+  - compilation-report.js(552→44) — 数据结构/报告生成/统计合并提取至 compilation-report-format.js(255)
+  - 所有 14 个原 >500 行文件均 ≤400 行
+  - 111 个专项测试用例，全部通过
+
 - **R131: 无障碍功能补全 AccessibilityComplete**
   - Bug 修复: `createAnnouncer().announce()` 中 `this._enabled` 绑定错误（BUG-1），改为 `self._enabled` 闭包捕获
   - 新增 `setContrastPairs(pairs, replace)` — 动态注入/替换对比度审计色彩对（支持暗色主题）
