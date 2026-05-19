@@ -627,4 +627,4 @@
 
 - [x] **R146: 函数覆盖率提升 FunctionCoverageBoost** — 当前行覆盖率 93.02% 但函数覆盖率仅 40.77%（4893 个函数仅 1995 个被调用）；识别 Top-20 未覆盖函数（按函数体大小排序）；为关键未调用函数补充测试（重点关注: 纯逻辑函数、工具函数、边界处理函数）；目标: 函数覆盖率 ≥65%。复杂度: Medium
 
-- [ ] **R147: 全量回归与发布候选 ReleaseCandidate2** — `npm run test:ci` 全量回归确保 0 fail；`npm run lint` 0 errors 0 warnings；覆盖率报告确认行覆盖率 ≥90%、函数覆盖率 ≥60%；更新 CHANGELOG.md 补充 R143-R146 变更记录；输出发布候选版本。复杂度: Simple
+- [x] **R147: 全量回归与发布候选 ReleaseCandidate2** — `npm run test:ci` 全量回归确保 0 fail；`npm run lint` 0 errors 0 warnings；覆盖率报告确认行覆盖率 ≥90%、函数覆盖率 ≥60%；更新 CHANGELOG.md 补充 R143-R146 变更记录；输出发布候选版本。复杂度: Simple
