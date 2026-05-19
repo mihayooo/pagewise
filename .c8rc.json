@@ -1,0 +1,12 @@
+{
+  "include": ["lib/**/*.js"],
+  "exclude": [
+    "lib/pdf.min.mjs",
+    "lib/pdf.worker.min.mjs",
+    "lib/pdf.worker.mjs",
+    "tests/**"
+  ],
+  "reporter": ["lcov", "text-summary"],
+  "all": true,
+  "src": ["lib"]
+}

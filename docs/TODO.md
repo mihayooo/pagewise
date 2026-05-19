@@ -609,4 +609,4 @@
 
 - [x] **R141: 黄色区域测试补全覆盖率提升 CoverageYellowZone** — 13 个覆盖率 40%-80% 的模块补测试：compilation-report-format.js(47.5%)、knowledge-base-export.js(52.3%)、docmind-client.js(63.7%)、knowledge-panel.js(65.5%)、bookmark-store-prep-checks.js(66.5%)、message-renderer.js(71.2%)、knowledge-panel-batch.js(72.5%)、knowledge-panel-virtual.js(73.5%)、bookmark-folder-suggestions.js(75.8%)、bookmark-accessibility-navigator.js(77.6%)、stats.js(78.7%)、i18n.js(79.2%)、bookmark-store-prep.js(79.4%)。优先补前 6 个（<70%），目标: 至少 9 个模块达 ≥80%。复杂度: Medium
 
-- [ ] **R142: c8 插桩盲区消除 CoverageInstrumentationFix** — 排查 `lib/agent-loop.js`(231行) 和 `lib/evolution.js`(547行) 未被 c8 插桩的根因（ESM 动态 import / Chrome API 全局依赖）；修复 c8 配置使所有 lib/ 模块纳入覆盖率统计；验证修正后 lib/ 整体行覆盖率 ≥85%；若 c8 无法覆盖则用 `--all` 标志并记录排除原因。复杂度: Medium
+- [x] **R142: c8 插桩盲区消除 CoverageInstrumentationFix** — 排查 `lib/agent-loop.js`(231行) 和 `lib/evolution.js`(547行) 未被 c8 插桩的根因（ESM 动态 import / Chrome API 全局依赖）；修复 c8 配置使所有 lib/ 模块纳入覆盖率统计；验证修正后 lib/ 整体行覆盖率 ≥85%；若 c8 无法覆盖则用 `--all` 标志并记录排除原因。复杂度: Medium
