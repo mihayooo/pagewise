@@ -557,4 +557,4 @@
 
 - [x] **R126: 模块间循环依赖消除 CircularDepElimination** — 利用 R107 健康检查输出，识别并消除模块间循环依赖：梳理依赖图 → 断开环路（接口抽象/事件总线/依赖注入）；将核心模块（knowledge-base、ai-client、bookmark-graph）解耦为单向依赖 DAG；新增循环依赖 CI 门禁脚本。复杂度: Complex
 
-- [ ] **R127: 缓存与性能策略统一 CachePerfUnify** — 统一散落在各模块中的缓存策略：review-session.js LRU、bookmark-performance.js LRU、knowledge-base 查询缓存、bookmark-semantic-search 缓存 → 提取公共 `lib/cache-manager.js`（LRU + TTL + 失效策略）；替换各模块自实现缓存为统一层；1000+ 书签场景性能基准回归确保无退化。复杂度: Medium
+- [x] **R127: 缓存与性能策略统一 CachePerfUnify** — 统一散落在各模块中的缓存策略：review-session.js LRU、bookmark-performance.js LRU、knowledge-base 查询缓存、bookmark-semantic-search 缓存 → 提取公共 `lib/cache-manager.js`（LRU + TTL + 失效策略）；替换各模块自实现缓存为统一层；1000+ 书签场景性能基准回归确保无退化。复杂度: Medium

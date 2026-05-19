@@ -1,8 +1,10 @@
 # VERIFICATION.md — Iteration #24 Review
 
-> **任务**: L2.1 Q&A 自动分类 — 每次 AI 回答后，自动识别并标记涉及的实体/概念
-> **日期**: 2026-04-30
-> **审查员**: Guard Agent
+> **任务**: R127: 缓存与性能策略统一 CachePerfUnify  
+> **审查日期**: 2026-05-19  
+> **审查人**: Guard Agent  
+> **变更范围**: `lib/cache-manager.js`（新建）、`lib/bookmark-performance.js`、`lib/bookmark-semantic-search.js`、`lib/knowledge-base-core.js`  
+> **测试文件**: `tests/test-cache-manager.js`（新建）
 
 ---
 
@@ -10,192 +12,181 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ⚠️ | 核心模块功能完整，但设计文档与实现存在 schema 分歧（独立 DB vs 扩展现有 DB），且未与主知识库集成 |
-| 代码质量 | ⚠️ | 整体架构清晰，容错设计好；存在 ENTITY_TYPES lookup 逻辑隐患和 rebuildAll 中不必要的实例创建 |
-| 测试覆盖 | ✅ | 31 个测试全部通过，9 个测试套件覆盖全部核心路径（提示词、解析、分类、存储、查询、统计、重编译） |
-| 文档同步 | ❌ | CHANGELOG.md、TODO.md、IMPLEMENTATION.md 均未更新，新文件未 git add |
-
----
-
-## 详细分析
-
-### 1. 功能完整性 ⚠️
-
-#### 设计文档 vs 实现的差异
-
-设计文档 (`DESIGN-ITER24.md`) 要求：
-- 扩展**现有** `entries` objectStore，新增 `classified` 和 `classifiedAt` 字段
-- 分类结果关联到**现有**知识库的条目
-
-实际实现：
-- 创建**独立** IndexedDB 数据库 `PageWiseAutoClassifier`（DB_VERSION=1）
-- 新增三个 objectStore：`entities`、`concepts`、`classification_status`
-- **未修改现有知识库 schema**
-
-**评估**: 独立数据库的设计在模块解耦上更优，但与设计文档不一致，需要决定：
-- (a) 更新设计文档，认可独立 DB 方案
-- (b) 修改实现，扩展现有 DB
-
-#### 缺失的集成点
-
-设计文档标题明确要求「每次 AI 回答后」自动分类，但当前实现：
-- `AutoClassifier` 类已完整实现 `classifyEntry()` 和 `saveClassification()` 方法
-- **未在 sidebar.js / background.js 中集成调用**（即 AI 回答保存后不会触发分类）
-- 这意味着虽然模块本身可用，但**功能在实际产品中不可达**
-
-**结论**: 模块层功能完整，但系统集成层缺失。本次迭代如果只聚焦模块层是可以接受的，但应在后续迭代立即补上集成。
-
-### 2. 代码质量 ⚠️
-
-#### 问题 1: ENTITY_TYPES 查找逻辑 (低风险)
-
-```js
-// auto-classifier.js:262
-type: ENTITY_TYPES[raw.type?.toUpperCase()] || raw.type || ENTITY_TYPES.OTHER,
-```
-
-`ENTITY_TYPES` 定义为 `{ TOOL: 'tool', FRAMEWORK: 'framework', ... }`，值为 **小写**。当 AI 返回 `type: "tool"` 时：
-- `raw.type.toUpperCase()` → `"TOOL"`
-- `ENTITY_TYPES["TOOL"]` → `"tool"` ✅ 实际能匹配
-
-当 AI 返回 `type: "Tool"` 时：
-- `raw.type.toUpperCase()` → `"TOOL"`
-- `ENTITY_TYPES["TOOL"]` → `"tool"` ✅ 也能匹配
-
-当 AI 返回不识别的类型 `type: "database"` 时：
-- `ENTITY_TYPES["DATABASE"]` → `undefined`
-- 回退到 `raw.type` → `"database"` — 未映射到 `ENTITY_TYPES.OTHER`
-
-**风险**: 低。AI 返回未知类型时会存入原始值，不会归类到 "other"。影响有限但不符合设计意图。
-
-#### 问题 2: rebuildAll 创建冗余实例
-
-```js
-// auto-classifier.js:698-699
-const classifier = new AutoClassifier(client);
-classifier.db = this.db; // 共享同一个 db 连接
-```
-
-每次循环都创建新的 `AutoClassifier` 实例再手动注入 `db`，逻辑上可以直接调用 `this.classifyEntry(entry)` 然后 `this.saveClassification()`，无需创建新实例。
-
-#### 问题 3: getEntitiesByEntry / getConceptsByEntry 使用全表扫描
-
-```js
-// auto-classifier.js:509-514
-const request = store.getAll();
-request.onsuccess = () => {
-  const allEntities = request.result || [];
-  const matching = allEntities.filter(
-    (entity) => entity.entryIds && entity.entryIds.includes(entryId)
-  );
-```
-
-`entryIds` 是数组字段，当前没有为它建立索引。对于数据量小的场景没问题，但如果实体/概念数量增长到数百条，全表扫描效率会下降。可考虑为 `entryIds` 建立 `multiEntry` 索引。
-
-#### 正面评价
-
-- ✅ 非阻塞设计：`classifyEntry()` catch 所有异常返回空结构
-- ✅ `_ensureInit()` 防并发初始化（单例 Promise 模式）
-- ✅ `_truncateText()` 防止超长回答导致 prompt 过大
-- ✅ 响应解析健壮：支持 markdown 代码块包裹、null/undefined 输入
-- ✅ 去重合并使用 `Set`，防止 entryIds 重复
-
-### 3. 测试覆盖 ✅
-
-**运行结果**: 31 passed / 0 failed / 0 skipped
-
-| 测试套件 | 测试数 | 状态 |
-|----------|--------|------|
-| _buildClassificationPrompt | 4 | ✅ |
-| _parseClassificationResponse | 6 | ✅ |
-| classifyEntry | 4 | ✅ |
-| classifyBatch | 3 | ✅ |
-| IndexedDB 存储操作 | 4 | ✅ |
-| 扩展查询 | 4 | ✅ |
-| 编译状态与统计 | 3 | ✅ |
-| rebuildAll | 2 | ✅ |
-| CLASSIFICATION_STATUS 常量 | 1 | ✅ |
-
-#### 回归测试
-- `test-entity-extractor.js`: 22 passed / 0 failed ✅ — 无回归
-
-#### 测试缺口（建议补充）
-
-| 缺失场景 | 优先级 |
-|----------|--------|
-| 同一条目二次分类不产生重复 entryIds | 中 |
-| `_normalizeEntity` 对未知 type 的回退行为 | 低 |
-| AI 响应为 `{ "entities": "not_array" }` 畸形 JSON | 低 |
-| `_clearAll()` 清除后 `getStats()` 返回零 | 低 |
-
-### 4. 文档同步 ❌
-
-| 文档 | 状态 | 说明 |
-|------|------|------|
-| `docs/CHANGELOG.md` | ❌ 未更新 | 缺少 L2.1 的新增条目 |
-| `docs/TODO.md` | ❌ 未更新 | `L2.1 Q&A 自动分类` 仍标记为 `[ ]`（未完成） |
-| `docs/IMPLEMENTATION.md` | ❌ 未更新 | 缺少迭代 24 的实现记录 |
-| `docs/DESIGN-ITER24.md` | ✅ 存在 | 设计文档已创建，但 schema 与实现不一致 |
-| Git 状态 | ❌ 未暂存 | `lib/auto-classifier.js` 和 `tests/test-auto-classifier.js` 未 `git add` |
-
-### 5. 安全质量 ✅
-
-- ✅ 无硬编码密钥或凭证
-- ✅ 无 XSS 风险（数据写入 IndexedDB，不涉及 DOM 渲染）
-- ✅ AI 响应解析后通过 `_normalizeEntity` / `_normalizeConcept` 规范化，防止注入原始 AI 输出
-- ✅ `_truncateText` 限制输入长度，防止 prompt 注入
+| 功能完整性 | ⚠️ | 核心 CacheManager 完成良好；但 `review-session.js`（任务描述中列出）未迁移；`addBookmark`/`removeBookmark` 增量更新后搜索缓存未失效（数据一致性缺陷） |
+| 代码质量 | ⚠️ | CacheManager 实现质量高；`trimCache` 方案过度复杂（每次调用创建临时 CacheManager）；`size()` 方法与 Map 的 `.size` 属性风格不一致 |
+| 测试覆盖 | ⚠️ | CacheManager 单元测试 41/41 全部通过；bookmark-performance 20/20 通过；但缺少集成测试（searchCache 失效、知识库缓存层替换后行为验证） |
+| 文档同步 | ❌ | `CHANGELOG.md` 无 R127 条目；`TODO.md` 中 R127 仍为 `- [ ]` 未标记完成；无设计文档 |
 
 ---
 
 ## 发现的问题
 
-### P0 — 阻塞性问题
+### 🔴 P0 — 必须修复
 
-| # | 问题 | 位置 | 说明 |
-|---|------|------|------|
-| 1 | 文档未同步 | CHANGELOG.md, TODO.md, IMPLEMENTATION.md | 迭代完成的标准流程要求更新这些文档 |
-| 2 | 新文件未暂存到 Git | git status | `lib/auto-classifier.js` 和 `tests/test-auto-classifier.js` 为 untracked 状态 |
+#### 问题 1: `addBookmark` / `removeBookmark` 未清除搜索结果缓存
 
-### P1 — 需要讨论
+**文件**: `lib/bookmark-semantic-search.js`  
+**行号**: L152-L218  
+**描述**: `addBookmark()` 和 `removeBookmark()` 修改了 TF-IDF 向量索引（词汇表、文档向量），但**没有清除 `_searchCache`**。调用 `buildIndex()` 时正确调用了 `this._searchCache.clear()`，但增量更新路径遗漏了缓存失效。
 
-| # | 问题 | 位置 | 说明 |
-|---|------|------|------|
-| 3 | Schema 设计与文档不一致 | DESIGN-ITER24.md vs auto-classifier.js | 设计要求扩展现有 entries store，实现创建了独立 DB |
-| 4 | 无系统集成 | sidebar.js / background.js | 模块独立可用，但未在 AI 回答流程中调用 |
+**影响**: 增量添加/删除书签后，后续 `semanticSearch` / `hybridSearch` 可能返回**过时的缓存结果**——包含已删除的书签或缺少新添加的书签。
 
-### P2 — 建议改进
+**修复建议**:
+```javascript
+// addBookmark() 末尾增加:
+this._searchCache.invalidateByTag('search');
 
-| # | 问题 | 位置 | 说明 |
-|---|------|------|------|
-| 5 | ENTITY_TYPES 未知类型不回退到 OTHER | auto-classifier.js:262 | 低风险，AI 返回未识别类型时存入原始值 |
-| 6 | rebuildAll 冗余实例化 | auto-classifier.js:698 | 可直接复用 `this` |
-| 7 | 按 entryId 查询使用全表扫描 | auto-classifier.js:509 | 可用 multiEntry 索引优化 |
+// removeBookmark() 末尾增加:
+this._searchCache.invalidateByTag('search');
+```
+
+---
+
+#### 问题 2: `_cache` 实例字段被创建但从未使用
+
+**文件**: `lib/bookmark-performance.js`  
+**行号**: L62  
+**描述**: 构造函数中 `this._cache = new CacheManager({ maxSize: this._cacheMaxSize, ttlMs: 0 })` 创建了一个 CacheManager 实例，但该实例**在整个类中没有任何 get/set 调用**。唯一使用 CacheManager 的 `trimCache()` 方法每次都**新建一个临时实例**，不复用 `this._cache`。
+
+**影响**: 浪费内存；且 `this._cache` 的 `maxSize` 与 `trimCache` 参数传入的 `maxSize` 可能不一致，容易引起混淆。
+
+**修复建议**: 
+- 若 `this._cache` 不需要，删除该字段（将缓存管理委托给 CacheManager 后，旧的 Map 缓存 API 已废弃）
+- 若需要保留，确保 `trimCache` 复用 `this._cache` 或删除无用实例
+
+---
+
+### 🟡 P1 — 建议修复
+
+#### 问题 3: `trimCache` 方法过度复杂
+
+**文件**: `lib/bookmark-performance.js`  
+**行号**: L209-L225  
+**描述**: 原实现是一个简单的 3 行 slice 操作。新实现：
+1. 创建临时 CacheManager
+2. 遍历输入 Map 插入 CacheManager（触发 LRU 淘汰）
+3. 再遍历原始 Map 从 CacheManager 中读回
+4. 构建新 Map 返回
+
+**影响**: 从 O(n) 变为 O(2n)，且内存分配了临时 CacheManager + 临时 Map。在高频调用场景下可能影响性能。
+
+**修复建议**: 考虑保留简洁的 slice 实现（如果输入 Map 无法保证 LRU 访问序，slice 与 LRU 在语义上等价——两者都保留最后插入的 maxSize 个条目）:
+```javascript
+trimCache(cache, maxSize) {
+  if (!(cache instanceof Map)) return cache;
+  if (cache.size <= maxSize) return cache;
+  const entries = [...cache.entries()];
+  return new Map(entries.slice(entries.length - maxSize));
+}
+```
+
+---
+
+#### 问题 4: `CacheManager.size()` 为方法而非属性
+
+**文件**: `lib/cache-manager.js`  
+**行号**: L181-L183  
+**描述**: `CacheManager.size()` 是一个方法，但 `Map` 的 `.size` 是属性。调用方需要写 `cache.size()` 而非 `cache.size`。虽然不影响功能，但与开发者对 Map-like API 的预期不一致。
+
+**建议**: 保留当前实现（getter 与方法各有取舍），但需在 JSDoc 中明确标注为方法调用。
+
+---
+
+#### 问题 5: `review-session.js` 未纳入迁移范围
+
+**文件**: 任务描述中列出 `review-session.js LRU`，但 `lib/review-session.js` 中**无 LRU 缓存实现**，本次变更也未涉及该文件。
+
+**分析**: 经检查 `review-session.js` 不含 LRU/Map 缓存逻辑，可能任务描述有误（误列）。
+
+**建议**: 从任务描述中移除 `review-session.js` 的引用，或确认是否遗漏了某个含 LRU 的文件。
+
+---
+
+### 🟢 P2 — 信息性建议
+
+#### 问题 6: 搜索缓存存储数组引用
+
+**文件**: `lib/bookmark-semantic-search.js`  
+**行号**: L265, L338  
+**描述**: `this._searchCache.set(cacheKey, result, ...)` 存储的是 `result` 数组的直接引用。如果外部调用方对返回值进行了 `.push()` / `.splice()` 等变异操作，缓存中的数据也会被污染。
+
+**影响**: 低风险——当前所有返回路径都是 `scored.slice()` 产生的新数组，但如果未来调用方变异返回值，将导致缓存数据损坏。
+
+**建议**: 存储前执行浅拷贝 `result.slice()` 或在 JSDoc 中明确标注返回值为只读。
+
+---
+
+#### 问题 7: CacheManager `invalidatePattern` 缺少原型污染防护
+
+**文件**: `lib/cache-manager.js`  
+**行号**: L210-L219  
+**描述**: `invalidatePattern` 使用 `pattern.test(key)` 对所有键进行正则匹配。虽然 Map 键为字符串，理论上不受原型链影响，但若有人用 `cache.set('__proto__', ...)` 或 `cache.set('constructor', ...)` 设置键，正则匹配可能产生意外行为。
+
+**影响**: 极低风险——Map 本身不受原型污染影响，但作为公共缓存层，防御性编程值得考虑。
+
+---
+
+## 测试覆盖评估
+
+| 测试文件 | 状态 | 覆盖范围 |
+|----------|------|----------|
+| `tests/test-cache-manager.js` | ✅ 41/41 通过 | 构造函数、基本存取、LRU 淘汰、TTL 过期、统计、模式失效、标签失效、边界情况、性能基准、替换语义 |
+| `tests/test-bookmark-performance.js` | ✅ 20/20 通过 | 包含 `trimCache` 测试，验证新实现向后兼容 |
+| 集成测试: semantic search 缓存 | ❌ 缺失 | `semanticSearch`/`hybridSearch` 缓存命中、`buildIndex` 后缓存清除、`addBookmark`/`removeBookmark` 后缓存失效 — **均无测试** |
+| 集成测试: knowledge-base 缓存 | ❌ 缺失 | `_searchCache`/`_queryCache` 替换后行为验证 — **无测试** |
+| 性能回归基准 (1000+ 书签) | ❌ 缺失 | 任务要求"1000+ 书签场景性能基准回归确保无退化" — **无测试** |
+
+---
+
+## 文档同步评估
+
+| 文档 | 要求 | 实际 | 状态 |
+|------|------|------|------|
+| `docs/CHANGELOG.md` | 新增 R127 条目 | 0 处引用 R127 | ❌ 未更新 |
+| `docs/TODO.md` | R127 标记 `[x]` | R127 仍为 `- [ ]`（L560） | ❌ 未更新 |
+| 设计文档 | R127 设计记录 | `DESIGN-ITER24.md` 为 L2.1 Q&A，非 R127 | ❌ 无对应文档 |
+| R23 报告 | `docs/reports/2026-05-19-R23.md` | 已存在 | ✅ |
+
+---
+
+## 安全质量评估
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| 硬编码密钥 | ✅ 无 | 无 API key/token |
+| XSS 风险 | ✅ 无 | CacheManager 为纯数据结构，不涉及 DOM |
+| 注入风险 | ✅ 无 | Map 键为字符串，无 SQL/命令注入面 |
+| 原型污染 | ✅ 极低 | Map 不受 `__proto__` 污染影响 |
 
 ---
 
 ## 返工任务清单
 
-### 必须完成（本次迭代交付前）
-
-- [ ] **R1**: 更新 `docs/CHANGELOG.md` — 在 `[Unreleased]` 下新增 L2.1 条目
-- [ ] **R2**: 更新 `docs/TODO.md` — 将 L2.1 标记为 `[x]` 完成
-- [ ] **R3**: 更新 `docs/IMPLEMENTATION.md` — 新增迭代 24 实现记录
-- [ ] **R4**: `git add` 新文件，确保工作区干净
-
-### 建议完成（可后续迭代处理）
-
-- [ ] **R5**: 更新 `docs/DESIGN-ITER24.md` — 记录独立 DB 的设计决策理由，或修改实现
-- [ ] **R6**: 修复 `_normalizeEntity` — 未知类型统一回退到 `ENTITY_TYPES.OTHER`
-- [ ] **R7**: 简化 `rebuildAll` — 直接复用 `this.classifyEntry()` 而非创建新实例
+| # | 优先级 | 任务 | 文件 | 预估时间 |
+|---|--------|------|------|----------|
+| 1 | 🔴 P0 | 修复 `addBookmark`/`removeBookmark` 缓存失效缺失 | `lib/bookmark-semantic-search.js` | 5min |
+| 2 | 🔴 P0 | 删除或复用 `this._cache` 实例字段 | `lib/bookmark-performance.js` | 5min |
+| 3 | 🟡 P1 | 简化 `trimCache` 或增加注释说明使用 CacheManager 的必要性 | `lib/bookmark-performance.js` | 10min |
+| 4 | 🟡 P1 | 更新 `docs/CHANGELOG.md` — 新增 R127 条目 | `docs/CHANGELOG.md` | 5min |
+| 5 | 🟡 P1 | 更新 `docs/TODO.md` — R127 标记 `[x]` | `docs/TODO.md` | 2min |
+| 6 | 🟡 P1 | 补充集成测试：semantic search 缓存命中/失效 | `tests/test-bookmark-semantic-search.js` | 20min |
+| 7 | 🟡 P1 | 补充性能基准测试：1000+ 书签场景无退化 | `tests/test-cache-manager.js` 或新文件 | 15min |
+| 8 | 🟢 P2 | 更新任务描述：移除 `review-session.js`（无 LRU 可迁移） | 文档 | 2min |
 
 ---
 
-## 结论
+## 代码质量亮点 ✅
 
-`lib/auto-classifier.js` 模块**代码质量良好，测试覆盖充分**（31/31 通过），核心功能（AI 分类、IndexedDB 存储、去重合并、查询、重编译）均完整实现。主要问题集中在**文档同步缺失**和**设计-实现不一致**，属于流程合规问题而非技术缺陷。
-
-**审查结果**: ⚠️ **有条件通过** — 完成 R1-R4 后可合并。
+1. **CacheManager 设计优秀**: LRU + TTL + 标签失效 + 模式失效，覆盖了所有已知缓存场景；惰性 TTL 清理避免定时器开销
+2. **测试覆盖充分**: 41 个单元测试覆盖核心功能、边界情况、性能基准
+3. **知识库重构干净**: `_getCachedSearch` / `_setCachedSearch` / `_getQueryCache` / `_setQueryCache` 简化为单行委托，消除了手动 LRU/TTL 代码
+4. **向后兼容**: `getQueryCacheStats()` 保持返回格式不变
+5. **语义搜索缓存命中利用标签系统**: `invalidateByTag('search')` 实现精确失效
 
 ---
-*自动生成于 2026-04-30*
-*Guard Agent — 飞轮迭代 R24 审查*
+
+## 最终判定
+
+**状态: ⚠️ 有条件通过**
+
+P0 问题（缓存失效缺失 + 无用字段）必须修复后方可合并。其余 P1/P2 问题可在后续迭代处理。
