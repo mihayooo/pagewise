@@ -25,6 +25,7 @@ export default [
       'lib/pdf.min.js',
       'lib/pdf.worker.min.js',
       'lib/pdf.worker.js',
+      'lib/pdf.worker.mjs',
     ],
   },
 
@@ -117,7 +118,7 @@ export default [
         caughtErrorsIgnorePattern: '^_',
       }],
       'no-undef': 'warn',
-      'eqeqeq': ['warn', 'always'],
+      'eqeqeq': ['error', 'always'],
       'no-implicit-globals': 'error',
     },
   },

@@ -882,7 +882,7 @@
       seenNames.add(name);
 
       const href = el.getAttribute('href') || '';
-      const isDir = href.includes('/tree/') || el.closest('[role="row"]')?.querySelector('svg[aria-label="Directory"], .icon-directory') != null;
+      const isDir = href.includes('/tree/') || el.closest('[role="row"]')?.querySelector('svg[aria-label="Directory"], .icon-directory') !== null;
 
       info.fileTree.push({
         name,

@@ -67,14 +67,14 @@ describe('constructor & init', () => {
 describe('CRUD operations', () => {
   it('saveEntry returns entry object with id', async () => {
     const result = await kb.saveEntry(makeEntry())
-    assert.ok(result != null)
-    assert.ok(result.id != null)
+    assert.ok(result !== null)
+    assert.ok(result.id !== null)
   })
 
   it('getEntry retrieves saved entry by id', async () => {
     const saved = await kb.saveEntry(makeEntry({ title: 'Hello World' }))
     const entry = await kb.getEntry(saved.id)
-    assert.ok(entry != null)
+    assert.ok(entry !== null)
     assert.equal(entry.title, 'Hello World')
   })
 
@@ -139,7 +139,7 @@ describe('getAllEntries & pagination', () => {
   it('getEntriesPaged returns paged results object with entries array', async () => {
     for (let i = 0; i < 15; i++) await kb.saveEntry(makeEntry())
     const page1 = await kb.getEntriesPaged({ page: 1, pageSize: 5 })
-    assert.ok(page1 != null)
+    assert.ok(page1 !== null)
     assert.ok(Array.isArray(page1.entries))
     assert.equal(page1.entries.length, 5)
     const page2 = await kb.getEntriesPaged({ page: 2, pageSize: 5 })
@@ -151,7 +151,7 @@ describe('getAllEntries & pagination', () => {
   it('getEntriesPaged page beyond data returns empty entries', async () => {
     await kb.saveEntry(makeEntry())
     const result = await kb.getEntriesPaged({ page: 100, pageSize: 10 })
-    assert.ok(result != null)
+    assert.ok(result !== null)
     assert.ok(Array.isArray(result.entries))
     assert.equal(result.entries.length, 0)
   })
@@ -212,7 +212,7 @@ describe('searchPaged', () => {
       await kb.saveEntry(makeEntry({ title: `React Tutorial ${i}`, content: `React framework tutorial part ${i} about hooks and state management` }))
     }
     const page1 = await kb.searchPaged('React', { page: 1, pageSize: 5 })
-    assert.ok(page1 != null)
+    assert.ok(page1 !== null)
     assert.ok(Array.isArray(page1.entries))
     assert.equal(page1.entries.length, 5)
     const page2 = await kb.searchPaged('React', { page: 2, pageSize: 5 })
@@ -251,21 +251,21 @@ describe('tags, categories, languages', () => {
     const langs = await kb.getAllLanguages()
     assert.ok(Array.isArray(langs))
     assert.ok(langs.length >= 2)
-    assert.ok(langs[0].language != null)
-    assert.ok(langs[0].count != null)
+    assert.ok(langs[0].language !== null)
+    assert.ok(langs[0].count !== null)
   })
 
   it('getAggregations returns aggregated stats object', async () => {
     await kb.saveEntry(makeEntry({ tags: ['a', 'b'], category: 'cat1', content: 'Aggregation content unique ZZZ' }))
     const agg = await kb.getAggregations()
-    assert.ok(agg != null)
+    assert.ok(agg !== null)
     assert.ok(typeof agg === 'object')
   })
 
   it('getStats returns statistics object with totalEntries', async () => {
     await kb.saveEntry(makeEntry({ content: 'Stats content unique QQQ' }))
     const stats = await kb.getStats()
-    assert.ok(stats != null)
+    assert.ok(stats !== null)
     assert.ok(typeof stats === 'object')
     assert.ok('totalEntries' in stats)
     assert.ok(stats.totalEntries >= 1)
@@ -345,7 +345,7 @@ describe('findDuplicate', () => {
       title: 'JavaScript Closures Explained',
       content: 'A closure is a function that has access to its outer scope variables and state.',
     }))
-    assert.ok(dupe != null)
+    assert.ok(dupe !== null)
   })
 
   it('findDuplicate returns null/falsy for unique entry', async () => {
@@ -494,10 +494,10 @@ describe('static methods', () => {
 describe('edge cases', () => {
   it('saveEntry with minimal fields (no optional)', async () => {
     const saved = await kb.saveEntry({ title: 'Minimal', content: 'Just title and content here' })
-    assert.ok(saved != null)
-    assert.ok(saved.id != null)
+    assert.ok(saved !== null)
+    assert.ok(saved.id !== null)
     const entry = await kb.getEntry(saved.id)
-    assert.ok(entry != null)
+    assert.ok(entry !== null)
     assert.equal(entry.title, 'Minimal')
   })
 
@@ -514,7 +514,7 @@ describe('edge cases', () => {
 
   it('KnowledgeBase.bigrams on empty string', () => {
     const bg = KnowledgeBase.bigrams('')
-    assert.ok(bg != null)
+    assert.ok(bg !== null)
   })
 
   it('KnowledgeBase.calculateSimilarity with empty strings', () => {

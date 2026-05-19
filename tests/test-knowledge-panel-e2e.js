@@ -190,7 +190,7 @@ function createPanel(memory, entries = []) {
     memory: memory || createMockMemory(entries),
     addSystemMessage: () => {},
     showToast: () => {},
-    escapeHtml: (s) => (s == null ? '' : String(s)).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])),
+    escapeHtml: (s) => (s === null ? '' : String(s)).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c])),
     downloadFile: () => {},
     getSearchMode: () => 'keyword',
   };
