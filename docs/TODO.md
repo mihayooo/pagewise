@@ -558,3 +558,20 @@
 - [x] **R126: 模块间循环依赖消除 CircularDepElimination** — 利用 R107 健康检查输出，识别并消除模块间循环依赖：梳理依赖图 → 断开环路（接口抽象/事件总线/依赖注入）；将核心模块（knowledge-base、ai-client、bookmark-graph）解耦为单向依赖 DAG；新增循环依赖 CI 门禁脚本。复杂度: Complex
 
 - [x] **R127: 缓存与性能策略统一 CachePerfUnify** — 统一散落在各模块中的缓存策略：review-session.js LRU、bookmark-performance.js LRU、knowledge-base 查询缓存、bookmark-semantic-search 缓存 → 提取公共 `lib/cache-manager.js`（LRU + TTL + 失效策略）；替换各模块自实现缓存为统一层；1000+ 书签场景性能基准回归确保无退化。复杂度: Medium
+
+---
+
+## Phase L: 质量回归与发布收尾 (R128-R132) — 5 轮
+
+> 飞轮迭代 R24 起，2026-05-19
+> 目标: 修复 49 个失败测试、清除 122 个 ESLint 问题、完成超大模块拆分、补全无障碍功能、最终发布准备
+
+- [ ] **R128: 测试失败批量修复 TestFailureBatchFix2** — 修复 `npm run test:ci` 中 49 个失败测试（21 个 distinct test name）：(1) BookmarkBackup 11 个断言失败（createBackup/validateBackup/restoreBackup round-trip，疑似 R127 缓存策略重构后序列化结构变更）；(2) R122 文档验收 4 个断言失败（LIB-API-REFERENCE.md 未生成、README/CHANGELOG/IMPLEMENTATION 未更新）；(3) LRU 缓存 2 个边界断言（bookmark-search、knowledge-base）；(4) R125 模块拆分验证 3 个断言（文件行数 ≤400、bookmark-clusterer 导出、bookmark-folder-suggestions）；(5) BookmarkSearch smoke 1 个。目标: `npm run test:ci` 4897+ pass / 0 fail。复杂度: Medium
+
+- [ ] **R129: ESLint 问题清零 LintCleanSweep** — 修复 8 个 `eqeqeq` 错误（bookmark-advanced-search.js 2 处、sanitize.js 6 处 `==`/`!=` → `===`/`!==`）；清理 114 个 `no-unused-vars` 警告（逐文件审查 20+ 个文件：删除或前缀 `_` 标记未使用变量/导入/参数）；将 `no-unused-vars` 规则收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
+
+- [ ] **R130: 超大模块拆分二期 ModuleSplitPhase2** — 仍有 11 个文件 >600 行：wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、bookmark-accessibility.js(598)。优先拆分前 5 个（>640 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
+
+- [ ] **R131: 无障碍功能补全 AccessibilityComplete** — 需求文档 P1 级别（R79）：键盘导航（Tab/Enter/Escape/Arrow Up-Down）、屏幕阅读器（aria-label, role, live regions）、焦点管理（焦点环、焦点陷阱）、颜色对比度 ≥ 4.5:1 审计。`lib/bookmark-accessibility.js` 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块；49 用例覆盖。复杂度: Medium
+
+- [ ] **R132: 引导向导与发布准备 OnboardingPublish** — (1) 需求文档 P1 级别（R81）BookmarkOnboarding：首次安装 4 步引导向导（welcome→features→theme→autoCollect）、核心功能介绍、主题选择、自动采集开关、状态持久化、i18n 双语。`lib/bookmark-onboarding.js` + 72 用例。(2) 更新 manifest.json / _locales / 截图准备。复杂度: Medium
