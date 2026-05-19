@@ -2,6 +2,48 @@
 
 ---
 
+## 迭代 R130 — 超大模块拆分二期 ModuleSplitPhase2
+
+> 日期: 2026-05-19
+> 任务: R130 超大模块拆分二期 ModuleSplitPhase2 — 5 个 >640 行文件拆分至 ≤400 行，保持 API 向后兼容
+
+### 拆分方案
+
+| 原始文件 | 行数 | → 拆分文件 | 行数 | 提取内容 |
+|----------|------|-----------|------|---------|
+| wiki-store.js | 694→163 | wiki-store-funcs.js | 262 | 纯函数（页面转换/wikilink/搜索/分页） |
+| skill-store.js | 694→255 | skill-store-community.js | 306 | SkillCommunityHub/SkillCommunityReviews/版本工具 |
+| plugin-system.js | 658→187 | plugin-system-utils.js | 336 | 版本工具/验证/PluginRegistry |
+| bookmark-store-prep.js | 655→218 | bookmark-store-prep-checks.js | 316 | CSP校验/权限正当理由/语言支持/改进建议/提交检查 |
+| bookmark-analytics.js | 646→231 | bookmark-analytics-advanced.js | 236 | 高级分析方法（访问统计/趋势/分布/热力图/内部工具） |
+
+### 修改文件
+
+1. **`lib/wiki-store.js`** — 694→163 行，re-export WikiStore 类 + 纯函数
+2. **`lib/wiki-store-funcs.js`** — 新建 262 行，Wiki 纯函数层
+3. **`lib/skill-store.js`** — 694→255 行，re-export SkillStore/SkillPackageManager + 社区功能
+4. **`lib/skill-store-community.js`** — 新建 306 行，社区功能层
+5. **`lib/plugin-system.js`** — 658→187 行，re-export PluginManager + 底层工具
+6. **`lib/plugin-system-utils.js`** — 新建 336 行，版本工具/验证/注册表
+7. **`lib/bookmark-store-prep.js`** — 655→218 行，re-export 核心校验 + 辅助检查
+8. **`lib/bookmark-store-prep-checks.js`** — 新建 316 行，CSP/权限/语言/提交检查
+9. **`lib/bookmark-analytics.js`** — 646→231 行，re-export BookmarkAnalytics + 高级分析
+10. **`lib/bookmark-analytics-advanced.js`** — 新建 236 行，高级分析方法
+11. **`tests/test-r130-module-split-phase2.js`** — 新建，75 个测试用例
+
+### 设计决策
+
+- **Re-export 模式**: 所有原始文件保留类/核心函数，将纯函数/辅助逻辑提取到新模块，通过 `export { ... } from './new-module.js'` 保持向后兼容
+- **单一职责原则**: wiki-store-funcs.js 纯函数无状态、skill-store-community.js 社区功能独立、plugin-system-utils.js 底层工具与业务分离
+- **不修改消费方**: 所有 import 路径不变，sidebar.js 等消费方无需改动
+
+### 测试结果
+
+- R130 专项测试: 75 pass / 0 fail
+- 全量回归: 5040 pass / 0 fail
+
+---
+
 ## 迭代 R128 — 测试失败批量修复 TestFailureBatchFix2
 
 > 日期: 2026-05-19

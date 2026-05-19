@@ -570,7 +570,7 @@
 
 - [x] **R129: ESLint 问题清零 LintCleanSweep** — 修复 8 个 `eqeqeq` 错误（bookmark-advanced-search.js 2 处、sanitize.js 6 处 `==`/`!=` → `===`/`!==`）；清理 114 个 `no-unused-vars` 警告（逐文件审查 20+ 个文件：删除或前缀 `_` 标记未使用变量/导入/参数）；将 `no-unused-vars` 规则收紧为 `error`；目标: `npm run lint` 0 errors 0 warnings。复杂度: Medium
 
-- [ ] **R130: 超大模块拆分二期 ModuleSplitPhase2** — 仍有 11 个文件 >600 行：wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、bookmark-accessibility.js(598)。优先拆分前 5 个（>640 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex
+- [x] **R130: 超大模块拆分二期 ModuleSplitPhase2** — 仍有 11 个文件 >600 行：wiki-store.js(694)、skill-store.js(694)、plugin-system.js(658)、bookmark-store-prep.js(655)、bookmark-analytics.js(646)、bookmark-visualizer.js(643)、bookmark-knowledge-link.js(643)、bookmark-migration.js(624)、ai-client.js(609)、bookmark-exporter.js(601)、bookmark-accessibility.js(598)。优先拆分前 5 个（>640 行），每文件 ≤400 行，保持 API 向后兼容。复杂度: Complex ✅ (5040 pass / 0 fail)
 
 - [ ] **R131: 无障碍功能补全 AccessibilityComplete** — 需求文档 P1 级别（R79）：键盘导航（Tab/Enter/Escape/Arrow Up-Down）、屏幕阅读器（aria-label, role, live regions）、焦点管理（焦点环、焦点陷阱）、颜色对比度 ≥ 4.5:1 审计。`lib/bookmark-accessibility.js` 补全 KeyboardNav/FocusTrap/ARIA/ContrastAudit 四大模块；49 用例覆盖。复杂度: Medium
 

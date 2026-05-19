@@ -7,6 +7,15 @@
      7|## [Unreleased]
 
 ### 新增
+- **R130: 超大模块拆分二期 ModuleSplitPhase2**
+  - 5 个 >640 行文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）
+  - wiki-store.js(694→163) + wiki-store-funcs.js(262)
+  - skill-store.js(694→255) + skill-store-community.js(306)
+  - plugin-system.js(658→187) + plugin-system-utils.js(336)
+  - bookmark-store-prep.js(655→218) + bookmark-store-prep-checks.js(316)
+  - bookmark-analytics.js(646→231) + bookmark-analytics-advanced.js(236)
+  - 75 个专项测试用例，全量回归 5040 pass / 0 fail
+
 - **R128: 测试失败批量修复 TestFailureBatchFix2**
   - 创建 `lib/bookmark-folder-suggestions.js`，从 `BookmarkFolderAnalyzer` 提取 `suggestOrganization` / `exportFolderTree` 为独立导出函数
   - 修复 R125 模块拆分遗留的 3 个测试失败：文件行数检查（文件不存在）+ 导出验证（ERR_MODULE_NOT_FOUND）
