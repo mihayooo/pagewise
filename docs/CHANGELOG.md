@@ -7,6 +7,43 @@
      7|## [Unreleased]
 
 ### 新增
+- **R111: 输入安全加固 InputSanitization** — `lib/sanitize.js`
+  - 统一用户输入净化层：XSS 防护（HTML 实体编码）、URL 校验（仅允许 http/https，javascript: 拦截）
+  - 搜索注入防护（特殊字符转义）、书签标题/标签长度限制
+  - 替换现有散落的 escapeHtml 调用为集中模块
+  - 测试: 全面覆盖 sanitize 模块核心逻辑
+
+- **R110: 核心流程改进 CoreFlowFix**
+  - 基于 R106 审计输出，修复选中文字→提问→AI 回答→存入知识库→检索回顾流程中的交互痛点
+  - 选区丢失容错（重试 + 提示）、AI 响应超时 UI 反馈
+  - 知识库写入失败兜底（本地重试队列）、检索结果空态引导
+
+- **R109: 代码静态检查 ESLintSetup**
+  - `eslint.config.js` flat config（ES Modules）
+  - Rules: no-unused-vars / no-undef / eqeqeq / no-implicit-globals
+  - `npm run lint` + CI 集成
+  - 现有代码基线修复（允许 --max-warnings 从宽收紧）
+
+- **R107: 代码健康度仪表盘 CodeHealthDashboard**
+  - 建立项目健康度指标：模块依赖图可视化、循环依赖检测、未使用导出检测、文件大小/行数监控
+  - `scripts/health-check.sh` 一键生成报告
+
+- **R106: 核心流程端到端审计 CoreFlowAudit**
+  - 走查核心用户体验流程：选中文字 → 提问 → AI 回答 → 存入知识库 → 检索回顾
+  - 记录交互痛点、性能瓶颈、边界 case
+  - 输出改进清单供 R110 消化
+
+### 改进
+- **R105: 知识库索引优化 KnowledgeBaseIndexOpt**
+  - `lib/knowledge-base.js` 补充 TD003：评估并建立 IndexedDB 复合索引（title+createdAt, tags+category）
+  - 大数据量（1000+ 条目）查询性能基准测试
+  - 引入查询结果缓存层，关闭 TD003
+
+- **R104: AI 客户端错误处理增强 AiClientErrorHandling**
+  - `lib/ai-client.js` 补充 TD002：API 错误分类（网络超时/429 限流/401 认证/500 服务端）
+  - 指数退避重试（最多 3 次）、降级策略（切换备用模型/离线提示）
+  - 结构化错误日志，关闭 TD002
+
 - **R108: 测试覆盖率度量 TestCoverage**
   - 引入 `c8` (v10.1.3) 原生 V8 coverage 工具，零插桩零性能损失
   - `npm run test:coverage` 一键生成覆盖率报告（lcov + text-summary）

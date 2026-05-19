@@ -1,5 +1,9 @@
 # 智阅 PageWise
 
+[![CI](https://github.com/whalemalus/pagewise/actions/workflows/ci.yml/badge.svg)](https://github.com/whalemalus/pagewise/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A592%25-brightgreen)](https://github.com/whalemalus/pagewise/actions/workflows/ci.yml)
+[![Lint](https://img.shields.io/badge/lint-ESLint-blue)](https://github.com/whalemalus/pagewise/actions/workflows/ci.yml)
+
 > 浏览网页时遇到不懂的技术内容？选中即问，AI 即答，自动归档。让每一次浏览都成为学习。
 
 一个 Chrome 浏览器扩展，在你浏览技术网页时提供 AI 智能问答，并将知识自动整理到本地知识库。支持 Claude / ChatGPT / DeepSeek 等多种大模型，具备技能系统、页面感知、记忆学习和自进化能力。

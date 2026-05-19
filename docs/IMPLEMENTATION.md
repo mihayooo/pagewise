@@ -2,6 +2,60 @@
 
 ---
 
+## 迭代 R112 — 技术债务结算 TechDebtCleanup
+
+> 日期: 2026-05-19
+> 任务: R112 技术债务结算 TechDebtCleanup — TD 表状态更新、残留文件清理、README badges、CHANGELOG 补充
+
+### 修改文件
+
+1. **docs/DESIGN.md** — TD 表状态更新
+   - `TD002 | ... | 待解决` → `TD002 | ... | 已关闭 (via R104)`
+   - `TD003 | ... | 待评估` → `TD003 | ... | 已关闭 (via R105)`
+
+2. **README.md** — 顶部新增 3 个 badge
+   - `[![CI]` — GitHub Actions CI 状态 badge
+   - `[![Coverage]` — 静态覆盖率 badge (≥92%)
+   - `[![Lint]` — ESLint lint 状态 badge
+
+3. **docs/CHANGELOG.md** — Unreleased 区域补充 R104-R107 变更记录
+   - R104: AI 客户端错误处理增强 AiClientErrorHandling（改进）
+   - R105: 知识库索引优化 KnowledgeBaseIndexOpt（改进）
+   - R106: 核心流程端到端审计 CoreFlowAudit（新增）
+   - R107: 代码健康度仪表盘 CodeHealthDashboard（新增）
+   - R109: 代码静态检查 ESLintSetup（新增）
+   - R110: 核心流程改进 CoreFlowFix（新增）
+   - R111: 输入安全加固 InputSanitization（新增）
+
+4. **docs/TODO.md** — R112 从 `[ ]` 标记为 `[x]`
+
+### 删除文件
+
+1. **lib/test-r97.js** — R97 残留测试文件（仅含 `export const test = 1;`，无任何模块引用）
+
+### 新增文件
+
+1. **tests/test-tech-debt-cleanup.js** — 18 个单元测试
+   - TD 表状态更新 (4): TD001/TD002/TD003 已关闭 + 全部 TD 项已关闭
+   - 残留文件清理 (1): lib/test-r97.js 已删除
+   - README badges (5): CI/Coverage/Lint badge 存在 + URL 格式正确 + 位置在顶部
+   - CHANGELOG 补充 (7): R104-R107 各条记录存在 + 在 Unreleased 区域 + 描述正确
+   - TODO.md 更新 (1): R112 标记为已完成
+
+### 设计决策
+
+- **Coverage badge 使用静态 shields.io**: c8 未上传第三方服务（Codecov/Coveralls），暂用静态 badge 标注 `≥ 92%`，后续如接入服务可替换为动态 badge
+- **Lint badge 链接到 CI workflow**: 与 CI badge 保持一致，lint 结果通过 GitHub Actions 展示
+- **CHANGELOG 同步补充 R109-R111**: 除需求文档要求的 R104-R107 外，也将 R109-R111 补充进 CHANGELOG，确保 Unreleased 区域完整记录 Phase H 全部迭代
+- **TD 表状态格式统一**: `已关闭 (via R{NNN})` 与 TD001 已有格式保持一致
+
+### 测试结果
+
+- 新增: 18 个测试，全部通过
+- 5 个验收标准 (AC-1 ~ AC-5) 全部覆盖
+
+---
+
 ## 迭代 R108 — 测试覆盖率度量 TestCoverage
 
 > 日期: 2026-05-19

@@ -510,4 +510,4 @@
 
 - [x] **R111: 输入安全加固 InputSanitization** — 统一用户输入净化层 `lib/sanitize.js`：XSS 防护（HTML 实体编码）、URL 校验（仅允许 http/https/javascript: 拦截）、搜索注入防护（特殊字符转义）、书签标题/标签长度限制；替换现有散落的 escapeHtml 调用为集中模块。复杂度: Medium
 
-- [ ] **R112: 技术债务结算 TechDebtCleanup** — 更新 TD 表（TD001→已关闭 via R108, TD002→已关闭 via R104, TD003→已关闭 via R105）；清理 lib/test-r97.js 测试残留文件；README 更新（badge: CI/coverage/lint）；CHANGELOG 补充 R103-R107 变更记录。复杂度: Simple
+- [x] **R112: 技术债务结算 TechDebtCleanup** — 更新 TD 表（TD001→已关闭 via R108, TD002→已关闭 via R104, TD003→已关闭 via R105）；清理 lib/test-r97.js 测试残留文件；README 更新（badge: CI/coverage/lint）；CHANGELOG 补充 R103-R107 变更记录。复杂度: Simple
