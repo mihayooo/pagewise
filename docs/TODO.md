@@ -489,7 +489,7 @@
 
 - [x] **R104: AI 客户端错误处理增强 AiClientErrorHandling** — `lib/ai-client.js` 补充 TD002：API 错误分类（网络超时/429 限流/401 认证/500 服务端）；指数退避重试（最多 3 次）；降级策略（切换备用模型/离线提示）；结构化错误日志。复杂度: Medium
 
-- [ ] **R105: 知识库索引优化 KnowledgeBaseIndexOpt** — `lib/knowledge-base.js` 补充 TD003：评估并建立 IndexedDB 复合索引（title+createdAt, tags+category）；大数据量（1000+ 条目）查询性能基准测试；引入查询结果缓存层。复杂度: Medium
+- [x] **R105: 知识库索引优化 KnowledgeBaseIndexOpt** — `lib/knowledge-base.js` 补充 TD003：评估并建立 IndexedDB 复合索引（title+createdAt, tags+category）；大数据量（1000+ 条目）查询性能基准测试；引入查询结果缓存层。复杂度: Medium
 
 - [ ] **R106: 核心流程端到端审计 CoreFlowAudit** — 走查核心用户体验流程：选中文字 → 提问 → AI 回答 → 存入知识库 → 检索回顾；记录交互痛点、性能瓶颈、边界 case；输出改进清单供 R107 消化。复杂度: Simple
 

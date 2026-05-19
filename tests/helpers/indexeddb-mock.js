@@ -210,11 +210,94 @@ class MockIDBObjectStore {
   }
 }
 
+/**
+ * 比较两个键的大小（支持复合键/数组键）
+ * IndexedDB 键比较规则：数字 < 字符串 < 数组，数组逐元素比较
+ * @param {*} a
+ * @param {*} b
+ * @returns {number} - -1/0/1
+ */
+function _compareIDBKeys(a, b) {
+  if (a === b) return 0;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    const len = Math.min(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      const cmp = _compareIDBKeys(a[i], b[i]);
+      if (cmp !== 0) return cmp;
+    }
+    return a.length < b.length ? -1 : a.length > b.length ? 1 : 0;
+  }
+  if (typeof a === 'number' && typeof b === 'number') return a < b ? -1 : 1;
+  const sa = String(a), sb = String(b);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+
+/**
+ * 检查键是否在 IDBKeyRange 内
+ * @param {*} key - 待检查的键
+ * @param {object} range - MockIDBKeyRange 实例
+ * @returns {boolean}
+ */
+function _keyInRange(key, range) {
+  if (!range) return true;
+  if (range.lower !== undefined) {
+    const cmp = _compareIDBKeys(key, range.lower);
+    if (cmp < 0) return false;
+    if (cmp === 0 && range.lowerOpen) return false;
+  }
+  if (range.upper !== undefined) {
+    const cmp = _compareIDBKeys(key, range.upper);
+    if (cmp > 0) return false;
+    if (cmp === 0 && range.upperOpen) return false;
+  }
+  return true;
+}
+
+/** 简易 IDBKeyRange */
+class MockIDBKeyRange {
+  constructor(lower, upper, lowerOpen, upperOpen) {
+    this.lower = lower;
+    this.upper = upper;
+    this.lowerOpen = !!lowerOpen;
+    this.upperOpen = !!upperOpen;
+  }
+
+  static bound(lower, upper, lowerOpen, upperOpen) {
+    return new MockIDBKeyRange(lower, upper, lowerOpen, upperOpen);
+  }
+
+  static upperBound(upper, open) {
+    return new MockIDBKeyRange(undefined, upper, false, !!open);
+  }
+
+  static lowerBound(lower, open) {
+    return new MockIDBKeyRange(lower, undefined, !!open, false);
+  }
+
+  static only(value) {
+    return new MockIDBKeyRange(value, value, false, false);
+  }
+
+  includes(key) {
+    return _keyInRange(key, this);
+  }
+}
+
 /** 简易 IDBIndex */
 class MockIDBIndex {
   constructor(store, def) {
     this._store = store;
     this._def = def;
+    this.name = def.name;
+  }
+
+  /** 从记录中提取索引键（支持复合键路径） */
+  _extractKey(record) {
+    const kp = this._def.keyPath;
+    if (Array.isArray(kp)) {
+      return kp.map(k => record[k]);
+    }
+    return record[kp];
   }
 
   get(key) {
@@ -264,8 +347,29 @@ class MockIDBIndex {
     return req;
   }
 
+  /**
+   * 打开游标 — 支持 IDBKeyRange 过滤和复合索引
+   */
   openCursor(range, direction) {
-    return this._store.openCursor(range, direction);
+    const filtered = [];
+    for (const record of this._store._records.values()) {
+      const idxKey = this._extractKey(record);
+      if (_keyInRange(idxKey, range)) {
+        filtered.push(record);
+      }
+    }
+    const req = new MockIDBRequest();
+    Promise.resolve().then(() => {
+      if (filtered.length === 0) {
+        req.result = null;
+        if (req.onsuccess) req.onsuccess({ target: req });
+      } else {
+        const cursor = new MockIDBCursorWithValue(filtered, direction, req, this._store);
+        req.result = cursor;
+        if (req.onsuccess) req.onsuccess({ target: req });
+      }
+    });
+    return req;
   }
 }
 
@@ -373,10 +477,12 @@ export function resetIndexedDBMock() {
 /** 安装到 globalThis */
 export function installIndexedDBMock() {
   globalThis.indexedDB = mockIndexedDB;
+  globalThis.IDBKeyRange = MockIDBKeyRange;
   return mockIndexedDB;
 }
 
 /** 卸载 */
 export function uninstallIndexedDBMock() {
   delete globalThis.indexedDB;
+  delete globalThis.IDBKeyRange;
 }
