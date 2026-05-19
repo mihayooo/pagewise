@@ -493,4 +493,4 @@
 
 - [x] **R106: 核心流程端到端审计 CoreFlowAudit** — 走查核心用户体验流程：选中文字 → 提问 → AI 回答 → 存入知识库 → 检索回顾；记录交互痛点、性能瓶颈、边界 case；输出改进清单供 R107 消化。复杂度: Simple
 
-- [ ] **R107: 代码健康度仪表盘 CodeHealthDashboard** — 建立项目健康度指标：模块依赖图可视化、循环依赖检测、未使用导出检测、文件大小/行数监控；`scripts/health-check.sh` 一键生成报告。复杂度: Medium
+- [x] **R107: 代码健康度仪表盘 CodeHealthDashboard** — 建立项目健康度指标：模块依赖图可视化、循环依赖检测、未使用导出检测、文件大小/行数监控；`scripts/health-check.sh` 一键生成报告。复杂度: Medium
