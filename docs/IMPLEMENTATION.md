@@ -2,6 +2,44 @@
 
 ---
 
+## 迭代 R103 — 测试基础设施修复 TestInfrastructureFix
+
+> 日期: 2026-05-19
+> 任务: R103 测试基础设施修复 TestInfrastructureFix — 修复测试运行器配置
+
+### 问题分析
+
+`package.json` 缺少 `"test"` script，导致：
+1. `npm test` 直接报错 `npm ERR! Missing script: "test"`
+2. CI 流水线依赖内联 `find` 命令，与项目配置脱节
+3. 开发者无法通过标准 `npm test` 运行测试
+
+### 修改文件
+
+1. **package.json** — 新增 `scripts` 配置
+   - `"test"`: `node --test 'tests/*.js'` — 默认运行所有单元测试（排除 e2e/ 子目录）
+   - `"test:ci"`: `node --test $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' | sort)` — CI 专用，精确排除 E2E
+   - `"test:all"`: `node --test 'tests/*.js' 'tests/e2e/*.js'` — 运行全部测试（含 E2E）
+
+2. **.github/workflows/ci.yml** — 测试步骤改用 `npm run test:ci`
+   - 替换内联 find 命令为 npm script，保持 CI 配置与项目一致
+   - 语义更清晰，便于维护
+
+### 设计决策
+
+- **三种 test script 分层**: `test`（开发默认）/ `test:ci`（CI 环境）/ `test:all`（含 E2E），满足不同场景
+- **不修改 glob 模式**: `'tests/*.js'` 只匹配顶层测试文件，E2E 测试在 `tests/e2e/` 子目录不自动运行（需要浏览器环境）
+- **CI 使用 test:ci**: 保持精确的 E2E 排除逻辑，与原行为完全一致
+- **不使用 Node.js 22 的 auto-discovery**: 显式 glob 模式更可预测，跨版本兼容
+
+### 测试结果
+
+- `npm test`: 5887 pass, 0 fail
+- `npm run test:ci`: 5871 pass, 0 fail (排除 E2E)
+- 全量回归通过 ✅
+
+---
+
 ## 迭代 R88 — 数据迁移 BookmarkMigration
 
 > 日期: 2026-05-15

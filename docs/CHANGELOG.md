@@ -6,6 +6,15 @@
      6|
      7|## [Unreleased]
 
+### 修复
+- **R103: 测试基础设施修复 TestInfrastructureFix**
+  - `package.json` 新增 `scripts.test`: `node --test 'tests/*.js'` — 标准化测试入口
+  - `package.json` 新增 `scripts.test:ci`: CI 专用测试命令（排除 E2E）
+  - `package.json` 新增 `scripts.test:all`: 包含 E2E 的完整测试命令
+  - `.github/workflows/ci.yml` 测试步骤改用 `npm run test:ci`，替代内联 find 命令
+  - 修复 `npm test` 缺失导致 CI 无法通过标准入口运行测试的问题
+  - 全量回归: 5887 测试通过，0 失败 ✅
+
 ### 新增
 - **R88: BookmarkMigration 数据迁移框架** — `lib/bookmark-migration.js`
   - 版本检测: `getMigrationVersion()` — 识别 v1/v2 数据格式

@@ -51,10 +51,9 @@ jobs:
 
       - name: Run unit tests (excluding E2E)
         run: |
-          # 排除需要浏览器环境的 E2E 测试
-          TEST_FILES=$(find tests -name "test-*.js" -not -name "test-e2e-*" -not -path "tests/e2e/*" | sort)
-          echo "运行 $(echo "$TEST_FILES" | wc -l) 个测试文件..."
-          node --test $TEST_FILES 2>&1
+          # 通过 npm script 运行测试（排除需要浏览器环境的 E2E 测试）
+          echo "运行 npm run test:ci ..."
+          npm run test:ci 2>&1
 
   package-check:
     runs-on: ubuntu-latest

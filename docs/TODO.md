@@ -482,7 +482,10 @@
 
 ### v3.0.0 发布后质量加固 + 技术债务清偿
 
-- [ ] **R103: 测试基础设施修复 TestInfrastructureFix** — 修复测试运行器配置，`node --test` 无法自动发现 tests/ 目录导致报告 0 pass/0 fail；在 package.json 中建立 `"test"` script（如 `node --test 'tests/*.js'`），确保 CI 流水线绿色；验证全量 5857 用例回归通过。复杂度: Simple
+- [x] **R103: 测试基础设施修复 TestInfrastructureFix** — 修复测试运行器配置，`node --test` 无法自动发现 tests/ 目录导致报告 0 pass/0 fail；在 package.json 中建立 `"test"` script（如 `node --test 'tests/*.js'`），确保 CI 流水线绿色；验证全量 5857 用例回归通过。复杂度: Simple
+  - package.json 新增 `test` / `test:ci` / `test:all` 三个 scripts
+  - CI 工作流改用 `npm run test:ci`
+  - 全量回归: 5887 pass, 0 fail ✅
 
 - [ ] **R104: AI 客户端错误处理增强 AiClientErrorHandling** — `lib/ai-client.js` 补充 TD002：API 错误分类（网络超时/429 限流/401 认证/500 服务端）；指数退避重试（最多 3 次）；降级策略（切换备用模型/离线提示）；结构化错误日志。复杂度: Medium
 
