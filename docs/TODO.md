@@ -661,6 +661,6 @@
 
 - [x] **R155: sidebar.js 超大模块拆分 SidebarModuleSplit** — sidebar.js 当前 7705 行，是全项目最大文件，远超 400 行上限；按职责拆分为独立模块：(1) sidebar-chat.js — 聊天/对话渲染逻辑；(2) sidebar-knowledge.js — 知识库面板逻辑；(3) sidebar-bookmark.js — 书签面板逻辑；(4) sidebar-settings.js — 设置/配置逻辑；(5) sidebar-utils.js — 通用工具函数。保持 sidebar.js 为薄编排层（≤400 行），拆分后每个模块 ≤400 行，保持 UI 行为不变。复杂度: Complex
 
-- [ ] **R156: 覆盖率基础设施修复 CoverageInfraFix** — `npm run test:coverage` 因 `coverage/tmp/` 目录权限问题（EACCES）无法生成覆盖率报告；(1) 修复 c8 tmp 目录权限或添加 `.gitignore` 规则排除旧 tmp 文件；(2) 验证覆盖率报告正常生成并输出 lcov + text-summary；(3) 确认行覆盖率基线 ≥80%；(4) 在 CI 中添加覆盖率门禁（行覆盖率 <80% 则 pipeline 失败）。复杂度: Simple
+- [x] **R156: 覆盖率基础设施修复 CoverageInfraFix** — `npm run test:coverage` 因 `coverage/tmp/` 目录权限问题（EACCES）无法生成覆盖率报告；(1) 修复 c8 tmp 目录权限或添加 `.gitignore` 规则排除旧 tmp 文件；(2) 验证覆盖率报告正常生成并输出 lcov + text-summary；(3) 确认行覆盖率基线 ≥80%；(4) 在 CI 中添加覆盖率门禁（行覆盖率 <80% 则 pipeline 失败）。复杂度: Simple
 
-- [ ] **R157: 超大模块拆分七期 ModuleSplitPhase7** — R150 声称完成但实测 6 个 lib 文件仍 >500 行：bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+- [x] **R157: 超大模块拆分七期 ModuleSplitPhase7** — R150 声称完成但实测 6 个 lib 文件仍 >500 行：bookmark-knowledge-integration.js(547)、message-renderer.js(539)、knowledge-panel.js(528)、entity-extractor.js(527)、bookmark-import-export.js(524)、bookmark-tagger.js(516)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex

@@ -8,5 +8,6 @@
   ],
   "reporter": ["lcov", "text-summary"],
   "all": true,
-  "src": ["lib"]
+  "src": ["lib"],
+  "tmpDir": "coverage/tmp"
 }

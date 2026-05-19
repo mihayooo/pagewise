@@ -55,11 +55,20 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Run unit tests (excluding E2E)
         run: |
           # 通过 npm script 运行测试（排除需要浏览器环境的 E2E 测试）
           echo "运行 npm run test:ci ..."
           npm run test:ci 2>&1
+
+      - name: Generate coverage report
+        run: npm run test:coverage
+
+      - name: Coverage gate (lines >= 80%)
+        run: npm run coverage:gate
 
   package-check:
     runs-on: ubuntu-latest

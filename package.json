@@ -8,7 +8,8 @@
     "test": "node --test 'tests/*.js'",
     "test:ci": "node --test $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' | sort)",
     "test:all": "node --test 'tests/*.js' 'tests/e2e/*.js'",
-    "test:coverage": "c8 --reporter=lcov --reporter=text-summary npm run test:ci",
+    "test:coverage": "rm -rf coverage/tmp && c8 --reporter=lcov --reporter=text-summary npm run test:ci",
+    "coverage:gate": "c8 check-coverage --lines 80",
     "lint": "eslint . --max-warnings 10000"
   },
   "devDependencies": {
