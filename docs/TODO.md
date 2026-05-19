@@ -506,7 +506,7 @@
 
 - [x] **R109: 代码静态检查 ESLintSetup** — `eslint.config.js` flat config（ES Modules）；rules: no-unused-vars / no-undef / eqeqeq / no-implicit-globals；`npm run lint` + CI 集成；现有代码基线修复（允许 --max-warnings 从宽收紧）。复杂度: Simple
 
-- [ ] **R110: 核心流程改进 CoreFlowFix** — 基于 R106 审计输出，修复选中文字→提问→AI 回答→存入知识库→检索回顾流程中的交互痛点：选区丢失容错（重试 + 提示）、AI 响应超时 UI 反馈、知识库写入失败兜底（本地重试队列）、检索结果空态引导。复杂度: Medium
+- [x] **R110: 核心流程改进 CoreFlowFix** — 基于 R106 审计输出，修复选中文字→提问→AI 回答→存入知识库→检索回顾流程中的交互痛点：选区丢失容错（重试 + 提示）、AI 响应超时 UI 反馈、知识库写入失败兜底（本地重试队列）、检索结果空态引导。复杂度: Medium
 
 - [ ] **R111: 输入安全加固 InputSanitization** — 统一用户输入净化层 `lib/sanitize.js`：XSS 防护（HTML 实体编码）、URL 校验（仅允许 http/https/javascript: 拦截）、搜索注入防护（特殊字符转义）、书签标题/标签长度限制；替换现有散落的 escapeHtml 调用为集中模块。复杂度: Medium
 
