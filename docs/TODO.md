@@ -659,7 +659,7 @@
 
 - [x] **R154: ESLint 警告清零 LintWarningZeroR53** — 当前 0 errors / 43 warnings（全部 `no-unused-vars`，集中在 options.js 7 处 + 其他文件 36 处）；逐文件审查未使用变量/导入/参数，删除或前缀 `_` 标记有意忽略项；将 `eslint.config.js` 中 `max-warnings` 收紧为 0；目标: `npm run lint` 0 errors 0 warnings。复杂度: Simple
 
-- [ ] **R155: sidebar.js 超大模块拆分 SidebarModuleSplit** — sidebar.js 当前 7705 行，是全项目最大文件，远超 400 行上限；按职责拆分为独立模块：(1) sidebar-chat.js — 聊天/对话渲染逻辑；(2) sidebar-knowledge.js — 知识库面板逻辑；(3) sidebar-bookmark.js — 书签面板逻辑；(4) sidebar-settings.js — 设置/配置逻辑；(5) sidebar-utils.js — 通用工具函数。保持 sidebar.js 为薄编排层（≤400 行），拆分后每个模块 ≤400 行，保持 UI 行为不变。复杂度: Complex
+- [x] **R155: sidebar.js 超大模块拆分 SidebarModuleSplit** — sidebar.js 当前 7705 行，是全项目最大文件，远超 400 行上限；按职责拆分为独立模块：(1) sidebar-chat.js — 聊天/对话渲染逻辑；(2) sidebar-knowledge.js — 知识库面板逻辑；(3) sidebar-bookmark.js — 书签面板逻辑；(4) sidebar-settings.js — 设置/配置逻辑；(5) sidebar-utils.js — 通用工具函数。保持 sidebar.js 为薄编排层（≤400 行），拆分后每个模块 ≤400 行，保持 UI 行为不变。复杂度: Complex
 
 - [ ] **R156: 覆盖率基础设施修复 CoverageInfraFix** — `npm run test:coverage` 因 `coverage/tmp/` 目录权限问题（EACCES）无法生成覆盖率报告；(1) 修复 c8 tmp 目录权限或添加 `.gitignore` 规则排除旧 tmp 文件；(2) 验证覆盖率报告正常生成并输出 lcov + text-summary；(3) 确认行覆盖率基线 ≥80%；(4) 在 CI 中添加覆盖率门禁（行覆盖率 <80% 则 pipeline 失败）。复杂度: Simple
 
