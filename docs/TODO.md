@@ -487,7 +487,7 @@
   - CI 工作流改用 `npm run test:ci`
   - 全量回归: 5887 pass, 0 fail ✅
 
-- [ ] **R104: AI 客户端错误处理增强 AiClientErrorHandling** — `lib/ai-client.js` 补充 TD002：API 错误分类（网络超时/429 限流/401 认证/500 服务端）；指数退避重试（最多 3 次）；降级策略（切换备用模型/离线提示）；结构化错误日志。复杂度: Medium
+- [x] **R104: AI 客户端错误处理增强 AiClientErrorHandling** — `lib/ai-client.js` 补充 TD002：API 错误分类（网络超时/429 限流/401 认证/500 服务端）；指数退避重试（最多 3 次）；降级策略（切换备用模型/离线提示）；结构化错误日志。复杂度: Medium
 
 - [ ] **R105: 知识库索引优化 KnowledgeBaseIndexOpt** — `lib/knowledge-base.js` 补充 TD003：评估并建立 IndexedDB 复合索引（title+createdAt, tags+category）；大数据量（1000+ 条目）查询性能基准测试；引入查询结果缓存层。复杂度: Medium
 
