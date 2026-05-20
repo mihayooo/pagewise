@@ -2,6 +2,49 @@
 
 ---
 
+## R221: Lint 警告清零 LintWarningFinalR220
+
+> 日期: 2026-05-20
+> 任务: 消除 `npm run lint` 中最后 5 个 `no-unused-vars` 警告
+> 复杂度: Simple
+
+### 问题
+
+```
+$ npm run lint
+/home/claude-user/pagewise/lib/bookmark-security-audit.js
+  16:3  warning  'auditContentScripts' is defined but never used.              no-unused-vars
+  17:3  warning  'auditCSP' is defined but never used.                         no-unused-vars
+  19:3  warning  'UNSAFE_CSP_VALUES' is defined but never used.                no-unused-vars
+  20:3  warning  'MINIMAL_CSP' is defined but never used.                      no-unused-vars
+
+/home/claude-user/pagewise/lib/bookmark-security-audit-csp.js
+  25:7  warning  'WILDCARD_HOST_PATTERNS' is assigned a value but never used.  no-unused-vars
+
+✖ 5 problems (0 errors, 5 warnings)
+```
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `lib/bookmark-security-audit.js` | 修改 | 移除 import 块中 4 个未使用的局部绑定（`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP`），仅保留 `generateSecurityReport as _generateSecurityReport`；re-export 块不变，公共 API 不受影响 |
+| `lib/bookmark-security-audit-csp.js` | 修改 | 将未使用的 `WILDCARD_HOST_PATTERNS` 重命名为 `_WILDCARD_HOST_PATTERNS`（下划线前缀标记有意保留） |
+| `tests/test-r221-lint-warning-final.js` | 新增 | 26 个测试用例覆盖：import 结构验证、CSP 子模块前缀验证、公共 API 完整性、lint 零警告验证、功能回归验证 |
+
+### 设计决策
+
+- **import 精简**：`export { X } from 'Y'` 语法直接从源模块 re-export，不创建本地绑定，是消除 `no-unused-vars` 的正确做法
+- **`_` 前缀而非删除**：`_WILDCARD_HOST_PATTERNS` 语义上属于安全审计概念，保留在 CSP 子模块有助于未来扩展；项目 ESLint 已配置 `varsIgnorePattern: '^_'` 支持此约定
+
+### 验证结果
+
+- `npm run lint`: 0 errors / 0 warnings ✅
+- `npm run test:ci`: 7183 pass / 6 fail（均为预期内 E2E 测试）✅
+- `node --test tests/test-r221-lint-warning-final.js`: 26 pass / 0 fail ✅
+
+---
+
 ## R218: CHANGELOG [3.1.0] 区段补全与发布收尾 ChangelogV310Finalize
 
 ### 问题

@@ -14,6 +14,10 @@
   - 全量回归: 6887 pass / 0 fail ✅
 
 ### 修复
+- **R221: Lint 警告清零 LintWarningFinalR220** — 消除 `npm run lint` 最后 5 个 `no-unused-vars` 警告
+  - `bookmark-security-audit.js`: 精简 import 块，移除 4 个未使用的局部绑定（`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP`），仅保留实际引用的 `_generateSecurityReport`；re-export 块不变，公共 API 完整
+  - `bookmark-security-audit-csp.js`: 将未使用的 `WILDCARD_HOST_PATTERNS` 重命名为 `_WILDCARD_HOST_PATTERNS`（下划线前缀标记有意保留）
+  - 结果: `npm run lint` 0 errors / 0 warnings ✅
 - **R215: 测试失败修复 TestFailureFixR215** — 修复 `npm run test:ci` 中 1 个失败用例
   - `test-r201-lint-warning-final.js:164` 断言 `feedback-collector.js` 中 `MS_PER_DAY` 应使用 `_MS_PER_DAY` 下划线前缀
   - R212 新增的 telemetry 模块引入了未加前缀的常量，违反 ESLint `varsIgnorePattern: '^_'` 规范

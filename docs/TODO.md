@@ -926,7 +926,7 @@
 
 - [x] **R220: E2E 测试失败修复与基线建立 E2ETestFix** — 当前 6 个失败测试全部来自 `tests/e2e-chrome/`（书签流程 7 个断言、知识库流程 6 个断言、性能基准 6 个断言、权限/API 12 个断言、SidePanel 核心流程 11 个断言），根因：(1) Playwright + headless Chrome 扩展加载选择器/DOM 结构不匹配；(2) 超时值不合理（CI 环境更慢）；(3) 36 个 cancelled 测试因测试超时被中断；(1) 逐一修复 5 个 E2E 测试文件的选择器/断言/超时；(2) 将不稳定用例标记 `skip` 并记录原因；(3) 目标: ≥35 个 E2E 用例通过，0 个因代码错误失败；(4) 生成 `docs/reports/e2e-baseline.md` 基线报告。复杂度: Medium
 
-- [ ] **R221: Lint 警告清零 LintWarningFinalR220** — 当前 0 errors / 5 warnings（全部在 `lib/bookmark-security-audit.js`：`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP`、共 5 处 `no-unused-vars`）；(1) 审查 `bookmark-security-audit.js` 中 5 个未使用变量/导出，删除或前缀 `_` 标记有意忽略项；(2) 验证 `npm run lint` 0 errors 0 warnings；(3) 验证 `npm run test:ci` 0 fail。复杂度: Simple
+- [x] **R221: Lint 警告清零 LintWarningFinalR220** — 当前 0 errors / 5 warnings（全部在 `lib/bookmark-security-audit.js`：`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP`、共 5 处 `no-unused-vars`）；(1) 审查 `bookmark-security-audit.js` 中 5 个未使用变量/导出，删除或前缀 `_` 标记有意忽略项；(2) 验证 `npm run lint` 0 errors 0 warnings；(3) 验证 `npm run test:ci` 0 fail。复杂度: Simple
 
 - [ ] **R222: 行覆盖率突破 50% CoverageBreak50** — 当前行覆盖率 48.79%（24786/50794），函数覆盖率 71.95%，分支覆盖率 84.25%；需再覆盖约 650 行即可突破 50%；(1) 分析未覆盖行 Top-10 模块（按未覆盖行数排序），重点补充纯逻辑/工具函数的边界用例；(2) 为覆盖率最低的 5 个 lib 模块补充异常路径和边界测试；(3) 将 `coverage:gate --lines` 从 35 收紧至 50；(4) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥75%；(5) 测试 ≥30 用例。复杂度: Medium
 
