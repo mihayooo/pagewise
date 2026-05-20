@@ -1,147 +1,245 @@
-# 迭代 #4 需求文档 — 知识库性能优化（索引、分页）
+# REQUIREMENTS — R168: SmartHighlightArchive 智能摘录归档
 
-> 最后更新: 2026-04-30
-> 需求来源: TODO.md「知识库性能优化（索引、分页）」+ 竞品分析 MARKET-ANALYSIS.md
-> 前序迭代: 飞轮 R1-R3（错误处理/JSDoc/ESLint）
-> 产品背景: PageWise 的核心差异化是「本地知识库 + AI 理解闭环」（MARKET-ANALYSIS §四），知识库性能直接决定这一护城河的可用性
-
----
-
-## 需求概览
-
-| ID | 需求 | 优先级 | 涉及文件 |
-|----|------|--------|----------|
-| PERF-1 | 列表页按需分页加载（替代全量加载） | P0 | lib/knowledge-panel.js, sidebar/sidebar.js |
-| PERF-2 | 搜索路径优化（索引预热、缓存策略升级） | P0 | lib/knowledge-base.js |
-| PERF-3 | 内存管理 — 大数据集下内存不溢出 | P1 | lib/knowledge-base.js, lib/knowledge-panel.js |
-| PERF-4 | IDB 查询路径优化（批量按需读取、键游标分页） | P1 | lib/knowledge-base.js |
+> 迭代: R168
+> 日期: 2026-05-20
+> 复杂度: Medium (新模块)
+> 阶段: Phase T — 知识沉淀与学习闭环 (第 1/4 轮)
+> 模块文件: `lib/bookmark-highlight-archive.js`
+> 测试文件: `tests/test-bookmark-highlight-archive.js`
 
 ---
 
 ## 1. 用户故事
 
-**S-1 (列表浏览)**: 作为一名积累了 500+ 条知识的技术人员，我希望打开知识库面板时页面立即显示前 10 条，滚动时无缝加载更多，而不是等待全部条目加载完毕后才看到内容。
+作为技术学习者，我在浏览技术文档时经常选中关键段落、代码片段或概念解释，但目前这些摘录仅作为页面高亮存在，无法沉淀为可检索的知识条目。我希望**选中文字后一键归档**，自动生成摘要和标签并存入知识库，打通"浏览→选中→沉淀"的最短路径，让每一次阅读都成为知识积累的触点。
 
-**S-2 (搜索)**: 作为一名在知识库中搜索关键词的用户，我希望搜索结果在 300ms 内呈现，并且输入过程中不会因重复查询而卡顿，让我能快速找到想要的知识条目。
-
-**S-3 (内存)**: 作为一名长期使用 PageWise 的用户，我希望知识库增长到 1000+ 条时，侧边栏依然流畅不卡顿，不因为知识积累多而影响日常使用体验。
-
-**S-4 (标签筛选)**: 作为一名通过标签分类知识的用户，我希望点击某个标签时能快速过滤列表，且标签面板的统计数据随时与实际数据保持一致，不会出现已删除标签仍然显示的情况。
+**核心痛点**：
+- 当前流程：选中文字 → 提问 AI → 手动保存回答 → 手动打标签（4 步）
+- 目标流程：选中文字 → 一键归档（1 步），AI 自动摘要 + 标签 + 关联书签
 
 ---
 
 ## 2. 验收标准
 
-### AC-1: 列表首屏加载 ≤ 200ms（500 条数据场景）
-- **Given** 知识库中有 500 条记录
-- **When** 用户切换到知识库标签页
-- **Then** 首屏 10 条条目在 200ms 内渲染完成，用户可立即浏览；后续条目按需加载（每滚动到底部加载下一批），整体无明显白屏等待
+### AC1: 页面上下文自动提取
+- `extractContext(highlightId)` 方法从 `highlight-store.js` 读取高亮条目（URL、text、xpath、offset）
+- 自动补充页面上下文：
+  - `pageUrl`: 高亮所在页面 URL
+  - `pageTitle`: 页面标题（从当前 tab 或缓存获取）
+  - `surroundingText`: 选中文字前后的上下文（各取 100 字，总计最多 200 字）
+  - `highlightText`: 选中文字原文
+- 上下文提取失败时降级为仅使用高亮文字原文，不抛异常
 
-### AC-2: 搜索响应 ≤ 300ms（1000 条数据场景）
-- **Given** 知识库中有 1000 条记录，倒排索引已预热
-- **When** 用户在搜索框输入关键词并触发搜索（debounce 后）
-- **Then** 搜索结果在 300ms 内返回并渲染；重复搜索同一关键词命中 LRU 缓存，响应 ≤ 50ms
+### AC2: AI 智能摘要与自动标签
+- `generateSummaryAndTags(context)` 方法调用 AIClient 生成：
+  - `summary`: 一句话摘要（≤ 50 字），准确概括选中文字的核心信息
+  - `tags`: 3-5 个自动标签，复用 `bookmark-tagger.js` 的标签体系
+- Prompt 模板硬编码在模块中（防 prompt 注入），输入 ≤ 500 tokens
+- AI 不可用时（无 API key、网络错误、JSON 解析失败）降级处理：
+  - `summary` 降级为选中文字前 50 字 + "..."
+  - `tags` 降级为 `bookmark-tagger.js` 的 `generateTags()` 规则生成
+- 不抛出异常，始终返回结构化结果
 
-### AC-3: 内存占用可控 — 索引不全量持有条目副本
-- **Given** 知识库中有 1000+ 条记录
-- **When** 倒排索引和 N-gram 索引完成构建
-- **Then** 索引仅存储 `entry_id → Set<word>` 映射，不持有完整条目对象副本；按需通过 ID 从 IndexedDB 检索条目内容；标签/分类/语言统计缓存在数据变更时正确失效并重建
+### AC3: 一键归档入库
+- `archiveHighlight(highlightId)` 方法完成完整归档流程：
+  1. 调用 AC1 提取上下文
+  2. 调用 AC2 生成摘要 + 标签
+  3. 调用 `knowledge-base-crud.js` 的 `saveEntry()` 写入知识库
+  4. 调用 `bookmark-knowledge-link.js` 的 `addEntry()` 关联当前页面书签
+  5. 返回归档结果对象 `{ entry, summary, tags, highlightId }`
+- 写入知识库的 entry 结构与 `saveEntry()` 一致：
+  ```javascript
+  {
+    title: '摘录: ' + highlightText前30字,
+    content: highlightText,
+    summary: aiSummary,
+    sourceUrl: pageUrl,
+    sourceTitle: pageTitle,
+    tags: autoTags,
+    category: 'highlight',
+    question: '',
+    answer: '',
+    language: detectLanguage(highlightText)
+  }
+  ```
+- `saveEntry()` 返回 `{ duplicate: true, existing }` 时，归档结果标记 `isDuplicate: true`，不重复写入
 
-### AC-4: 虚拟滚动 + 分页协同 — DOM 节点数量恒定
-- **Given** 知识库中有 1000 条记录
-- **When** 用户滚动知识列表
-- **Then** DOM 中 `.knowledge-item` 节点数量始终 ≤ 可视区域 + 缓冲区（约 15-20 个），不因数据量增长而增加；滚动帧率 ≥ 30fps
+### AC4: Toast 确认与撤销
+- 归档成功后触发 Toast 通知回调 `onArchive(result)`：
+  - Toast 内容："✅ 已归档摘录" + 一句话摘要
+  - 撤销按钮：5 秒内可点击撤销
+  - 撤销操作：从知识库删除该条目 + 从关联引擎移除 + 触发 `onUndo(entryId)`
+- `undoArchive(entryId)` 方法执行撤销：
+  - 调用 `knowledge-base-crud.js` 的 `deleteEntry(entryId)`
+  - 调用 `bookmark-knowledge-link.js` 的 `removeEntry(entryId)`
+  - 超过 5 秒后撤销入口失效（由调用方 UI 控制超时，模块层不做计时）
 
-### AC-5: 去重与关联查询不退化
-- **Given** 知识库中有 500 条记录
-- **When** 保存新条目触发 `findDuplicate()` 或查看条目详情触发 `findRelatedEntries()`
-- **Then** 去重查重性能不低于当前水平（当前全量扫描 500 条 < 50ms）；关联查询在 500 条内 ≤ 100ms；1000 条内 ≤ 200ms
+### AC5: 批量归档
+- `archiveHighlights(highlightIds[])` 方法支持对同一页面多个高亮一次性归档：
+  - 逐条执行 AC1-AC3 流程
+  - 共享同一次 AI 调用（合并多个高亮为一个 prompt，生成批量摘要 + 标签）
+  - 返回结果数组 `[{ entry, summary, tags, highlightId, isDuplicate? }, ...]`
+  - 单条失败不影响其余条目（catch per item，标记 `error` 字段）
+- 批量撤销：`undoArchiveBatch(entryIds[])` 逐条撤销，返回成功/失败计数
+
+### AC6: 完整测试覆盖
+- 单元测试覆盖所有公共 API 方法（≥ 25 个测试用例）
+- 使用 `node:test` + `node:assert/strict`
+- 覆盖场景：
+  - 正常归档流程（单条 + 批量）
+  - AI 可用 vs AI 不可用降级
+  - 重复条目检测（`isDuplicate: true`）
+  - 撤销操作（单条 + 批量 + 超时后失败）
+  - 上下文提取边界（无高亮、空文本、无 URL）
+  - 批量归档中单条失败不影响其余
 
 ---
 
 ## 3. 技术约束
 
-### 3.1 现有代码基础 — 需要优化的瓶颈点
-
-通过代码审查（2026-04-30），识别出以下具体性能瓶颈：
-
-| 瓶颈 | 位置 | 问题 |
-|------|------|------|
-| **全量加载（UI 层）** | `KnowledgePanel.loadKnowledgeList()` knowledge-panel.js L124 | 调用 `getAllEntries(10000)` 一次性将所有条目加载到内存，再客户端做标签/语言过滤；已有 `getEntriesPaged()` 和 `getEntriesPagedByKey()` 但 UI 层未使用 |
-| **搜索后全量切片** | `KnowledgeBase.searchPaged()` knowledge-base.js L873 | 先执行 `search()` 获取全部结果，再 `slice()` 分页，搜索阶段未利用分页 |
-| **去重全量扫描** | `KnowledgeBase.findDuplicate()` knowledge-base.js L139 | 索引未构建时回退 `getAllEntries(10000)` 全量扫描；索引构建后利用索引缩小范围，但候选集仍需从 IDB 逐 cursor 遍历 |
-| **关联全量扫描** | `KnowledgeBase.findRelatedEntries()` knowledge-base.js L1203 | 索引未构建时全量扫描；索引构建后虽缩小候选范围，但仍对所有候选条目逐条计算 bigram 余弦相似度 |
-| **`_getEntriesByIds()` 低效扫描** | knowledge-base.js L555 | 使用 `openCursor()` 遍历整个对象存储来查找指定 ID 的条目，应改为对每个 ID 调用 `store.get(id)` 或使用 IDBKeyRange 批量查询 |
-| **`getAggregations()` 未使用缓存** | knowledge-base.js L611 | 每次调用都重新从 IDB 加载全量条目并遍历聚合，不像 `getAllTags()`/`getAllCategories()`/`getAllLanguages()` 有独立缓存 |
-
-### 3.2 现有可复用的基础
-
-| 已有能力 | 位置 | 说明 |
-|---------|------|------|
-| `getEntriesPaged()` | knowledge-base.js L374 | 已实现基于 cursor + offset 的分页查询，返回 `{ entries, total, page, totalPages }`，但 UI 层未使用 |
-| `getEntriesPagedByKey()` | knowledge-base.js L658 | 已实现高效键游标分页（避免 O(offset) 跳过），使用 `lastCreatedAt` + `lastId` 作为游标键，但 UI 层未使用 |
-| `getTotalCount()` | knowledge-base.js L349 | 已实现 `IDBObjectStore.count()` + 缓存，可复用 |
-| LRU 搜索缓存 | knowledge-base.js `_searchCache` | Map, 最大 10 条，已实现 LRU 淘汰策略，可复用并扩展 |
-| 倒排索引 + N-gram 索引 | knowledge-base.js L473 | 已惰性构建；`_addToIndex()` L488 已实现 ID-only 存储（`_indexWordsById` 持有 `Set<word>`，不持有完整条目），可直接复用 |
-| 虚拟滚动 | knowledge-panel.js L182 | `_initVirtualScroll()` 已实现 IntersectionObserver + spacer 元素机制，但依赖 `_allFilteredEntries`（全量数据在内存） |
-| 索引增量维护 | knowledge-base.js L221, L257, L281 | `saveEntry`/`updateEntry`/`deleteEntry` 均已实现 `_addToIndex()`/`_removeFromIndex()`，无需重新构建 |
-
-### 3.3 性能指标
-
-| 指标 | 当前（估测） | 目标 |
-|------|-------------|------|
-| 500 条首屏渲染 | ~800ms（全量加载 10000 条上限） | ≤ 200ms |
-| 1000 条搜索 | ~500ms（含全量切片开销） | ≤ 300ms |
-| 索引内存（1000 条） | 索引本身 ~8MB（ID-only）；UI 层全量加载 ~7MB | 索引 ≤ 8MB；UI 峰值 ≤ 2MB（仅可视区域） |
-| 滚动帧率（1000 条） | ~20fps（虚拟滚动依赖全量数据） | ≥ 30fps |
-| 索引首次构建（1000 条） | ~1s | ≤ 800ms |
-| 标签筛选切换 | ~300ms（全量加载 + 客户端过滤） | ≤ 100ms |
-
-### 3.4 约束条件
-
-- **不引入外部依赖**: 不引入 Dexie.js、Lunr.js 等第三方库
-- **IndexedDB 版本不变**: `dbVersion` 保持为 1，不触发 `onupgradeneeded`（现有索引 `sourceUrl`/`createdAt`/`tags`/`category` 已满足需求）
-- **API 向后兼容**: `KnowledgeBase` 的公开方法签名（`search`, `getAllEntries`, `saveEntry`, `deleteEntry`, `getEntriesPaged`, `searchPaged` 等）不改变返回类型，内部实现优化
-- **不引入构建工具**: 保持 Chrome 直接加载 ES Modules 的方式
-- **Service Worker 生命周期**: 索引构建需考虑 Service Worker 可能被终止后重建的场景；索引预热不应阻塞其他功能的初始化
+| 约束 | 说明 |
+|------|------|
+| 纯 ES Module | `export class BookmarkHighlightArchive` 模式，与项目所有 lib 模块一致 |
+| 零外部依赖 | 不引入任何第三方 npm 包，复用项目内已有模块 |
+| 不直接依赖 Chrome API | 业务逻辑层，通过构造函数注入依赖（highlight-store、knowledge-base-crud、ai-client、bookmark-knowledge-link），保持可测试性 |
+| 复用 highlight-store.js | 作为高亮数据源，只读调用 `getHighlightsByUrl()` 和 `getAllHighlightsFlat()` |
+| 复用 knowledge-base-crud.js | 作为知识库写入层，调用 `saveEntry()` / `deleteEntry()` |
+| 复用 bookmark-knowledge-link.js | 作为知识关联层，调用 `addEntry()` / `removeEntry()` |
+| 复用 bookmark-tagger.js | AI 不可用时的降级标签生成 |
+| 复用 ai-client.js | 通过 `chat(messages, opts)` 非流式接口生成摘要 + 标签 |
+| AI 调用频率控制 | 同一高亮 5 分钟内不重复调用 AI（内存 Map 缓存，highlightId → {summary, tags, timestamp}） |
+| Prompt 安全 | prompt 模板硬编码在模块中，高亮文字作为数据字段传入，防止 prompt 注入 |
+| 性能预算 | `archiveHighlight()` 含 AI 调用，缓存命中 < 10ms；无缓存 < 3s（取决于 LLM 响应）；`undoArchive()` < 50ms |
+| 内存预算 | 撤销缓冲区最多保留 20 条记录（LRU 淘汰），单条 < 5KB |
+| 模块文件大小 | `bookmark-highlight-archive.js` ≤ 400 行 |
+| 语言检测 | 复用已有 `detectLanguage()` 工具函数（从 ai-client 或 utils 中注入），无需新建 |
 
 ---
 
 ## 4. 依赖关系
 
-| 依赖项 | 类型 | 说明 |
-|--------|------|------|
-| `lib/knowledge-base.js` | **强依赖** | 核心优化对象：索引构建路径、IDB 查询优化、缓存策略 |
-| `lib/knowledge-panel.js` | **强依赖** | UI 层改造：虚拟滚动对接按需分页 API，替代全量加载 |
-| `sidebar/sidebar.js` | **弱依赖** | 知识库 tab 切换时调用 `loadKnowledgeList()`，需适配新 API |
-| `lib/utils.js` | **弱依赖** | `debounce`/`throttle` 已有实现，搜索优化可直接使用 |
-| 飞轮 R1 (错误处理) | 前置 ✅ | 已完成，确保错误处理模式一致 |
-| 飞轮 R2 (JSDoc) | 前置 ✅ | 已完成，新增/修改函数需补充 JSDoc |
-| 飞轮 R3 (ESLint) | 前置 ✅ | 已完成，代码风格基线已建立 |
-| R003: 知识库存储 | 参考 | 数据模型定义（entries 表结构）不变 |
-| R004: 知识检索 | 参考 | 搜索功能接口不变，内部优化 |
-| R008: 记忆系统 | 参考 | `MemorySystem` 代理 `KnowledgeBase`，`memory.getAllEntries()` 调用链需审查 |
-| R012: 页面高亮关联 | 无关 | 不影响本次优化 |
+### 上游依赖（输入）
 
----
+| 模块 | 文件 | 状态 | 依赖方式 |
+|------|------|------|----------|
+| HighlightStore | `lib/highlight-store.js` | ✅ 已实现 | 构造函数注入；读取高亮数据 `getHighlightsByUrl()` / `getAllHighlightsFlat()` |
+| AIClient (迭代 #2) | `lib/ai-client.js` | ✅ 已实现 | 构造函数注入；调用 `chat(messages, opts)` 非流式接口生成摘要 + 标签 |
+| BookmarkTagger (R55) | `lib/bookmark-tagger.js` | ✅ 已实现 | 构造函数注入；AI 不可用时作为降级标签生成器 |
+| KnowledgeBaseCRUD (R116) | `lib/knowledge-base-crud.js` | ✅ 已实现 | 构造函数注入；调用 `saveEntry()` / `deleteEntry()` 写入/删除知识条目 |
+| BookmarkKnowledgeCorrelation (R66) | `lib/bookmark-knowledge-link.js` | ✅ 已实现 | 构造函数注入；调用 `addEntry()` / `removeEntry()` 维护知识-书签关联索引 |
 
-## 5. 术语表
+### 下游消费者（输出）
 
-| 术语 | 定义 |
-|------|------|
-| 倒排索引 (Inverted Index) | `Map<word, Set<entry_id>>` 结构，通过词快速定位包含该词的条目 ID |
-| N-gram 索引 | `Map<ngram, Set<entry_id>>` 结构，支持子串匹配的补充索引 |
-| 索引预热 (Index Warm-up) | 在知识库初始化时主动构建索引，而非等到首次搜索时惰性构建 |
-| LRU 缓存 | Least Recently Used 缓存策略，淘汰最久未使用的条目 |
-| 虚拟滚动 | 只渲染可视区域内的 DOM 节点，通过 spacer 元素模拟完整滚动高度 |
-| Cursor-based 分页 | IndexedDB 使用 IDBCursor 逐条遍历，跳过 offset 条后取 pageSize 条 |
-| 键游标分页 (Key Cursor Paging) | 使用 `IDBKeyRange` 跳转到上次最后条目的 key 位置，避免 O(offset) 跳过开销 |
-
----
-
-## 6. 变更记录
-
-| 日期 | 变更内容 |
+| 模块 | 使用方式 |
 |------|----------|
-| 2026-04-30 | 初始化知识库性能优化需求文档 |
-| 2026-04-30 | 补充 PERF-4（IDB 查询路径优化）；修正瓶颈位置行号；新增 S-4（标签筛选用户故事）；补充可复用基础细节；补充术语「键游标分页」 |
+| Sidebar (sidebar.js) | 高亮工具栏增加"归档"按钮，调用 `archiveHighlight(highlightId)` |
+| BookmarkOverview (R50) | 概览区展示"今日摘录"计数 |
+| WeeklyDigest (R165) | 周报中统计摘录归档数量（新增 `highlightArchived` 统计项） |
+| SpacedRepetition (R163) | 归档的知识条目自动进入复习队列（通过知识库 entry 写入触发） |
+
+### 隐式依赖
+
+| 依赖 | 说明 |
+|------|------|
+| AIClient 配置 | 需要用户在设置中配置有效的 API key 和模型（降级时不需要） |
+| 网络连接 | AI 摘要/标签生成需网络访问 LLM API（降级时不需要） |
+| 系统时间 | `Date.now()` 用于缓存 TTL 判断、撤销缓冲区过期 |
+| 页面 DOM | 调用方（content script）负责获取页面标题和周围文字上下文，传入模块 |
+
+---
+
+## 5. 数据模型
+
+```javascript
+// ===================== 输入 =====================
+
+// 高亮条目（来自 HighlightStore 标准格式）
+{
+  id: string,           // 高亮唯一 ID（Date.now().toString(36) + random）
+  url: string,          // 页面 URL
+  text: string,         // 选中文字原文
+  xpath: string,        // 选区 XPath 路径
+  offset: number,       // 选区偏移量
+  createdAt: string     // ISO 8601 时间戳
+}
+
+// 页面上下文（调用方注入或模块提取）
+{
+  pageUrl: string,      // 页面 URL
+  pageTitle: string,    // 页面标题
+  surroundingText: {
+    before: string,     // 选中文字前 100 字
+    after: string       // 选中文字后 100 字
+  }
+}
+
+// ===================== 输出 =====================
+
+// 归档结果 — archiveHighlight() 返回值
+{
+  entry: Object,          // 写入知识库的完整条目（含 id）
+  summary: string,        // AI 生成的一句话摘要（≤ 50 字）
+  tags: string[],         // 自动标签（3-5 个）
+  highlightId: string,    // 关联的高亮 ID
+  isDuplicate: boolean,   // 是否为重复条目（true 时不写入新条目）
+  archivedAt: string      // 归档时间 ISO 8601
+}
+
+// 批量归档结果 — archiveHighlights() 返回值
+[ArchiveResult, ...]      // 与单条结构一致，额外包含 error? 字段
+
+// 撤销操作 — undoArchive() 返回值
+{
+  entryId: number | string, // 被删除的知识条目 ID
+  success: boolean,
+  error?: string
+}
+```
+
+---
+
+## 6. 非功能需求
+
+| 项目 | 要求 |
+|------|------|
+| AI 调用频率 | 同一高亮 5 分钟内不重复调用 LLM（内存缓存） |
+| Token 消耗 | 单次归档 prompt 输入 ≤ 500 tokens；批量归档合并 prompt ≤ 1000 tokens |
+| 降级延迟 | AI 不可用时降级到规则摘要 + 标签，总耗时 < 100ms |
+| 撤销缓冲区 | 内存 Map，最多 20 条，LRU 淘汰，单条 < 5KB |
+| 空数据兼容 | 无高亮 / 空文本时返回 `{ error: 'empty_highlight' }`，不抛异常 |
+| 批量上限 | 单次批量归档 ≤ 20 个高亮（超过时截断并返回警告） |
+| 重复检测 | 同一 URL + 相同选中文字不重复写入（复用 KnowledgeBaseCRUD.findDuplicate） |
+| 隐私安全 | prompt 只含选中文字和上下文片段，不包含用户个人信息；上下文前后文各取 100 字，防止 prompt 过长 |
+
+---
+
+## 7. 输出文件清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `lib/bookmark-highlight-archive.js` | **新建** | 核心模块：BookmarkHighlightArchive 类（≤ 400 行） |
+| `tests/test-bookmark-highlight-archive.js` | **新建** | 单元测试（≥ 25 用例，node:test） |
+| `docs/CHANGELOG.md` | **修改** | 新增 R168 条目 |
+| `docs/TODO.md` | **修改** | 标记 R168 状态为 ✅ |
+
+---
+
+## 8. 与现有功能的关系
+
+| 现有功能 | R168 关系 |
+|----------|-----------|
+| HighlightStore (现有) | **数据源**：R168 从 HighlightStore 读取高亮条目，不修改其存储结构 |
+| KnowledgeBaseCRUD (R116) | **存储层**：R168 通过 saveEntry/deleteEntry 读写知识库 |
+| BookmarkKnowledgeCorrelation (R66) | **关联层**：归档后自动调用 addEntry 建立书签-条目关联 |
+| BookmarkTagger (R55) | **降级标签**：AI 不可用时复用规则标签生成 |
+| AIClient Context (R164) | **参考但不直接依赖**：R168 的 AI 调用独立于 R164 的 RAG 增强问答，但 prompt 设计风格保持一致 |
+| SpacedRepetition (R163) | **下游集成**：归档的条目自动进入复习队列（通过知识库写入间接触发） |
+| WeeklyDigest (R165) | **下游集成**：归档数据可被周报统计（highlightArchived 计数） |
+
+---
+
+## 需求变更记录
+
+| 日期 | 需求 | 变更内容 |
+|------|------|----------|
+| 2026-05-20 | R168 | 初始创建 — SmartHighlightArchive 需求文档 |

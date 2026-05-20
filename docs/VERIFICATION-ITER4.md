@@ -1,9 +1,8 @@
 # VERIFICATION.md — Iteration #4 Review
 
-> **审查日期**: 2026-04-30
-> **审查人**: Guard Agent (Claude)
-> **审查范围**: 知识库性能优化（索引、分页）+ R012 页面高亮关联
-> **测试结果**: 984 pass / 0 fail / 3 cancelled（全量测试通过）
+> 审查对象: R168: 智能摘录归档 SmartHighlightArchive
+> 审查日期: 2026-05-20
+> 审查人: Guard Agent
 
 ---
 
@@ -11,209 +10,227 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ⚠️ | R012 页面高亮关联功能完整实现；知识库性能优化核心方法（N-gram 索引、分页）已实现，但 `searchPaged()` 是"假分页"（全量加载后切片）；TODO.md 中"知识库性能优化"未勾选 |
-| 代码质量 | ⚠️ | 整体架构清晰，JSDoc 完善，CSS/JS 类名一致；但 `getTotalCount()` 实现有性能反模式，N-gram 索引内存开销大，存在代码重复 |
-| 测试覆盖 | ⚠️ | 新增 70 个测试（test-highlight-link: 34, test-knowledge-perf: 36）全部通过；但 highlight-link 测试使用了自建 Mock 而非真实代码，实际只验证了 mock 逻辑而非 production 代码 |
-| 文档同步 | ⚠️ | CHANGELOG / DESIGN / IMPLEMENTATION / REQUIREMENTS 均已更新且质量高；但 TODO.md 中"知识库性能优化"未勾选完成 |
-| 安全质量 | ✅ | 无硬编码密钥；无 XSS 风险（使用 textContent + createElement 而非 innerHTML）；消息协议向后兼容 |
+| 功能完整性 | ⚠️ | 核心归档/撤销/批量流程实现，但 AI 缓存、摘要长度约束、LRU 淘汰、函数签名等多项需求未落实 |
+| 代码质量 | ⚠️ | 模块结构清晰、降级处理到位，但行数超标、撤销缓冲无上限、`_recentArchives` 无限增长、`highlight-store` 导入方式与注入设计矛盾 |
+| 测试覆盖 | ❌ | 测试文件 `tests/test-bookmark-highlight-archive.js` 不存在，0 个测试用例（需求 ≥25） |
+| 文档同步 | ❌ | CHANGELOG.md 未更新 R168 条目；TODO.md 中 R168 仍标记为 `[ ]`（未完成） |
+| 集成完整性 | ❌ | 新模块未被任何其他文件引入——sidebar.js、popup/bookmark-overview.js 均无 R168 调用代码 |
 
 ---
 
-## 发现的问题
+## 1. 功能完整性 — 逐 AC 检查
 
-### P1 — 高优先级
+### AC1: 页面上下文自动提取 ⚠️
 
-#### 问题 1: `getTotalCount()` 使用 `getAll()` 加载全部条目再计数 — 性能反模式
-
-**文件**: `lib/knowledge-base.js` 第 328-341 行
-
-**现象**: `getTotalCount()` 调用 `store.getAll()` 加载所有条目到内存，仅为了获取 `.length`。当知识库有数千条时，这意味着把所有条目的完整数据（title、content、summary 等）全部加载到内存。
-
-**影响**: 
-- 1000 条 × 每条 ~2KB 内容 ≈ 2MB 无谓的内存分配
-- `getAll()` 无法被 IndexedDB 优化为仅扫描主键
-- 与"性能优化"的目标直接矛盾
-
-**建议**: 使用 IndexedDB 的 `count()` 方法：
-```javascript
-async getTotalCount() {
-  await this.ensureInit();
-  if (this._entryCount !== null) return this._entryCount;
-  return new Promise((resolve, reject) => {
-    const tx = this.db.transaction('entries', 'readonly');
-    const store = tx.objectStore('entries');
-    const request = store.count();  // ← 仅扫描索引，不加载数据
-    request.onsuccess = () => {
-      this._entryCount = request.result;
-      resolve(this._entryCount);
-    };
-    request.onerror = () => reject(new Error('获取条目数量失败'));
-  });
-}
-```
-
-#### 问题 2: `searchPaged()` 是"假分页" — 全量搜索后切片
-
-**文件**: `lib/knowledge-base.js` 第 676-707 行
-
-**现象**: `searchPaged()` 调用 `this.search(query)` 获取全部匹配结果，然后用 `allResults.slice(offset, offset + pageSize)` 做切片。如果搜索匹配 500 条，每次翻页都会先搜索全部 500 条再切片。
-
-**影响**:
-- 搜索成本不随 pageSize 减小而降低
-- 命名为 "Paged" 暗示数据库级分页，实际是内存级切片
-- 在大数据集上搜索结果本身可能很大
-
-**建议**: 
-- 短期：在 JSDoc 中明确标注"客户端分页（全量搜索后切片）"，避免误导
-- 长期：如果搜索结果数量大，考虑在 `_buildIndex()` 构建后直接在候选集上做 cursor 级分页
-
-#### 问题 3: N-gram 索引内存开销可能爆炸性增长
-
-**文件**: `lib/knowledge-base.js` `_extractNgrams()` 第 424-439 行
-
-**现象**: 对每个条目的全部文本字段（title + content + summary + question + answer + tags）生成所有 3-gram。一个 500 字符的条目产生 ~500 个 ngram 条目。
-
-**影响估算**:
-- 1000 条 × 500 字符/条 × 3 bytes/ngram ≈ 1.5M Map entries
-- 每个 Map entry 的 key (string) + value (Set<id>) 内存开销 ~50-100 bytes
-- 总计 75MB-150MB — 对浏览器扩展来说偏高
-
-**建议**: 
-- 考虑只对 title 和 tags 建 ngram 索引（而非全部字段）
-- 或限制 ngram 索引仅在查询短于 ngramSize 时惰性构建
-- 或在 ngram 索引超过阈值时自动降级为全量扫描
-
----
-
-### P2 — 中优先级
-
-#### 问题 4: highlight-link 测试与 production 代码存在断联
-
-**文件**: `tests/test-highlight-link.js`
-
-**现象**: 测试文件在第 126-181 行自建了 `createFlashHighlightLogic()` 和 `createInjectQuoteAttributesLogic()` 函数，重新实现了核心逻辑的简化版本。这些 mock 函数并没有 import 或引用实际的 `content/content.js` 或 `lib/message-renderer.js` 中的代码。
-
-**影响**: 如果 production 代码中 `flashHighlight()` 或 `_injectQuoteAttributes()` 出现 bug，这些测试不会捕获，因为它们测试的是 mock 版本。
-
-**建议**: 
-- 至少添加集成测试，验证 `content.js` 中 `locateAndHighlight` 消息分支的路由正确性
-- 或提取核心逻辑为可测试的纯函数（如从 content.js 中提取 TreeWalker 搜索逻辑为独立函数），在测试中直接引用
-
-#### 问题 5: `_injectQuoteAttributes()` 重复调用会累积事件监听器
-
-**文件**: `lib/message-renderer.js` 第 362-417 行
-
-**现象**: 虽然测试中验证了"多次调用不产生重复标记"（data-quote 和 class 不会重复），但 `addEventListener('click', ...)` 每次调用都会在同一个元素上追加新的事件监听器。如果 `_buildAIElement()` 因流式更新等原因被多次调用，click handler 会累积。
-
-**影响**: 同一元素被点击时发送多条 `locateAndHighlight` 消息，可能导致 `flashHighlight()` 被多次调用（虽然 `clearFlashHighlights()` 会先清理，但消息通信本身有开销）。
-
-**建议**: 
-- 在注入前检查是否已有 `data-quote` 属性，有则跳过：
-```javascript
-if (code.hasAttribute('data-quote')) continue;
-```
-- 或在注入前移除旧的事件监听器
-
-#### 问题 6: `_extractWords()` 与 `_extractNgrams()` 存在代码重复
-
-**文件**: `lib/knowledge-base.js` 第 406-439 行
-
-**现象**: 两个函数的文本拼接逻辑（title + content + summary + question + answer + tags）完全相同，但 `_extractWords` 包含 `language` 字段而 `_extractNgrams` 不包含。
-
-**影响**: 
-- 如果后续新增文本字段，需要在两处同步修改，容易遗漏
-- `language` 字段的不一致是有意还是疏忽不明确
-
-**建议**: 提取公共的 `_getSearchableText(entry)` 方法，两个函数共享：
-```javascript
-_getSearchableText(entry) {
-  return [
-    entry.title || '', entry.content || '', entry.summary || '',
-    entry.question || '', entry.answer || '', entry.language || '',
-    ...(entry.tags || [])
-  ].join(' ').toLowerCase();
-}
-```
-
----
-
-### P3 — 低优先级
-
-#### 问题 7: TODO.md 中"知识库性能优化（索引、分页）"未勾选
-
-**文件**: `docs/TODO.md` 第 36 行
-
-**现象**: `- [ ] 知识库性能优化（索引、分页）` 仍然显示为未完成，但 N-gram 索引、`getTotalCount()`、`getEntriesPaged()`、`searchPaged()` 均已实现，且 `test-knowledge-perf.js` 有 36 个测试覆盖。
-
-**建议**: 更新为 `- [x] 知识库性能优化（索引、分页）`
-
-#### 问题 8: REQUIREMENTS-ITER4.md AC-1 措辞与实现不完全一致
-
-**文件**: `docs/REQUIREMENTS-ITER4.md` 第 27 行
-
-**现象**: AC-1 写道"页面中对应文本被高亮标记（`.pagewise-highlight` 样式）"，但实现使用的是 `pw-flash-highlight` 样式。AC-2 中提到 `ai-assistant-highlight` 类，但实际也用了 `pw-flash-highlight`。
-
-**影响**: AC 描述的类名与实现不一致，可能导致后续维护者混淆。
-
-**建议**: 将 AC-1 更新为：
-> 页面中对应文本被临时高亮标记（`.pw-flash-highlight` 样式，黄色半透明 + 外发光，3 秒后自动消失），并自动滚动到可视区域中央
-
-#### 问题 9: `flashHighlight()` 的 transitionend 兜底定时器未清理
-
-**文件**: `content/content.js` 第 340-350 行
-
-**现象**: transitionend 事件后会移除 DOM 元素，但兜底的 `setTimeout(() => {...}, 1000)` 不会被取消。如果 transitionend 正常触发，兜底 setTimeout 仍在 1 秒后执行，此时 `span.parentNode` 已为 null，虽然不会出错但存在不必要的 timer 残留。
-
-**建议**: 使用变量引用兜底 setTimeout，在 transitionend 处理中 `clearTimeout(fallbackTimer)`。
-
-#### 问题 10: REQUIREMENTS-ITER4.md 引用了未修改的 `lib/highlight-store.js`
-
-**文件**: `docs/REQUIREMENTS-ITER4.md` 第 12 行
-
-**现象**: "涉及文件"表格中列出了 `lib/highlight-store.js`，但实际代码变更中该文件未被修改。
-
-**影响**: 轻微 — 文档精确性问题。
-
----
-
-## 跨文件一致性检查
-
-| 检查项 | 结果 | 详情 |
+| 检查项 | 状态 | 说明 |
 |--------|------|------|
-| CSS 类名 `pw-flash-highlight` | ✅ | content.css 定义 ↔ content.js 使用，完全一致 |
-| CSS 类名 `pw-flash-highlight--fading` | ✅ | content.css 定义 ↔ content.js `classList.add()`，完全一致 |
-| CSS 类名 `pw-quote-link` | ✅ | sidebar.css 定义 ↔ message-renderer.js 使用，完全一致 |
-| 消息 action `locateAndHighlight` | ✅ | message-renderer.js 发送 ↔ content.js switch-case 接收，完全一致 |
-| 响应格式 `{ success, error? }` | ✅ | content.js 返回 ↔ message-renderer.js 判断，完全一致 |
-| blockquote 截取 200 字符 | ✅ | message-renderer.js `.slice(0, 200)` ↔ 测试验证，一致 |
-| `_injectQuoteAttributes` 调用位置 | ✅ | 在 `_buildAIElement()` 尾部，DOM 构建完成后调用 |
+| `extractContext()` 方法 | ⚠️ | 实现为 `extractContext(selectedText, pageContent)`，而非需求要求的 `extractContext(highlightId)`（自动从 highlight-store 读取数据）。签名偏离需求。 |
+| 上下文前后各 100 字 | ✅ | `CONTEXT_CHARS = 100`，切片逻辑正确 |
+| 页面 URL/title 提取 | ⚠️ | 依赖调用方通过 `pageContext` 注入，模块自身不从 highlight 数据中自动提取（需求要求自动补充） |
+| 降级处理 | ✅ | 上下文提取失败时降级为仅使用高亮文字原文 |
+
+### AC2: AI 智能摘要与自动标签 ⚠️
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| 调用 AIClient 生成摘要+标签 | ✅ | `this._aiClient.generateSummaryAndTags()` 签名匹配 `ai-client.js` L289 |
+| 一句话摘要 ≤50 字 | ❌ | **未实现**。AI prompt 无字数限制，降级回退截断为 100 字（需求要求 50 字） |
+| 3-5 个标签 | ✅ | 合并 AI 标签 + Tagger 标签，`slice(0, 5)` 正确 |
+| AI 不可用时降级 | ✅ | try-catch + Tagger 兜底 + 摘要截断回退，设计合理 |
+| AI 调用频率控制（5 分钟缓存） | ❌ | **完全缺失**。需求要求"同一高亮 5 分钟内不重复调用 LLM（内存 Map 缓存）"，代码无此机制 |
+| Prompt 安全（防注入） | ✅ | Prompt 模板硬编码，文本作为数据字段传入 |
+
+### AC3: 一键归档入库 ⚠️
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| `archiveHighlight(highlightId)` 入口 | ✅ | 已实现，签名正确 |
+| entry 结构与 `saveEntry()` 一致 | ✅ | 字段映射正确，与 `knowledge-base-crud.js` L60-73 一致 |
+| `category: 'highlight'` | ❌ | 代码使用 `'摘录归档'`，需求要求 `'highlight'`。可能与其他知识库分类体系不兼容 |
+| 标题前 30 字 | ❌ | `_buildTitle()` 截断为 50 字，需求要求"选中文字前 30 字" |
+| 重复条目检测 | ✅ | 通过 `saveEntry()` 内置 `findDuplicate()` 实现，`isDuplicate` 标记正确 |
+| 关联书签 | ✅ | `this._correlation.addEntry(savedEntry)` 调用签名匹配 `bookmark-knowledge-link.js` L75 |
+| 返回值 `{ entry, summary, tags, highlightId }` | ❌ | 实际返回 `{ entry, undoId, highlightText }`，缺少独立 `summary`/`tags`/`highlightId` 字段 |
+
+### AC4: Toast 确认与撤销 ✅
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| Toast 消息构建 | ✅ | `buildToastMessage()` 返回消息、undoId、可撤销标识 |
+| `undoArchive(undoId)` 撤销方法 | ✅ | 从知识库删除 + 关联引擎移除 + 缓冲清理 |
+| 5 秒撤销窗口 | ✅ | `DEFAULT_UNDO_WINDOW_MS = 5000`，`undoArchive()` 内检查超时 |
+| 撤销缓冲区最多 20 条（LRU） | ❌ | **未实现**。`_undoBuffer` 无大小限制，仅通过 `cleanupUndoBuffer()` 清理过期条目。需求要求"最多保留 20 条记录（LRU 淘汰）" |
+
+### AC5: 批量归档 ⚠️
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| `archiveHighlights(highlightIds[])` | ❌ | 需求要求按 ID 数组批量归档，实际实现为 `archiveHighlightsByUrl(url)` 和 `archiveHighlightsBatch(highlights)`——签名偏离需求 |
+| 共享同一次 AI 调用 | ❌ | 需求明确要求"合并多个高亮为一个 prompt"，实际逐条调用 `_doArchive()` → 逐条调用 AI |
+| 单条失败不影响其余 | ✅ | try-catch per item，标记 `error` 字段 |
+| 批量撤销 | ⚠️ | `undoBatch(undoIds)` 实现正确，但参数名为 `undoIds` 而非需求的 `entryIds` |
+| 批量上限 ≤20 | ❌ | 未实现。无 `highlights.length` 上限检查 |
+
+### AC6: 完整测试覆盖 ❌
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| 测试文件存在 | ❌ | `tests/test-bookmark-highlight-archive.js` **不存在** |
+| 测试用例数 ≥25 | ❌ | 0 个测试（通过 0 / 失败 0） |
 
 ---
 
-## 返工任务清单
+## 2. 跨文件一致性
 
-| # | 优先级 | 任务 | 文件 | 预估工时 |
-|---|--------|------|------|---------|
-| 1 | P1 | `getTotalCount()` 改用 `store.count()` 替代 `store.getAll()` | `lib/knowledge-base.js` | 15min |
-| 2 | P1 | `searchPaged()` JSDoc 标注"客户端分页（全量搜索后切片）"，或重构为数据库级分页 | `lib/knowledge-base.js` | 15min |
-| 3 | P1 | N-gram 索引增加内存保护（限制范围或惰性构建策略） | `lib/knowledge-base.js` | 1h |
-| 4 | P2 | highlight-link 测试增加与 production 代码的真实连接 | `tests/test-highlight-link.js` | 2h |
-| 5 | P2 | `_injectQuoteAttributes()` 添加 `data-quote` 已存在检查，防止事件监听器累积 | `lib/message-renderer.js` | 15min |
-| 6 | P2 | 提取 `_getSearchableText()` 消除 `_extractWords` / `_extractNgrams` 代码重复 | `lib/knowledge-base.js` | 20min |
-| 7 | P3 | TODO.md 中"知识库性能优化"标记为完成 | `docs/TODO.md` | 2min |
-| 8 | P3 | REQUIREMENTS-ITER4.md AC-1/AC-2 中的类名与实现对齐 | `docs/REQUIREMENTS-ITER4.md` | 5min |
-| 9 | P3 | `flashHighlight()` transitionend 兜底 timer 清理 | `content/content.js` | 10min |
-| 10 | P3 | REQUIREMENTS-ITER4.md "涉及文件" 移除未修改的 `highlight-store.js` | `docs/REQUIREMENTS-ITER4.md` | 2min |
+### 2.1 依赖函数签名验证
+
+| 依赖模块 | 方法 | 归档调用 | 匹配 |
+|----------|------|----------|------|
+| `highlight-store.js` | `getAllHighlights()` | `await getAllHighlights()` | ✅ |
+| `highlight-store.js` | `getHighlightsByUrl(url)` | `await getHighlightsByUrl(url)` | ✅ |
+| `bookmark-tagger.js` | `generateTags(bookmark)` | `this._tagger.generateTags({...})` | ✅ 参数结构一致 |
+| `ai-client.js` | `generateSummaryAndTags(content)` | `this._aiClient.generateSummaryAndTags(context)` | ✅ |
+| `knowledge-base-crud.js` | `saveEntry(entry)` | `this._knowledgeBase.saveEntry(entry)` | ✅ |
+| `knowledge-base-crud.js` | `deleteEntry(id)` | `this._knowledgeBase.deleteEntry(record.entry.id)` | ✅ |
+| `bookmark-knowledge-link.js` | `addEntry(entry)` | `this._correlation.addEntry(savedEntry)` | ✅ |
+| `bookmark-knowledge-link.js` | `removeEntry(entryId)` | `this._correlation.removeEntry(record.entry.id)` | ✅ |
+
+### 2.2 设计模式矛盾 ⚠️
+
+```javascript
+// 文件顶部: 直接静态导入
+import { getAllHighlights, getHighlightsByUrl } from './highlight-store.js';
+```
+
+需求技术约束明确要求"**不直接依赖 Chrome API — 业务逻辑层，通过构造函数注入依赖**"。但 `highlight-store.js` 是直接静态导入的（`getAllHighlights` 依赖 `chrome.storage.local`），而非通过构造函数注入。这导致：
+
+1. 测试时无法 mock `highlight-store.js`（除非使用 ESM mock 机制）
+2. `_findHighlight()` 内部硬编码调用 `getAllHighlights()`
+3. `archiveHighlightsByUrl()` 内部硬编码调用 `getHighlightsByUrl()`
+
+建议: 改为构造函数注入 `options.highlightStore`。
+
+### 2.3 模块集成 ❌
+
+| 消费者 | 状态 | 说明 |
+|--------|------|------|
+| `sidebar/sidebar.js` | ❌ | 无任何 R168 集成代码（无"归档"按钮、无 import） |
+| `popup/bookmark-overview.js` | ❌ | 无"今日摘录"计数集成 |
+| `lib/bookmark-weekly-digest.js` | ❌ | 无 `highlightArchived` 统计项 |
 
 ---
 
-## 总结
+## 3. 代码质量问题
 
-本轮迭代包含两个功能域的变更：**R012 页面高亮关联**（主体）和**知识库性能优化**（N-gram 索引 + 分页）。代码架构整体清晰，文档充分，测试数量充足且全部通过。
+### 3.1 模块行数超标
 
-主要风险点在于：
-1. **性能优化本身存在性能反模式**（`getTotalCount()` 用 `getAll()` 计数、N-gram 内存开销），需要修复后才能体现"性能优化"的目标
-2. **测试与 production 代码断联**（highlight-link 测试自建 mock 而非引用真实代码），降低了测试的信任价值
-3. **TODO.md 未同步更新**，知识库性能优化功能已实现但未勾选
+| 要求 | 实际 | 差异 |
+|------|------|------|
+| ≤ 400 行 | 549 行 | +149 行（+37%） |
 
-建议完成 P1 返工项后再合入 master。
+主要原因：Toast 构建方法（`buildToastMessage` / `buildBatchToastMessage`，~45 行）、统计方法（`getStats` / `getRecentArchives` / `cleanupUndoBuffer`，~50 行）可考虑提取或简化。
+
+### 3.2 `_recentArchives` 无上限
+
+```javascript
+this._recentArchives.unshift({...}); // L440 — 永远追加，永不淘汰
+```
+
+长时间使用后内存持续增长。建议: 加 cap（如最多 100 条）。
+
+### 3.3 `_undoBuffer` 无 LRU 淘汰
+
+需求明确要求"**撤销缓冲区最多保留 20 条记录（LRU 淘汰），单条 < 5KB**"。当前实现：
+
+- 无大小限制 → 新条目无限追加
+- `cleanupUndoBuffer()` 只清理过期条目，不处理超量
+- 无单条大小检查
+
+### 3.4 AI 缓存机制缺失
+
+需求要求"**同一高亮 5 分钟内不重复调用 LLM（内存 Map 缓存，highlightId → {summary, tags, timestamp}）**"。代码中 `_generateSummaryAndTags()` 无任何缓存逻辑——同一高亮重复归档会重复调用 AI。
+
+---
+
+## 4. 文档同步
+
+| 文档 | 要求 | 状态 | 说明 |
+|------|------|------|------|
+| `docs/CHANGELOG.md` | 新增 R168 条目 | ❌ | 无 R168 相关条目（grep 0 匹配） |
+| `docs/TODO.md` | R168 标记 `[x]` | ❌ | 仍为 `[ ]`（未完成） |
+| `docs/REQUIREMENTS-ITER4.md` | R168 需求文档 | ✅ | 已用 R168 需求内容覆盖原有迭代 #4 需求 |
+
+> ⚠️ **REQUIREMENTS-ITER4.md 被完全覆盖**: 原迭代 #4（知识库性能优化）的需求文档被 R168 需求文档完全替换。原有 PERF-1/PERF-2/PERF-3/PERF-4 需求记录丢失。建议新建 `docs/REQUIREMENTS-R168.md` 而非覆盖原有文件。
+
+---
+
+## 5. 安全质量
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| 硬编码密钥 | ✅ | 无硬编码 API key |
+| XSS 风险 | ✅ | 纯数据处理模块，不直接操作 DOM |
+| Prompt 注入 | ✅ | Prompt 模板硬编码，用户文本作为数据字段传入 |
+| 隐私泄露 | ✅ | 上下文限制 100 字，无个人信息收集 |
+
+---
+
+## 6. 发现的问题汇总
+
+| # | 严重程度 | 问题 | 需求对照 |
+|---|----------|------|----------|
+| P1 | ❌ 严重 | **测试文件缺失** — `tests/test-bookmark-highlight-archive.js` 不存在，0 用例 | AC6: ≥25 用例 |
+| P2 | ❌ 严重 | **CHANGELOG.md 未更新** | 文档同步要求 |
+| P3 | ❌ 严重 | **模块未被任何文件集成** — 无 sidebar、popup 消费者 | AC3 下游消费者 |
+| P4 | ⚠️ 中等 | **AI 缓存机制完全缺失** — 同一高亮重复调用 LLM | 技术约束 §6 |
+| P5 | ⚠️ 中等 | **撤销缓冲区无 LRU 淘汰** — 无 20 条上限 | 非功能需求 |
+| P6 | ⚠️ 中等 | **摘要长度约束缺失** — AI 无 ≤50 字限制，降级截断 100 字 | AC2 |
+| P7 | ⚠️ 中等 | **标题截断长度不匹配** — 代码 50 字，需求 30 字 | AC3 |
+| P8 | ⚠️ 中等 | **category 不一致** — 代码 `'摘录归档'`，需求 `'highlight'` | AC3 |
+| P9 | ⚠️ 中等 | **函数签名偏离** — 无 `archiveHighlights(highlightIds[])`，实际为 URL/数组双入口 | AC5 |
+| P10 | ⚠️ 中等 | **返回值结构不匹配** — 缺少独立 `summary`/`tags`/`highlightId` 字段 | AC3 |
+| P11 | ⚠️ 中等 | **批量 AI 调用未合并** — 逐条调用而非合并 prompt | AC5 |
+| P12 | ⚠️ 中等 | **模块行数超标** — 549 行 > 400 行限制 | 技术约束 |
+| P13 | ⚠️ 中等 | **`highlight-store` 直接导入** — 违反构造函数注入设计约束 | 技术约束 §3 |
+| P14 | ⚠️ 中等 | **`_recentArchives` 无上限** — 内存持续增长 | 内存预算 |
+| P15 | ⚠️ 中等 | **批量归档无上限检查** — 缺失 ≤20 高亮截断 | 非功能需求 |
+| P16 | ⚠️ 低 | **REQUIREMENTS-ITER4.md 被覆盖** — 原迭代 #4 需求丢失 | 文档管理 |
+| P17 | ⚠️ 低 | **TODO.md R168 未标记完成** | 文档同步 |
+
+---
+
+## 7. 返工任务清单
+
+### 必须修复 (Blocking)
+
+| # | 任务 | 预估工时 |
+|---|------|----------|
+| R1 | **创建测试文件** `tests/test-bookmark-highlight-archive.js`，实现 ≥25 用例，覆盖：正常单条归档、批量归档、AI 可用/不可用降级、重复检测、撤销（单条+批量+超时）、上下文提取边界、单条失败隔离 | 2-3h |
+| R2 | **更新 CHANGELOG.md** 新增 R168 变更记录 | 5min |
+| R3 | **TODO.md R168 标记 `[x]`** | 2min |
+| R4 | **集成到 sidebar.js** — 高亮工具栏增加"归档"按钮，import SmartHighlightArchive 并调用 `archiveHighlight()` | 1h |
+
+### 建议修复 (Non-blocking)
+
+| # | 任务 | 预估工时 |
+|---|------|----------|
+| R5 | 实现 AI 调用缓存（内存 Map，highlightId → {summary, tags, timestamp}，5min TTL） | 30min |
+| R6 | 实现撤销缓冲区 LRU 淘汰（最多 20 条） | 20min |
+| R7 | 摘要长度约束：AI prompt 加 ≤50 字限制；降级回退改为 50 字 | 15min |
+| R8 | `_buildTitle` 截断改为 30 字，前缀 `'摘录: '` | 5min |
+| R9 | category 改为 `'highlight'` | 2min |
+| R10 | 添加 `archiveHighlights(highlightIds[])` 入口方法 | 15min |
+| R11 | 返回值增加独立 `summary`/`tags`/`highlightId` 字段 | 10min |
+| R12 | 批量归档合并 AI prompt（同一页面高亮共享一次调用） | 30min |
+| R13 | `highlight-store` 改为构造函数注入 | 20min |
+| R14 | `_recentArchives` 加 cap（最多 100 条） | 5min |
+| R15 | 批量归档加 ≤20 上限截断 + 警告 | 10min |
+| R16 | 恢复 REQUIREMENTS-ITER4.md 原内容，新建 REQUIREMENTS-R168.md | 10min |
+| R17 | 控制模块行数 ≤ 400 行（提取 Toast 统计等辅助方法） | 30min |
+
+---
+
+## 8. 总结
+
+R168 的核心归档流程（高亮提取 → AI 摘要 → 入库 → 关联 → 撤销）已基本实现，降级策略设计合理，依赖注入模式符合项目规范。但存在 **4 项阻塞问题**（测试缺失、CHANGELOG 未更新、模块零集成、TODO 未标记）和 **11 项中等偏离**（AI 缓存、LRU 淘汰、摘要长度、签名偏差等）。建议完成 R1-R4 阻塞项后方可合入。
+

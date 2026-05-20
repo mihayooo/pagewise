@@ -1878,7 +1878,7 @@ class SidebarApp {
       loadingEl.remove();
 
       const content = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-      const messageEl = this.addAIMessage(content);
+      const _messageEl = this.addAIMessage(content);
 
       // 保存到对话历史
       this.conversationHistory.push(
@@ -3695,7 +3695,7 @@ ${fullText.slice(0, 8000)}
         display += '\n';
       }
 
-      const messageEl = this.addAIMessage(display);
+      const _messageEl = this.addAIMessage(display);
 
       // 保存到对话历史
       this.conversationHistory.push(
@@ -3925,7 +3925,7 @@ ${endpointText}
         display += `📖 **README 预览**:\n\n${preview}\n`;
       }
 
-      const messageEl = this.addAIMessage(display);
+      const _messageEl = this.addAIMessage(display);
 
       // 保存到对话历史
       this.conversationHistory.push(
@@ -4693,7 +4693,7 @@ ${sendContent}
     const isLearningPath = subtab === 'learning-path';
 
     // 知识条目相关元素
-    const knowledgeToolbar = this.searchInput?.closest('.knowledge-toolbar');
+    const _knowledgeToolbar = this.searchInput?.closest('.knowledge-toolbar');
     const searchBox = this.searchInput?.closest('.search-box');
     const knowledgeActions = document.querySelector('.knowledge-actions');
     const tagFilter = this.tagFilter;

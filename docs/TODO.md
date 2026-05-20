@@ -1,8 +1,8 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R167
-> 最后更新: 2026-05-19
+> 迭代轮次: R43 - R171
+> 最后更新: 2026-05-20
 
 ---
 
@@ -700,4 +700,21 @@
 
 - [x] **R166: 弹窗体验优化 PopupExperienceOpt** — 优化 `popup/bookmark-overview.js` 用户体验：(1) 最近浏览历史时间线（今日/本周/本月书签活动可视化）；(2) 快捷操作面板（一键打开图谱/搜索/设置/周报）；(3) 待复习提醒卡片（与 R163 SpacedRepetition 集成）；(4) 学习进度环形图（已读/待读/复习中比例）；(5) 搜索结果即时预览（hover 展示书签摘要）；(6) 首次使用引导入口（与 R81 BookmarkOnboarding 集成）。复杂度: Medium
 
-- [ ] **R167: 全量回归与迭代收尾 IterationCloseR61** — R163-R166 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6200 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R163-R166 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+- [x] **R167: 全量回归与迭代收尾 IterationCloseR61** — R163-R166 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6200 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R163-R166 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+
+---
+
+## Phase T: 知识沉淀与学习闭环 (R168-R171) — 4 轮
+
+> 飞轮迭代 R62 起，2026-05-20
+> 现状: Phase S 产品体验升级完成，189 个 lib 模块、177 个测试文件、6100+ 测试通过、技术债务全部关闭
+> 方向: 深化"选中→理解→沉淀→回顾"学习闭环——缩短从浏览到知识内化的路径，增强用户对知识库的粘性
+> 任务来源优先级: 新功能探索 > 性能优化 > 代码质量
+
+- [x] **R168: 智能摘录归档 SmartHighlightArchive** — 新建 `lib/bookmark-highlight-archive.js`，打通"选中文字→一键归档知识条目"的最短路径：(1) 选中文字时自动提取页面上下文（URL、标题、选中文字前后 100 字）；(2) AI 生成一句话摘要 + 3-5 个自动标签（复用 bookmark-tagger.js）；(3) 一键存入知识库（复用 knowledge-base-crud.js），自动关联当前页面书签（复用 bookmark-knowledge-link.js）；(4) 复用 highlight-store.js 作为选区数据源，新增 `archiveHighlight(highlightId)` 入口；(5) 归档后弹出 Toast 确认 + 撤销按钮（5s 内可撤销）；(6) 批量归档：支持对同一页面多个高亮一次性归档；(7) 测试 ≥25 用例。复杂度: Medium
+
+- [ ] **R169: 学习目标与打卡系统 LearningGoals** — 新建 `lib/bookmark-learning-goals.js`，引入游戏化激励机制提升用户留存：(1) 用户设定每周学习目标（阅读完成 X 篇、复习 Y 条、提问 Z 次、摘录 W 条）；(2) 每日打卡统计（当日是否达成目标），连续打卡天数 streak 追踪；(3) 目标完成度实时可视化（进度条 + 百分比）；(4) 与 R163 SpacedRepetition 集成：复习完成自动计入目标；(5) 与 R165 WeeklyDigest 集成：周报中新增"目标完成"板块；(6) 成就里程碑系统（7 天/30 天/100 天连续打卡解锁成就徽章）；(7) 目标数据持久化（chrome.storage.local）；(8) 测试 ≥30 用例。复杂度: Medium
+
+- [ ] **R170: 书签批注与笔记 BookmarkAnnotations** — 新建 `lib/bookmark-annotations.js`，为书签增加个人思考沉淀层：(1) 为任意书签添加批注/笔记（支持 Markdown 格式文本）；(2) 每个书签可有多条笔记（按时间倒序排列），支持编辑/删除；(3) 笔记全文检索（与 bookmark-semantic-search.js 集成，笔记内容纳入 TF-IDF 索引）；(4) 笔记与知识条目双向关联（复用 bookmark-knowledge-link.js）；(5) 导入导出支持（复用 bookmark-io.js，笔记随书签一起导出）；(6) AI 辅助：基于书签内容和已有笔记自动推荐"思考问题"（复用 ai-client-context.js）；(7) 笔记统计：总笔记数、本周新增、按领域分布；(8) 测试 ≥25 用例。复杂度: Medium
+
+- [ ] **R171: 全量回归与迭代收尾 IterationCloseR62** — R168-R170 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6350 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R168-R170 变更记录；(5) 输出发布候选版本号。复杂度: Simple

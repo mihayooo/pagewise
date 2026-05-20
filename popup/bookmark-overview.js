@@ -15,7 +15,7 @@
  */
 
 import { t as i18nT, registerLocale } from '../lib/i18n.js'
-import { BOOKMARK_I18N_KEYS, bookmarkZhCN, bookmarkEnUS, getStatusLabel, getStatusLabels } from '../lib/bookmark-i18n.js'
+import { BOOKMARK_I18N_KEYS, bookmarkZhCN, bookmarkEnUS, getStatusLabel } from '../lib/bookmark-i18n.js'
 
 // 确保书签语言包已注册（幂等操作）
 let _bookmarkLocaleRegistered = false
