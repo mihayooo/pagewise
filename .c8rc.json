@@ -6,7 +6,7 @@
     "lib/pdf.worker.mjs",
     "tests/**"
   ],
-  "reporter": ["lcov", "text-summary"],
+  "reporter": ["lcov", "text-summary", "html"],
   "all": true,
   "src": ["lib"],
   "tmpDir": "coverage/tmp"

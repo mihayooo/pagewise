@@ -599,8 +599,8 @@ describe('BookmarkContentPreview (R187 补充)', () => {
     assert.ok(!preview.includes('---'))
   })
 
-  it('_truncate 应在 maxLen=Infinity 时不截断', () => {
+  it('_truncate 在 maxLen=Infinity 时应返回空字符串（非有限数视为无效）', () => {
     const text = 'hello world'
-    assert.equal(BookmarkContentPreview._truncate(text, Infinity), text)
+    assert.equal(BookmarkContentPreview._truncate(text, Infinity), '')
   })
 })

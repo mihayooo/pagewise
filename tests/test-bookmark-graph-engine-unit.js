@@ -201,6 +201,13 @@ describe('BookmarkGraphEngine', () => {
 
 describe('BookmarkGraphEngine (R187 补充)', () => {
   let engine
+  const sampleBookmarks = [
+    { id: '1', title: 'React Tutorial', url: 'https://react.dev/learn', folderPath: ['Dev', 'Frontend'] },
+    { id: '2', title: 'React Hooks Guide', url: 'https://react.dev/hooks', folderPath: ['Dev', 'Frontend'] },
+    { id: '3', title: 'Python Docs', url: 'https://python.org/docs', folderPath: ['Dev', 'Backend'] },
+    { id: '4', title: 'Vue Tutorial', url: 'https://vuejs.org/guide', folderPath: ['Dev', 'Frontend'] },
+    { id: '5', title: 'Python Tutorial', url: 'https://python.org/tutorial', folderPath: ['Dev', 'Backend'] },
+  ]
   beforeEach(() => { engine = new BookmarkGraphEngine() })
 
   describe('similarity 边界情况', () => {
