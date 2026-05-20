@@ -945,7 +945,7 @@
 
 - [x] **R225: 行覆盖率真实冲刺 50% CoverageRealSprint50** — 当前行覆盖率仅 23.67%（12009/50730），R222 声称已突破 50% 但实测数据严重脱节；(1) 排查 R222 测试用例是否因 c8 插桩配置问题未计入覆盖率（对比 `npm run test` vs `npm run test:coverage` 用例数差异）；(2) 分析未覆盖行 Top-20 模块（按未覆盖行数排序），重点补充纯逻辑/工具函数的边界用例（error-handler.js 393 行、wiki-query.js 387 行、core-flow-fix.js 384 行等覆盖率 <20% 的模块）；(3) 为覆盖率最低的 10 个 lib 模块补充异常路径和边界测试；(4) 将 `coverage:gate --lines` 从当前阈值收紧至 50；(5) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥55%；(6) 测试 ≥50 用例。复杂度: Medium
 
-- [ ] **R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal** — 当前仍有 4 个 lib 文件略超 400 行上限：bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)；(1) 全部 4 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；(2) 新增 CI 门禁脚本 `scripts/check-file-size.sh`：自动扫描 lib/ 下所有 .js 文件，若存在 >400 行文件则 CI fail（防止未来再次膨胀）；(3) 验证拆分后全量回归 0 fail；(4) 更新 `docs/architecture-metrics.md` 模块统计，确认 235 个 lib 模块全部 ≤400 行。复杂度: Simple
+- [x] **R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal** — 当前仍有 4 个 lib 文件略超 400 行上限：bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)；(1) 全部 4 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；(2) 新增 CI 门禁脚本 `scripts/check-file-size.sh`：自动扫描 lib/ 下所有 .js 文件，若存在 >400 行文件则 CI fail（防止未来再次膨胀）；(3) 验证拆分后全量回归 0 fail；(4) 更新 `docs/architecture-metrics.md` 模块统计，确认 235 个 lib 模块全部 ≤400 行。复杂度: Simple
 
 - [ ] **R227: 测试执行效率深度优化 TestExecutionDeepOpt2** — 当前 7472 用例执行耗时 42.5s（`npm run test:ci`），历史目标 ≤30s 多次未达成；(1) 分析 Top-15 最慢测试文件（按 duration_ms 排序），识别 >500ms 的阻塞用例；(2) 移除测试中残留的 `setTimeout` / `await sleep` / 同步阻塞；(3) 利用 `--test-concurrency=8` 提升并行度；(4) 建立 CI smoke test 子集（`npm run test:smoke`，核心流程 ≤80 用例，<5s）；(5) 目标: 全量 ≤30s（降幅 ≥30%）。复杂度: Medium
 
