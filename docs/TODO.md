@@ -800,5 +800,5 @@
 - [x] **R185: EmbeddingEngine 性能断言收紧** — 将性能测试断言从 `< 500ms` 收紧到 `< 100ms`（预计算向量后搜索应近即时），同步更新测试名称与断言一致性
 - [x] **R186: 核心模块测试补全 — ai-client 系列** — 为 `ai-client-context.js`、`ai-client-stream.js`、`ai-client-tokens.js` 补充单元测试（当前 0 测试文件），目标 ≥20 用例/模块
 - [x] **R187: 核心模块测试补全 — bookmark 系列** — 为 `bookmark-core.js`、`bookmark-search-core.js`、`bookmark-graph-engine.js` 补充单元测试，目标 ≥15 用例/模块
-- [ ] **R188: knowledge-graph 模块测试补全** — 为 `knowledge-graph-layout.js`、`knowledge-graph-utils.js`、`knowledge-graph-wiki.js` 补充单元测试，目标 ≥15 用例/模块
+- [x] **R188: knowledge-graph 模块测试补全** — 为 `knowledge-graph-layout.js`、`knowledge-graph-utils.js`、`knowledge-graph-wiki.js` 补充单元测试，目标 ≥15 用例/模块
 - [ ] **R189: 消息渲染器 message-renderer 测试补全** — 为 `message-renderer.js` 补充单元测试（当前无测试文件），覆盖 Markdown 渲染、代码块复制、引用注入等核心逻辑，目标 ≥25 用例
