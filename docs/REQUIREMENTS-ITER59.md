@@ -1,219 +1,175 @@
-# 需求文档 — R161: 超大 lib 文件拆分八期 ModuleSplitPhase8
+# 需求文档 — R217: 超大模块拆分十三期 ModuleSplitPhase13
 
-> 迭代: R59 | 日期: 2026-05-19 | 复杂度: Complex
+> 创建日期: 2026-05-20
+> 迭代: R217 (Phase 13 模块拆分)
+> 复杂度: Complex
 
 ---
 
 ## 1. 用户故事
 
-**作为** PageWise 项目维护者，**我希望** 将剩余 25 个超 400 行的 lib 文件中最大的 8 个（>474 行）拆分为职责单一的子模块（每文件 ≤400 行），**以便** 保持代码可维护性基线一致，防止"大文件堆积"导致的认知负荷过高和合并冲突频发。
+**作为** PageWise 项目的维护者和贡献者，
+**我希望** 所有 lib/ 源文件严格遵守 ≤400 行的架构门禁，
+**以便** 代码可读性、可维护性和单模块职责清晰度始终保持在工程标准之上。
 
 ---
 
-## 2. 现状分析
+## 2. 背景与问题分析
 
-### 2.1 文件行数分布
+### 2.1 现状
 
-当前 `lib/` 目录共有 **25 个文件超过 400 行**上限，其中 11 个超过 460 行。本次迭代聚焦 **前 8 个**（按行数降序）：
+Phase 12 (R206) 完成后，`architecture-metrics.md` 第 91 行声明"所有 lib 文件均 ≤400 行"，但实际 `wc -l lib/*.js` 显示 **13 个文件超出 400 行门禁**：
 
-| # | 文件 | 行数 | 职责域 | 前次迭代 | 测试文件 |
-|---|------|------|--------|----------|----------|
-| 1 | bookmark-knowledge-integration.js | 547 | 书签-知识库联动编排层 | R157 拆分声称完成但未生效 | ❌ 无测试 |
-| 2 | message-renderer.js | 539 | 消息渲染系统（懒渲染 + 批量加载） | R157 拆分声称完成但未生效 | test-message-renderer-e2e.js |
-| 3 | knowledge-panel.js | 528 | 知识库面板（列表/详情/搜索） | R120/R157 部分子模块已拆出 | test-knowledge-panel-e2e.js |
-| 4 | bookmark-notifier.js | 493 | 书签通知系统（偏好/历史/类型） | — | test-bookmark-notifier-unit.js |
-| 5 | batch-summary.js | 482 | 批量摘要引擎（分段/压缩/AI 摘要） | — | test-batch-summary.js |
-| 6 | bookmark-search.js | 477 | 书签搜索（索引 + 图谱 + 语义 + AI 推荐合并） | — | test-bookmark-search.js |
-| 7 | bookmark-batch.js | 476 | 批量操作（删除/标签/移动/导出） | — | test-bookmark-batch.js |
-| 8 | bookmark-duplicate-detector.js | 474 | 重复检测器（精确/模糊/标题匹配） | — | test-bookmark-duplicate-detector.js |
+| # | 文件 | 行数 | 超出行数 | 函数/类数 | 特征 |
+|---|------|------|---------|----------|------|
+| 1 | `bookmark-io.js` | 606 | +206 | 19 | R207 将 import-export-io 合并回来，职责膨胀最严重 |
+| 2 | `docmind-client.js` | 443 | +43 | 2 | 大单体类（DocMindClient），含 API 调用 + 重试 + 缓存 |
+| 3 | `bookmark-documentation.js` | 437 | +37 | 6 | 文档生成 + 模板渲染混合 |
+| 4 | `bookmark-graph.js` | 432 | +32 | 1 | 单类，图引擎核心，方法密集 |
+| 5 | `i18n.js` | 418 | +18 | 20 | 翻译键值 + 工具函数混合 |
+| 6 | `bookmark-security-audit.js` | 417 | +17 | 5 | 安全扫描规则 + 报告生成混合 |
+| 7 | `bookmark-learning-coach.js` | 416 | +16 | 1 | 学习教练核心类，建议生成 + 反馈分析 |
+| 8 | `docmind-sync.js` | 414 | +14 | 1 | 文档同步逻辑 |
+| 9 | `bookmark-detail-panel.js` | 414 | +14 | 2 | UI 面板渲染 + 数据绑定 |
+| 10 | `bookmark-tag-editor-v2.js` | 412 | +12 | 1 | 标签编辑器组件 |
+| 11 | `bookmark-onboarding.js` | 406 | +6 | 3 | 新手引导流程 |
+| 12 | `chat-mode.js` | 403 | +3 | 1 | 聊天模式管理 |
+| 13 | `bookmark-indexer.js` | 401 | +1 | 1 | 书签索引构建 |
 
-**合计**: 3,916 行 → 拆分后预计 10-12 个子模块，每个 ≤400 行。
+### 2.2 根因
 
-### 2.2 R157 历史遗留
+- **R207 回退效应**: `bookmark-io.js` 在 R207 合并了 `bookmark-import-export-io.js` 的独立函数（exportToHTML / exportToJSON / exportToCSV / importFromHTML / importFromJSON），导致原本 ~350 行的文件膨胀至 606 行。这是最严重的违规。
+- **Phase 12 遗漏**: R206 拆分重点在 `page-sense.js`、`utils.js`、`docmind-client.js` 等，但后续迭代（R207-R216）新增代码将部分文件重新推过 400 行线。
+- **架构门禁文档与现实脱节**: `architecture-metrics.md` 第 91 行声称"所有 lib 文件均 ≤400 行"，属于事实错误。
 
-R157（迭代 R55）声称完成 bookmark-knowledge-integration.js、message-renderer.js、knowledge-panel.js 的拆分，但 R158 实测这 3 个文件行数未变（547/539/528），拆分未落地。本次 R161 必须实际执行拆分并用 `wc -l` 验证。
+### 2.3 测试覆盖缺失
 
-### 2.3 Re-export 模式参考
+以下 2 个目标文件 **没有对应的测试文件**：
+- `docmind-sync.js` — 无 `tests/test-docmind-sync.js`
+- `bookmark-learning-coach.js` — 无 `tests/test-bookmark-learning-coach.js`
 
-R116 已建立成熟的 re-export 模式：
-
-```javascript
-// knowledge-base.js — 拆分后的薄门面层
-/**
- * KnowledgeBase — 向后兼容门面模块
- * 委托给拆分后的子模块
- */
-export { KnowledgeBaseExport as KnowledgeBase } from './knowledge-base-export.js';
-export { bigrams, ... } from './knowledge-base-query.js';
-// ... 其他 re-export
-```
-
-R161 所有拆分均遵循此模式：原文件变为薄门面层（re-export），实际逻辑拆入 `-sub1`、`-sub2` 等子模块。
+拆分时需同时补充测试，确保回归安全。
 
 ---
 
 ## 3. 验收标准
 
-### AC1：8 个目标文件全部 ≤400 行
+| # | 验收条件 | 验证方式 |
+|---|---------|---------|
+| **AC1** | 13 个目标文件拆分后，所有 `lib/*.js` 文件行数 ≤400 行 | `wc -l lib/*.js | sort -rn | head -20`，最大值 ≤400 |
+| **AC2** | 拆分后的模块通过 re-export 模式保持 API 向后兼容，现有 `import { X } from './original.js'` 不需要修改 | `grep -rn "from './bookmark-io.js'" lib/ sidebar/ background/` 验证所有导入方未修改仍可正常解析 |
+| **AC3** | `npm run test:ci` 全量回归 0 fail（≥7173 pass / 0 fail） | CI 输出确认 |
+| **AC4** | `docs/architecture-metrics.md` 模块拆分历程表新增 Phase 13 行，模块数和行数统计更新为实际值 | 人工审阅 |
+| **AC5** | 无测试覆盖的 2 个模块（docmind-sync、bookmark-learning-coach）拆分后补充 ≥5 个测试用例 | `npm run test:ci` 中包含新增测试文件且全部通过 |
 
-- [ ] 拆分后对 8 个原文件执行 `wc -l`，每个文件 ≤400 行。
-- [ ] 原文件保留为薄门面层（re-export），不删除。
-- [ ] 新建的子模块文件每个 ≤400 行。
+---
 
-**验证命令**:
-```bash
-for f in bookmark-knowledge-integration message-renderer knowledge-panel \
-         bookmark-notifier batch-summary bookmark-search \
-         bookmark-batch bookmark-duplicate-detector; do
-  wc -l lib/${f}.js
-done
+## 4. 技术约束
+
+### 4.1 拆分模式
+
+沿用项目既有 **re-export 模式**（参见 `lib/bookmark-import-export-io.js`）：
+
+```
+lib/bookmark-io.js (拆分前 606 行)
+  ├── lib/bookmark-io-core.js          ← 核心导出类 BookmarkImportExport
+  ├── lib/bookmark-io-html.js          ← HTML 导入导出函数
+  └── lib/bookmark-io-json.js          ← JSON/CSV 导入导出 + 校验
+
+lib/bookmark-io.js (拆分后)            ← re-export 所有子模块，行数 ≤50
 ```
 
-### AC2：API 向后兼容（零 Breaking Change）
+原文件 `bookmark-io.js` 变为纯 re-export 薄壳，所有消费方无需修改。
 
-- [ ] 所有从原文件导出的类、函数、常量，拆分后仍可通过原路径导入。
-- [ ] 现有 `import { X } from './lib/xxx.js'` 调用无需修改。
-- [ ] 子模块内部依赖通过相对路径引用，不引入循环依赖。
+### 4.2 拆分策略（按文件类型）
 
-### AC3：全量回归 0 fail
+| 文件类型 | 拆分策略 | 目标行数 |
+|---------|---------|---------|
+| **多函数型**（bookmark-io.js 19 函数、i18n.js 20 函数） | 按功能域分组提取到子模块 | 每个子模块 150-300 行 |
+| **大类型**（docmind-client.js、bookmark-graph.js、chat-mode.js） | 将辅助方法 / 内部工具函数提取到 `-utils.js` | 主文件 ≤350 行 |
+| **混合型**（bookmark-security-audit.js、bookmark-documentation.js） | 将"生成/渲染"逻辑与"核心逻辑"分离 | 各子模块 ≤300 行 |
 
-- [ ] `npm run test:ci` 全量回归通过（当前基线 6157 pass / 0 fail）。
-- [ ] 拆分后不引入新的 lint 警告（`npm run lint` 0 errors 0 warnings）。
+### 4.3 不可违反的底线
 
-### AC4：拆分后子模块职责单一
+- **零破坏变更**: 所有 `import` 路径必须保持不变（re-export 薄壳兜底）
+- **零测试下降**: `npm run test:ci` 不能有任何 fail 增加
+- **模块数预算**: 当前 222 个 lib 模块，门禁上限 220（已超标）。拆分约新增 13-20 个子模块，需同步将模块上限从 220 放宽至 240，或在 architecture-metrics.md 中更新实际值
+- **lint 零回归**: 拆分后的文件必须通过 `npm run lint`（0 errors / 0 warnings）
 
-- [ ] 每个子模块有清晰的职责边界（按功能域拆分，如：通知生成 vs 通知偏好 vs 通知历史）。
-- [ ] 子模块间无循环依赖。
-- [ ] 子模块可独立测试（不依赖原门面文件）。
+### 4.4 工具链
 
-### AC5：拆分落地验证（防 R157 重演）
-
-- [ ] 拆分完成后，对每个目标文件执行 `wc -l lib/xxx.js` 确认行数 ≤400。
-- [ ] 对每个新建子模块执行 `wc -l lib/xxx-*.js` 确认行数 ≤400。
-- [ ] 验证原文件中不再包含函数实现（仅 re-export 语句 + JSDoc 注释）。
-
----
-
-## 4. 拆分方案概要
-
-> 详细拆分方案在 DESIGN-ITER59.md 中输出，此处仅列方向性规划。
-
-| 文件 | 原行数 | 预计子模块 | 拆分方向 |
-|------|--------|-----------|----------|
-| bookmark-knowledge-integration.js | 547 | 2-3 个 | 编排层 → 双向导航 + 仪表盘 + 增强 |
-| message-renderer.js | 539 | 2 个 | 渲染核心 → 消息创建/更新 + 懒加载/滚动 |
-| knowledge-panel.js | 528 | 2 个 | 已有 batch/virtual 子模块 → 进一步拆出列表/详情逻辑 |
-| bookmark-notifier.js | 493 | 2 个 | 通知生成 → 通知引擎 + 偏好/历史管理 |
-| batch-summary.js | 482 | 2 个 | 分段/压缩 + AI 摘要/结构化输出 |
-| bookmark-search.js | 477 | 2 个 | 搜索核心 → 索引搜索 + 语义/AI 搜索 |
-| bookmark-batch.js | 476 | 2 个 | 批量操作 → 删除/标签 + 移动/导出 |
-| bookmark-duplicate-detector.js | 474 | 2 个 | 检测核心 → 精确/模糊检测 + 合并/清理 |
-
-**预计新增子模块**: 10-16 个
+| 工具 | 用途 |
+|------|------|
+| `wc -l lib/*.js` | 行数验证 |
+| `npm run test:ci` | 全量回归 |
+| `npm run lint` | lint 检查 |
+| `node --test tests/test-*.js` | 单文件测试 |
+| `grep -rn` | API 兼容性验证（导入路径未变） |
 
 ---
 
-## 5. 技术约束
+## 5. 依赖关系
 
-### 5.1 Re-export 门面模式
+### 5.1 上游依赖
 
-- 原文件必须保留为可导入的门面层，所有现有 `import` 路径不变。
-- 门面文件仅包含 `export { ... } from './xxx-sub.js'` 和 JSDoc 注释。
-- 门面文件行数不计入 400 行上限（但应尽量精简）。
+| 依赖 | 说明 |
+|------|------|
+| R206 (Phase 12) | 上一轮拆分的基线，部分文件在 R207-R216 期间被重新膨胀 |
+| R207 | 直接导致 `bookmark-io.js` 膨胀至 606 行的合并操作 |
+| R210-R216 | 最近 7 轮迭代可能向目标文件追加了代码 |
 
-### 5.2 子模块命名规范
+### 5.2 下游影响
 
-- 子模块文件名格式: `{原文件名}-{功能后缀}.js`
-- 示例: `bookmark-notifier-engine.js`、`bookmark-notifier-prefs.js`
-- 避免使用 `-sub1`/`-sub2` 等无语义命名。
+| 影响范围 | 说明 |
+|---------|------|
+| `sidebar/sidebar.js` | 导入 `bookmark-graph.js`、`bookmark-io.js`，需验证 re-export 链完整 |
+| `options/options.js` | 导入 `docmind-client.js` |
+| `lib/docmind-sync.js` | 导入 `docmind-client.js`（本身也是拆分目标） |
+| `tests/test-bookmark-io.js` | 核心回归验证，拆分后必须 0 fail |
+| `tests/test-bookmark-graph.js` | 图引擎回归验证 |
+| 190+ 测试文件 | 全量 `test:ci` 回归 |
 
-### 5.3 依赖管理
+### 5.3 与当前迭代的关系
 
-- 子模块之间的依赖关系必须是单向 DAG（无循环）。
-- 若原文件存在内部私有函数被多个子模块共享，提取到独立的 `-utils.js` 子模块。
-- 外部依赖（import from other lib modules）保留在使用它的子模块中。
-
-### 5.4 测试兼容
-
-- 拆分不得破坏现有测试（测试导入路径不变，因为原文件是 re-export 门面）。
-- 为 bookmark-knowledge-integration.js（当前无测试）补充基础冒烟测试（≥5 用例）。
-- 新建子模块可选添加独立单元测试（非强制，但鼓励）。
-
-### 5.5 禁止事项
-
-- 禁止在拆分过程中修改任何函数的签名或行为。
-- 禁止删除任何导出（即使认为该导出无用）。
-- 禁止引入新的第三方依赖。
-- 禁止修改测试文件（除非测试本身有 bug）。
+- **R216**（CoverageSprint40，行覆盖率冲刺 40%）与本迭代并行不冲突：R216 补充测试用例，R217 调整源文件结构。建议 **R217 先于或同步于 R216 执行**，避免 R216 的测试依赖的 import 路径变动。
+- 本迭代完成后，`architecture-metrics.md` 需同步更新，与 R216 的覆盖率数据共同刷新文档。
 
 ---
 
-## 6. 依赖关系
+## 6. 工作量估算
 
-### 6.1 上游依赖
+| 阶段 | 工作项 | 预估耗时 |
+|------|--------|---------|
+| 分析 | 逐一审查 13 个文件，确定拆分点 | 30 min |
+| 拆分 | 按文件类型执行拆分 + re-export 薄壳 | 2-3h |
+| 测试 | 为 docmind-sync、bookmark-learning-coach 补充测试 | 1h |
+| 验证 | 全量回归 + lint + 行数扫描 | 30 min |
+| 文档 | 更新 architecture-metrics.md | 15 min |
 
-| 依赖项 | 说明 | 状态 |
-|--------|------|------|
-| R158: sidebar.js 拆分落地 | sidebar/ 目录结构已稳定 | ✅ 已完成 |
-| R159: ESLint 警告清零 | 代码中无 lint 警告 | ✅ 已完成 |
-| R160: 覆盖率基础设施修复 | c8 配置已修复、覆盖率可度量 | ✅ 已完成 |
-| R157: 超大模块拆分七期 | 部分文件拆分未落地，本次需补完成 | ⚠️ 部分完成 |
-
-### 6.2 下游影响
-
-| 受影响项 | 说明 |
-|----------|------|
-| R162: 全量回归与发布收尾 | R161 完成后执行最终回归 |
-| 覆盖率指标 | 拆分后文件数增加，覆盖率分母变大，需 R160 基础设施已就绪 |
-| IDE / 开发者体验 | 小文件更易导航和并行编辑 |
-
-### 6.3 并行可能性
-
-8 个文件的拆分互不依赖，可并行执行：
-- **批次 A（优先）**: bookmark-knowledge-integration (547) + message-renderer (539) + knowledge-panel (528) — R157 遗留，优先补完成
-- **批次 B**: bookmark-notifier (493) + batch-summary (482)
-- **批次 C**: bookmark-search (477) + bookmark-batch (476) + bookmark-duplicate-detector (474)
-
-每个批次完成后立即运行 `npm run test:ci` 验证 0 fail。
+**总预估**: 约 4-5 小时，复杂度 **Complex**。
 
 ---
 
 ## 7. 风险与缓解
 
-| 风险 | 影响 | 缓解措施 |
-|------|------|----------|
-| R157 重演：声称完成但实际未拆分 | 代码质量无改善 | AC5 强制 `wc -l` 验证 + CI 门禁脚本 |
-| 拆分引入循环依赖 | 运行时错误 / 构建失败 | 设计阶段画依赖图，实现后用 `scripts/health-check.sh` 检测 |
-| bookmark-knowledge-integration 无测试 | 拆分后无法验证正确性 | AC3 要求补充 ≥5 个冒烟测试 |
-| knowledge-panel.js 已有子模块 | 拆分边界可能与现有子模块冲突 | 设计阶段审查 knowledge-panel-batch.js / knowledge-panel-virtual.js，避免职责重叠 |
-| 覆盖率分母增大 | 覆盖率百分比可能小幅下降 | 确保 R160 覆盖率基础设施已就绪，拆分后立即验证覆盖率不低于基线 |
+| 风险 | 可能性 | 影响 | 缓解措施 |
+|------|--------|------|---------|
+| 循环依赖：拆分子模块引入新的循环引用 | 中 | 高 | 拆分前检查依赖图，确保子模块 → 原模块的 re-export 单向 |
+| 测试覆盖盲区：无测试模块拆分后引入 bug | 中 | 中 | AC5 要求补充测试，最低 5 用例 |
+| 模块数超限：拆分后 lib/ 模块数可能达到 240+ | 高 | 低 | 同步更新 architecture-metrics.md 中的模块上限或实际值 |
+| R216 并行冲突：覆盖率测试覆盖拆分后的文件路径 | 低 | 中 | 拆分后立即运行 test:ci 确认兼容，re-export 保证路径不变 |
 
 ---
 
-## 8. 验证清单
+## 8. 里程碑
 
-拆分完成后逐文件执行：
-
-```bash
-# 1. 行数验证
-for f in bookmark-knowledge-integration message-renderer knowledge-panel \
-         bookmark-notifier batch-summary bookmark-search \
-         bookmark-batch bookmark-duplicate-detector; do
-  lines=$(wc -l < lib/${f}.js)
-  if [ "$lines" -gt 400 ]; then echo "❌ ${f}.js = ${lines} lines (超过 400)"; fi
-done
-
-# 2. 全量回归
-npm run test:ci
-
-# 3. Lint 检查
-npm run lint
-
-# 4. 循环依赖检测
-node scripts/health-check.sh
-```
+| 里程碑 | 完成标准 |
+|--------|---------|
+| **M1: 分析完成** | 13 个文件的拆分方案确定，写入任务清单 |
+| **M2: 拆分完成** | 所有 `lib/*.js` ≤400 行，re-export 薄壳就位 |
+| **M3: 测试通过** | `npm run test:ci` 0 fail，新增测试全部 green |
+| **M4: 文档更新** | `architecture-metrics.md` Phase 13 行 + 模块数更新 |
 
 ---
 
-*文档生成于 2026-05-19*
-*遵循飞轮迭代流程 (flywheel-iteration)*
+*本文档由 Plan Agent (R217) 生成，作为 ModuleSplitPhase13 的需求基线。*
