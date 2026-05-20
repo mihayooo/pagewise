@@ -4,7 +4,41 @@
      4|
      5|---
      6|
-     7|## [Unreleased]
+## [3.1.0] - 2026-05-20
+
+### 架构
+- **R193: 超大模块拆分九期 ModuleSplitPhase9** — 拆分 6 个 >530 行的 lib 文件至 ≤400 行，保持 API 向后兼容（re-export 模式）
+  - bookmark-knowledge-packs.js(624)、bookmark-weekly-digest.js(580)、bookmark-highlight-archive.js(549)
+  - bookmark-knowledge-integration.js(547)、message-renderer.js(539)、bookmark-user-profile.js(535)
+  - 知识面板模块 knowledge-panel.js 同步拆分
+  - 全量回归: 6887 pass / 0 fail ✅
+
+### 修复
+- **R192: 覆盖率基础设施修复 CoverageInfraFixR190** — 修复 coverage 目录权限 EACCES 导致 HTML 报告生成失败
+  - 修复 `coverage/lcov-report/` 目录权限并添加 `.gitignore` 规则排除旧报告
+  - 验证覆盖率报告正常生成 lcov + text-summary + HTML
+  - CI 新增行覆盖率 <75% 门禁
+- **R190: 测试失败修复 TestFailureFixR190** — 修复 `npm run test:ci` 中 11 个失败用例（3 个测试套件）
+  - BookmarkContentPreview `_truncate` 断言对齐实现（`Infinity` 视为无效参数返回 `''`）
+  - BookmarkGraphEngine R187 补充测试添加本地 `sampleBookmarks` 定义（修复 9 个 `ReferenceError`）
+  - ESLint `no-undef` 警告清零（`performance-profiler.js` 行内禁用 `process`、测试文件变量定义修复）
+  - 结果: 6887 pass / 0 fail，0 errors / 0 warnings
+
+### 质量
+- **R191: ESLint 警告清零 LintWarningFinalR190** — R190 连带修复
+  - `performance-profiler.js` 行内 `eslint-disable-line no-undef`
+  - 测试文件 `sampleBookmarks` 局部定义消除 `no-undef` 警告
+  - 结果: 0 errors / 0 warnings
+
+### 其他
+- **R197: 版本号统一与 CHANGELOG 补全 VersionSyncAndChangelog** — package.json `1.0.0` 与 CHANGELOG `3.0.0` 不一致
+  - package.json 版本号更新为 `3.1.0`（反映 R93-R196 增量迭代）
+  - manifest.json 版本号同步更新为 `3.1.0`
+  - 补充本 [3.1.0] CHANGELOG 区段
+
+---
+
+## [Unreleased]
 
 ### 修复
 - **R190: 测试失败修复 TestFailureFixR190** — 修复 `npm run test:ci` 中 11 个失败用例（3 个测试套件）

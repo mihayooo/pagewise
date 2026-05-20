@@ -2,6 +2,43 @@
 
 ---
 
+## 迭代 R197 — 版本号统一与 CHANGELOG 补全 VersionSyncAndChangelog
+
+> 日期: 2026-05-20
+> 任务: R197 版本号统一与 CHANGELOG 补全 — package.json/manifest.json/CHANGELOG.md 三文件版本对齐至 3.1.0
+
+### 问题
+
+| 文件 | 变更前 | 变更后 | 说明 |
+|------|--------|--------|------|
+| package.json | 1.0.0 | 3.1.0 | 严重滞后，未反映 R93-R196 增量迭代 |
+| manifest.json | 3.0.0 | 3.1.0 | 里程碑对齐 |
+| CHANGELOG.md | 无 3.1.0 区段 | [3.1.0] - 2026-05-20 | 补充 R190-R193 变更记录 |
+
+### 修改文件
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `package.json` | 修改 | `version: "1.0.0"` → `"3.1.0"` |
+| `manifest.json` | 修改 | `version: "3.0.0"` → `"3.1.0"` |
+| `docs/CHANGELOG.md` | 修改 | 顶部插入 `[3.1.0] - 2026-05-20` 区段（架构/修复/质量/其他） |
+| `tests/test-r197-version-sync.js` | 新建 | 23 个单元测试覆盖 5 个验收标准 |
+| `docs/reports/2026-05-20-R39.md` | 新建 | 迭代报告 |
+
+### 设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| D001 | 版本号设为 3.1.0 而非 3.0.1 | R93-R196 包含大量增量功能迭代（模块拆分十期、覆盖率基础设施），属于 minor 级别变更 |
+| D002 | CHANGELOG 按分类汇总而非逐轮记录 | R93-R196 跨 100+ 轮迭代，逐条记录会导致 CHANGELOG 过于冗长 |
+| D003 | manifest.json 同步更新 | Chrome Web Store 提交要求 manifest.json 版本号正确 |
+
+### 测试结果
+
+- 新增: 23 个测试，全部通过
+- 覆盖: AC-1 package.json(3) + AC-2 CHANGELOG(9) + AC-3 manifest.json(5) + AC-4 报告(4) + AC-5 无回归(2)
+
+---
 ## 迭代 R190 — 测试失败修复 TestFailureFixR190
 
 > 日期: 2026-05-20
