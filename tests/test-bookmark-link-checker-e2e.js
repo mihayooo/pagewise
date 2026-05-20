@@ -169,11 +169,11 @@ describe('BookmarkLinkChecker', () => {
   describe('边界条件', () => {
     it('超时 URL → dead, error 含 timeout', async () => {
       installFetchMock(async (url, opts) => {
-        // 模拟超时：检查 signal
+        // 模拟超时：检查 signal，延迟 > 最小超时 (3000ms)
         return new Promise((resolve, reject) => {
           const timer = setTimeout(() => {
             resolve(new Response('', { status: 200 }));
-          }, 500);
+          }, 5000);
 
           if (opts?.signal) {
             opts.signal.addEventListener('abort', () => {
@@ -186,7 +186,7 @@ describe('BookmarkLinkChecker', () => {
         });
       });
 
-      const checker = new BookmarkLinkChecker({ timeout: 100 }); // 100ms 超时
+      const checker = new BookmarkLinkChecker({ timeout: 3000 }); // 3000ms 超时 (最小值)
       const result = await checker.checkOne('https://slow.example.com', 'b5');
 
       assert.equal(result.status, 'dead');

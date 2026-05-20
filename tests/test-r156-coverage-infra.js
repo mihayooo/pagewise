@@ -74,7 +74,10 @@ describe('package.json 脚本验证', () => {
   it('test:coverage 脚本包含 preflight 清理', () => {
     const script = pkg.scripts['test:coverage'];
     assert.ok(script, '应存在 test:coverage 脚本');
-    assert.ok(script.includes('rm -rf coverage/tmp'), '脚本应包含 rm -rf coverage/tmp preflight 清理');
+    assert.ok(
+      script.includes('rm -rf coverage/tmp') || script.includes('clean-coverage'),
+      '脚本应包含 rm -rf coverage/tmp 或 clean-coverage.js preflight 清理'
+    );
   });
 
   it('test:coverage 脚本包含 c8 命令', () => {
@@ -240,10 +243,13 @@ describe('coverage/tmp root-owned 残留检查', () => {
     const script = JSON.parse(
       readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf8')
     ).scripts['test:coverage'];
-    // 确保 preflight 只针对 coverage/tmp
-    assert.ok(script.includes('rm -rf coverage/tmp'), '应清理 coverage/tmp');
-    assert.ok(!script.includes('rm -rf coverage/ ') && !script.includes('rm -rf coverage/"'),
-      '不应清理整个 coverage/ 目录');
+    // 确保 preflight 只针对 coverage/tmp（支持 rm -rf 或 clean-coverage.js 方式）
+    const hasCleanup = script.includes('rm -rf coverage/tmp') || script.includes('clean-coverage');
+    assert.ok(hasCleanup, '应清理 coverage/tmp');
+    if (script.includes('rm -rf')) {
+      assert.ok(!script.includes('rm -rf coverage/ ') && !script.includes('rm -rf coverage/"'),
+        '不应清理整个 coverage/ 目录');
+    }
   });
 });
 

@@ -838,3 +838,22 @@
 - [x] **R198: 测试执行效率深度优化 TestExecutionDeepOpt** — 当前 6923 用例执行耗时 42.9s，R152 目标 ≤25s 未达成；(1) 分析 Top-10 最慢测试文件（按 duration_ms 排序）；(2) 移除测试中不必要的 `setTimeout` / `await sleep` 阻塞；(3) 利用 `--test-concurrency=8` 提升并行度（当前默认串行）；(4) 建立 CI smoke test 子集（核心流程 ≤100 用例，<5s）；(5) 目标: 全量 ≤30s（降幅 ≥30%）。复杂度: Medium
 
 - [x] **R199: E2E 学习闭环集成测试深化 LearningLoopE2E** — 在 R136 CoreFlowE2E 基础上，扩展端到端测试覆盖 Phase S-V 新增学习闭环功能：(1) 间隔复习完整流程（加入复习队列 → 复习提醒 → 用户评级 → 间隔更新，复用 bookmark-spaced-repetition.js）；(2) 学习目标打卡流程（设定目标 → 每日打卡 → 连续天数追踪 → 成就解锁，复用 bookmark-learning-goals.js）；(3) 智能摘录归档流程（选中文字 → AI 摘要 → 一键归档 → 知识库关联，复用 bookmark-highlight-archive.js）；(4) 学习教练每日计划（生成计划 → 阅读执行 → 完成扣减 → 教练回顾，复用 bookmark-learning-coach.js）；(5) 跨模块数据流验证：UserProfile ↔ ReadingQueue ↔ SpacedRepetition ↔ LearningGoals 完整闭环；(6) 异常路径：存储满/AI 降级/网络断开下的降级行为；(7) 目标 ≥30 用例。复杂度: Complex
+
+---
+
+## Phase Z: 质量收尾与发布 (R200-R204) — 5 轮
+
+> 飞轮迭代 R68 起，2026-05-20
+> 现状: 6971 pass / 6 fail；Lint 0 errors / 4 warnings；测试执行 45.4s（目标 ≤30s）；22 个 lib 文件 >400 行；CHANGELOG 缺 R195-R199 记录
+> 目标: 修复 6 个失败测试、清零 lint 警告、优化测试执行至 ≤30s、完成超大模块拆分收尾、补全 CHANGELOG
+> 任务来源优先级: 修复失败测试 > 修复 lint 警告 > 性能优化 > 架构治理 > 文档补全
+
+- [x] **R200: 测试失败修复 TestFailureFixR200** — 修复 `npm run test:ci` 中 6 个失败用例：(1) BookmarkAIRecommendations analyzeProfile 性能断言（500 书签 < 50ms 超时）；(2) BookmarkGraphEngine 1000 条书签图谱构建 < 10s 超时；(3) BookmarkLinkChecker 超时 URL → dead 断言失败；(4) R159 ESLint 0 warnings 验证断言（当前实测 4 warnings）；(5) package.json 脚本验证 test:coverage 预清理逻辑；(6) 语义搜索性能 1000 条数据 < 100ms 超时。目标: `npm run test:ci` 6977 pass / 0 fail。复杂度: Medium
+
+- [x] **R201: Lint 警告清零 LintWarningFinalR200** — 当前 0 errors / 4 warnings（全部 `no-unused-vars`）：(1) bookmark-notifier.js:46 `MS_PER_DAY` 赋值未使用；(2) 第 258 行某文件 `id` 赋值未使用；逐文件审查删除或前缀 `_` 标记；将 `eslint.config.js` 中 `max-warnings` 从 10000 收紧为 0；验证 `npm run lint` 0 errors 0 warnings。复杂度: Simple ✅
+
+- [ ] **R202: 测试执行效率优化三期 TestExecutionOpt3** — R198 目标 ≤30s 未达成（当前 45.4s，6977 用例 / 1470 suites）；(1) 分析 Top-10 最慢测试文件（按 duration_ms 排序），识别 >1s 的阻塞用例；(2) 移除测试中残留的 `setTimeout`/`await sleep`/同步阻塞；(3) 建立 CI smoke test 子集（`npm run test:smoke` 核心流程 ≤60 用例，<3s）；(4) 按测试文件拆分为 4 组并行执行；(5) 目标: 全量 ≤30s。复杂度: Medium
+
+- [ ] **R203: 超大模块拆分十一期 ModuleSplitPhase11** — 当前 22 个 lib 文件 >400 行：bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)、bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)、bookmark-link-checker.js(456)、page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+
+- [ ] **R204: CHANGELOG 补全与版本收尾 ChangelogFinalize** — CHANGELOG.md 缺少 R195-R199 变更记录（覆盖率基础设施根因修复、超大模块拆分十期、版本号统一、测试执行效率优化、E2E 学习闭环深化）；(1) 补充 `[3.1.0]` 区段新增 R195-R199 条目；(2) 验证 package.json / manifest.json 版本号一致；(3) 更新 docs/reports/ 迭代报告；(4) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple

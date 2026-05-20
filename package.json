@@ -11,7 +11,7 @@
     "test:smoke": "node --test --test-concurrency=4 tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-knowledge-base.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-bookmark-store.js tests/test-highlight-store.js tests/test-embedding-engine.js",
     "test:coverage": "node scripts/clean-coverage.js && c8 --reporter=lcov --reporter=text-summary --reporter=html npm run test:ci",
     "coverage:gate": "c8 check-coverage --lines 20",
-    "lint": "eslint . --max-warnings 10000"
+    "lint": "eslint . --max-warnings 0"
   },
   "devDependencies": {
     "c8": "^10.1.3",
