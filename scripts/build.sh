@@ -1,11 +1,19 @@
 #!/bin/bash
-# 智阅 PageWise - 多浏览器打包脚本
+# 智阅 PageWise — Chrome Web Store 发布产物构建脚本 (R208)
+# 用途：生成可直接上传到 Chrome Web Store 的 .zip 文件
+#
 # 用法:
 #   bash scripts/build.sh              # 默认 Chrome
 #   bash scripts/build.sh chrome       # Chrome
 #   bash scripts/build.sh firefox      # Firefox
 #   bash scripts/build.sh edge         # Edge
 #   bash scripts/build.sh all          # 所有浏览器
+#
+# 产物: dist/pagewise-v{VERSION}-{browser}.zip
+# 包含: manifest.json, background/, content/, popup/, options/,
+#       sidebar/, lib/, skills/, icons/, _locales/
+# 排除: tests/, docs/, coverage/, scripts/, locales/(旧版),
+#       node_modules/, *.md, package.json, eslint.config.js 等
 
 set -e
 
@@ -13,11 +21,22 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
-# 浏览器参数
+# ── 颜色输出 ──────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
+ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
+fail()  { echo -e "${RED}[FAIL]${NC} $1"; }
+
+# ── 浏览器参数 ────────────────────────────────────────────────
 BROWSER="${1:-chrome}"
 BROWSER=$(echo "$BROWSER" | tr '[:upper:]' '[:lower:]')
 
-# 验证浏览器参数
 case "$BROWSER" in
   chrome|firefox|edge|all) ;;
   *)
@@ -27,16 +46,29 @@ case "$BROWSER" in
     ;;
 esac
 
-# 读取版本号（从主 manifest.json）
+# ── 读取版本号 ────────────────────────────────────────────────
 VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
 if [ -z "$VERSION" ]; then
-  echo "无法从 manifest.json 读取版本号"
+  fail "无法从 manifest.json 读取版本号"
   exit 1
 fi
+info "版本号: v${VERSION}"
 
-DIST_DIR="$PROJECT_DIR/dist"
+# ── 发布级目录白名单 ──────────────────────────────────────────
+# 只复制这些目录到 .zip 产物中
+INCLUDE_DIRS=(
+  "icons"
+  "background"
+  "content"
+  "popup"
+  "sidebar"
+  "options"
+  "lib"
+  "skills"
+  "_locales"
+)
 
-# 打包单个浏览器
+# ── 打包单个浏览器 ────────────────────────────────────────────
 build_browser() {
   local target="$1"
   local manifest_src=""
@@ -61,6 +93,7 @@ build_browser() {
 
   zip_path="$DIST_DIR/$zip_name"
 
+  echo ""
   echo "========================================="
   echo "打包 $target 版本 (v${VERSION})..."
   echo "========================================="
@@ -68,7 +101,7 @@ build_browser() {
 
   # 检查 manifest 文件是否存在
   if [ ! -f "$manifest_src" ]; then
-    echo "错误: $manifest_src 不存在"
+    fail "$manifest_src 不存在"
     return 1
   fi
 
@@ -79,35 +112,40 @@ build_browser() {
   # 复制 manifest
   cp "$manifest_src" "$temp_dir/manifest.json"
 
-  # 复制扩展文件
-  cp -r icons "$temp_dir/"
-  cp -r background "$temp_dir/"
-  cp -r content "$temp_dir/"
-  cp -r popup "$temp_dir/"
-  cp -r sidebar "$temp_dir/"
-  cp -r options "$temp_dir/"
-  cp -r lib "$temp_dir/"
-  cp -r skills "$temp_dir/"
-  cp -r _locales "$temp_dir/"
+  # 复制发布级目录（白名单模式）
+  info "复制扩展文件（白名单模式）..."
+  for dir in "${INCLUDE_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+      cp -r "$dir" "$temp_dir/"
+      info "  ✓ $dir/"
+    else
+      warn "  ✗ $dir/ 不存在，跳过"
+    fi
+  done
 
-  # Firefox 特殊处理：移除不兼容的文件
-  if [ "$target" = "firefox" ]; then
-    # 移除 Firefox 不支持的 .mjs 模块（如果 service worker 使用 module type）
-    # Firefox MV3 background 使用 scripts 数组而非 service_worker
-    echo "  [Firefox] 清理不兼容的文件..."
-  fi
+  # 清理非必要文件（OS 生成 / 备份）
+  info "清理非必要文件..."
+  find "$temp_dir" -name ".DS_Store" -delete 2>/dev/null || true
+  find "$temp_dir" -name "Thumbs.db" -delete 2>/dev/null || true
+  find "$temp_dir" -name "*.bak" -delete 2>/dev/null || true
+  find "$temp_dir" -name "*.tmp" -delete 2>/dev/null || true
+  find "$temp_dir" -name "*.map" -delete 2>/dev/null || true
+
+  # 移除 lib 中的非 Chrome 用途文件
+  rm -f "$temp_dir/lib/pdf.worker.mjs" 2>/dev/null || true
+
+  # 统计打包内容
+  local file_count=$(find "$temp_dir" -type f | wc -l)
+  local total_size=$(du -sb "$temp_dir" | cut -f1)
+  info "文件数量: $file_count, 原始大小: $(numfmt --to=iec $total_size 2>/dev/null || echo "${total_size} bytes")"
 
   # 打包 zip
   if command -v zip &> /dev/null; then
     cd "$temp_dir"
-    zip -r "$zip_path" . -x "*.DS_Store" -x "Thumbs.db"
+    zip -r -q "$zip_path" .
     cd "$PROJECT_DIR"
-  elif command -v powershell.exe &> /dev/null; then
-    WIN_TEMP_DIR=$(cygpath -w "$temp_dir")
-    WIN_ZIP_PATH=$(cygpath -w "$zip_path")
-    powershell.exe -Command "Compress-Archive -Path '${WIN_TEMP_DIR}\\*' -DestinationPath '${WIN_ZIP_PATH}' -Force"
   else
-    echo "错误: 需要 zip 或 powershell 命令来打包"
+    fail "需要 zip 命令来打包"
     rm -rf "$temp_dir"
     return 1
   fi
@@ -116,13 +154,38 @@ build_browser() {
   rm -rf "$temp_dir"
 
   # 输出结果
-  FILE_SIZE=$(stat -c%s "$zip_path" 2>/dev/null || stat -f%z "$zip_path" 2>/dev/null || wc -c < "$zip_path")
-  echo "  文件: $zip_path"
-  echo "  大小: ${FILE_SIZE} bytes"
+  local zip_size=$(stat -c%s "$zip_path" 2>/dev/null || stat -f%z "$zip_path" 2>/dev/null || wc -c < "$zip_path")
+  echo ""
+  ok "打包完成!"
+  echo "  📦 文件: $zip_path"
+  echo "  📊 大小: $(numfmt --to=iec $zip_size 2>/dev/null || echo "${zip_size} bytes")"
+
+  # 体积检查 (Chrome Web Store 限制 10MB)
+  local max_size=10485760  # 10MB
+  if [ "$zip_size" -le "$max_size" ]; then
+    ok "体积检查: ✅ ≤ 10MB"
+  else
+    fail "体积检查: ❌ > 10MB (Chrome Web Store 限制)"
+  fi
+
+  # 计算哈希
+  if command -v sha256sum &> /dev/null; then
+    local sha256=$(sha256sum "$zip_path" | cut -d' ' -f1)
+    echo "  🔐 SHA-256: $sha256"
+  fi
+
   echo ""
 }
 
-# 执行打包
+# ── 主流程 ────────────────────────────────────────────────────
+
+echo ""
+echo "========================================="
+echo "  智阅 PageWise — 发布构建工具 (R208)"
+echo "========================================="
+
+DIST_DIR="$PROJECT_DIR/dist"
+
 if [ "$BROWSER" = "all" ]; then
   rm -rf "$DIST_DIR"
   mkdir -p "$DIST_DIR"
@@ -142,7 +205,8 @@ else
 fi
 
 echo ""
-echo "安装说明:"
-echo "  Chrome:  chrome://extensions → 开发者模式 → 加载已解压的扩展程序"
-echo "  Firefox: about:debugging → 此 Firefox → 临时加载附加组件"
-echo "  Edge:    edge://extensions → 开发者模式 → 加载解压缩的扩展"
+echo "下一步:"
+echo "  1. 运行 bash scripts/publish-check.sh 执行发布前自检"
+echo "  2. 在 Chrome 中加载测试: chrome://extensions → 开发者模式 → 加载已解压扩展程序"
+echo "  3. 上传至 Chrome Web Store: https://chrome.google.com/webstore/devconsole"
+echo ""
