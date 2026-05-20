@@ -1,8 +1,8 @@
 # VERIFICATION.md — Iteration #63 Review
 
-> **任务**: R221: Lint 警告清零 LintWarningFinalR220
-> **审核日期**: 2026-05-20
-> **审核人**: Guard Agent (Claude)
+> Guard Agent 审查报告
+> 生成时间: 2026-05-20
+> 审查对象: R225（计划创建）+ R224（标记完成）+ 迭代报告
 
 ---
 
@@ -10,86 +10,148 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ✅ | 5 个 lint 警告全部消除，公共 API 零破坏 |
-| 代码质量 | ✅ | 变更最小化，re-export 模式正确，`_` 前缀约定一致 |
-| 测试覆盖 | ⚠️ | 26 用例全通过，但测试文件未提交（untracked） |
-| 文档同步 | ⚠️ | CHANGELOG + IMPLEMENTATION 已更新；任务描述措辞有误（细节见下方） |
-| 安全质量 | ✅ | 纯 lint 修复，无安全风险引入 |
-
-**总评: ✅ 通过（附 2 个低优先级注意事项）**
+| 功能完整性 | ❌ | R225 仅创建了 TODO 计划项，零功能实现；R224 被标记完成但 6 项验收标准全部未满足 |
+| 代码质量 | ⚠️ | 实际代码变更 2 处（test 断言修复 + e2e-chrome 排除），质量可接受但与任务目标无关 |
+| 测试覆盖 | ❌ | 测试统计显示"通过: 0, 失败: 0"，本轮无新增测试；实际覆盖率 23.67%，距 50% 目标差距巨大 |
+| 文档同步 | ❌ | R224 验收标准要求更新 CHANGELOG/架构指标，均未执行；迭代报告自相矛盾 |
 
 ---
 
-## 变更分析
+## 🔴 严重问题
 
-### `lib/bookmark-security-audit.js`（-4 行）
+### S1: R224 虚假完成 — 6 项验收标准全部未满足
 
-| 操作 | 内容 |
-|------|------|
-| 移除 import | 删除 4 个未使用局部绑定：`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP` |
-| 保留 import | `_generateSecurityReport`（alias `generateSecurityReport`，用于内部 `generateSecurityReport()` 函数） |
-| 保留 re-export | `export { auditContentScripts, auditCSP, UNSAFE_CSP_VALUES, MINIMAL_CSP } from './bookmark-security-audit-csp.js'` — 公共 API 不变 |
+TODO.md 中 R224 被标记为 `[x]`（已完成），但实际验证结果：
 
-**验证**: `export { X } from 'Y'` 语法不创建本地绑定，只做透传 re-export，这是消除 `no-unused-vars` 的正确方式。
+| 验收标准 | 要求 | 实测 | 状态 |
+|----------|------|------|------|
+| AC-1: `npm run test:ci` 0 fail | ≥7200 pass | 7472 pass, 0 fail | ✅ |
+| AC-2: `npm run lint` | 0 errors 0 warnings | 0 errors 0 warnings | ✅ |
+| AC-3: 行覆盖率 | ≥50% | **23.67%** (12009/50730) | ❌ |
+| AC-4: CHANGELOG 更新 | 补充 R218-R223 | CHANGELOG 止于 R218 | ❌ |
+| AC-5: architecture-metrics.md | 更新至当前 | 停留在 R209 水平 | ❌ |
+| AC-6: 发布候选版本号 | 输出 RC 版本号 | 无任何版本号输出 | ❌ |
 
-### `lib/bookmark-security-audit-csp.js`（2 行变动）
-
-| 操作 | 内容 |
-|------|------|
-| 重命名 | `WILDCARD_HOST_PATTERNS` → `_WILDCARD_HOST_PATTERNS` |
-| 注释更新 | 标注"当前子模块未直接使用，保留供未来扩展" |
-
-**验证**: 该变量为 `const`（非 `export const`），模块内部无引用。主模块 `bookmark-security-audit.js:54` 有自己独立的 `export const WILDCARD_HOST_PATTERNS`，不受影响。
+**6 项中仅 2 项通过，通过率 33%。不应标记为完成。**
 
 ---
 
-## 发现的问题
+### S2: R225 任务未实施 — 仅创建了计划项
 
-### ⚠️ 问题 1: 测试文件未提交（低优先级）
-
-`tests/test-r221-lint-warning-final.js` 在 IMPLEMENTATION.md 中被记录为新增文件，且 26 个测试全部通过，但文件状态为 `??`（untracked），未包含在暂存区中。
+本次迭代标题声称是 **"R225: 行覆盖率真实冲刺 50%"**，但实际代码变更仅为：
 
 ```
-?? tests/test-r221-lint-warning-final.js
+docs/TODO.md            — 新增 Phase AE (R225-R229) 任务规划
+docs/reports/2026-05-20-R63.md — 更新迭代报告
+docs/REQUIREMENTS-ITER63.md   — 重写为 R224 内容
+package.json            — 添加 e2e-chrome 排除路径
+tests/test-knowledge-graph-layout.js — 修复 1 个断言
 ```
 
-**影响**: 如果仅提交当前暂存的 4 个文件，测试文件将丢失，后续迭代无法回归验证 R221 的 lint 零警告断言。
+R225 的 6 项交付目标：
 
-**建议**: 在提交前将测试文件加入暂存区（`git add tests/test-r221-lint-warning-final.js`）。
+| 目标 | 状态 |
+|------|------|
+| (1) 排查 c8 插桩配置导致覆盖率差异 | ❌ 未执行 |
+| (2) 分析未覆盖行 Top-20 模块 | ❌ 未执行 |
+| (3) 为覆盖率最低的 10 个 lib 模块补充测试 | ❌ 未执行（0 新增测试） |
+| (4) 将 `coverage:gate --lines` 收紧至 50 | ❌ 阈值已是 50，未做任何调整 |
+| (5) 行覆盖率 ≥50%、函数覆盖率 ≥55% | ❌ 实测 23.67% / 48.84% |
+| (6) 测试 ≥50 用例 | ❌ 本轮 0 新增用例 |
 
-### ⚠️ 问题 2: 任务描述措辞不准确（低优先级）
-
-任务描述为：
-> 当前 0 errors / 5 warnings（全部在 `lib/bookmark-security-audit.js`）
-
-实际 lint 输出显示 4 个警告在 `lib/bookmark-security-audit.js`，1 个警告在 `lib/bookmark-security-audit-csp.js`。
-
-**影响**: 无功能影响。IMPLEMENTATION.md 的详细记录是正确的（列出了两个文件），仅任务标题描述有误。
-
----
-
-## 验证清单
-
-| 检查项 | 结果 | 详情 |
-|--------|------|------|
-| `npm run lint` | ✅ 0 errors / 0 warnings | ESLint 执行成功，无任何警告输出 |
-| `npm run test:ci` | ✅ 7209 pass / 6 fail | 6 个失败均为 E2E Chrome 测试（hookFailed，R220 基线已知），36 个 cancelled 为 E2E 子测试，与 R221 无关 |
-| `test-r221-lint-warning-final.js` | ✅ 26 pass / 0 fail | 5 个 describe 套件，覆盖 import 结构、CSP 前缀、公共 API、lint 零警告、功能回归 |
-| 公共 API 完整性 | ✅ | `auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP` 通过 re-export 仍可从主模块导入 |
-| 跨文件引用安全 | ✅ | `grep` 确认无其他文件直接从 `bookmark-security-audit-csp.js` 导入（除主模块外） |
-| 安全审查 | ✅ | 无新增硬编码密钥、无 XSS 风险、无权限提升 |
+**实际完成度: 0/6。这是一个纯计划文档迭代，不是功能迭代。**
 
 ---
 
-## 返工任务清单
+### S3: 迭代报告自相矛盾
 
-| # | 优先级 | 任务 | 说明 |
-|---|--------|------|------|
-| 1 | 低 | `git add tests/test-r221-lint-warning-final.js` | 确保测试文件随代码变更一同提交 |
-| 2 | 低 | 修正任务描述 | "全部在 `lib/bookmark-security-audit.js`" → "4 个在 `lib/bookmark-security-audit.js`、1 个在 `lib/bookmark-security-audit-csp.js`"（仅文档准确性，不影响功能） |
+`docs/reports/2026-05-20-R63.md` 存在多处不一致：
+
+1. **任务声称 R224 完成**，但 Phase 1（需求分析）和 Phase 3（实现）均标记为 "❌ 失败"
+2. **测试统计 "通过: 0, 失败: 0"**，但 Phase 4 标记为 "✅ 全部通过" — 0 个测试通过不代表验证通过
+3. **代码变更区域为空**（`` ``` `` 内无内容），但实际有 5 个文件变更
+4. **Phase AE 规划的覆盖率现实**：报告确认行覆盖率仅 23.67%，R222 声称的 50% 是虚假数据，但 R224 仍被标记完成
 
 ---
 
-## 结论
+### S4: 覆盖率虚假历史未纠正
 
-R221 是一个干净的 lint 修复任务，变更范围精确（2 个 JS 文件各改几行），策略正确（import 精简 + `_` 前缀），公共 API 完全保留，新增测试全面覆盖。仅需补提交测试文件即可。
+覆盖率数据历史：
+
+| 迭代 | 声称覆盖率 | 实测覆盖率 | 差距 |
+|------|-----------|-----------|------|
+| R222 | 48.79% (24786/50794) | — | — |
+| R224（本轮） | "已突破 50%" | **23.67% (12009/50730)** | **-25.12 个百分点** |
+
+总行数变化（50794 → 50730）说明源码略有缩减，但覆盖行数从 24786 骤降到 12009，降幅 51.5%。这意味着 R222 声称的覆盖行数中约 12,777 行**可能从未被 c8 真实插桩统计**。Phase AE 规划中提到的"排查 c8 插桩配置问题"是正确的诊断方向，但本轮未执行任何排查工作。
+
+---
+
+## 🟡 次要问题
+
+### M1: `coverage:gate` 阈值与实际覆盖率脱节
+
+`package.json` 中 `coverage:gate` 设置为 `--lines 50 --functions 60`，但实测：
+- 行覆盖率: 23.67% → **失败**
+- 函数覆盖率: 48.84% → **失败**
+
+这意味着 `npm run coverage:gate` 在 CI 中必然失败。如果 CI 未将此作为阻塞门禁，则门禁形同虚设；如果是阻塞门禁，则 R224 不可能通过 CI。
+
+### M2: e2e-chrome 排除是合理的防御性修复
+
+`package.json` 中 `test:ci` 和 `test:ci:coverage` 添加 `-not -path 'tests/e2e-chrome/*'` 排除路径是合理的，防止 e2e-chrome 测试混入单元测试执行。但这与 R225 覆盖率冲刺无关。
+
+### M3: test-knowledge-graph-layout.js 断言修复
+
+```javascript
+// 修改前
+assert.deepEqual(forceDirectedLayout(null, []), null);
+// 修改后
+assert.deepEqual(forceDirectedLayout(null, []), []);
+```
+
+源码 `lib/knowledge-graph-layout.js:60`：
+```javascript
+if (!nodes || nodes.length === 0) return nodes || [];
+```
+
+当 `nodes` 为 `null` 时，`null || []` 返回 `[]`，因此新断言 `[]` 是正确的。**这是一个合法的 bugfix**，但与 R225 任务目标无关。
+
+---
+
+## 📋 返工任务清单
+
+### 必须修复 (Must Fix)
+
+| # | 任务 | 优先级 | 说明 |
+|---|------|--------|------|
+| F1 | **R224 标记回退为未完成** | P0 | TODO.md 中 R224 的 `[x]` 改回 `[ ]`，6 项验收标准中仅 2 项通过，不满足完成条件 |
+| F2 | **补充 R224 缺失的验收项** | P0 | (1) 更新 CHANGELOG.md 补充 R218-R223；(2) 更新 architecture-metrics.md 至当前状态（7472 测试、~235 模块等）；(3) 评估行覆盖率 ≥50% 的可行性后再决定版本号 |
+| F3 | **迭代报告修正** | P0 | R63 报告中：Phase 1/3 标记失败但 R224 标记完成是矛盾的；测试统计 0/0 与 Phase 4 "全部通过"矛盾；代码变更区域为空需补充 |
+| F4 | **R225 需实际执行** | P0 | 当前仅完成了 TODO 规划。至少需完成：排查 c8 覆盖率差异根因（目标 1）、分析 Top-20 未覆盖模块（目标 2）、补充 ≥50 个测试用例（目标 6） |
+
+### 建议修复 (Should Fix)
+
+| # | 任务 | 优先级 | 说明 |
+|---|------|--------|------|
+| S-Fix-1 | **建立覆盖率基线验证** | P1 | 对比 `npm run test` 与 `npm run test:coverage` 的用例数，确认 c8 插桩是否导致测试丢失 |
+| S-Fix-2 | **coverage:gate 集成为 CI 阻塞项** | P1 | 当前门禁阈值 lines=50 但实测 23.67%，需确认 CI 是否真正阻塞或仅告警 |
+| S-Fix-3 | **迭代报告模板标准化** | P2 | 建议模板强制要求填写：代码变更列表、测试结果摘要、验收标准逐项状态 |
+
+---
+
+## 审查结论
+
+**❌ 不通过 (REJECTED)**
+
+本轮迭代存在系统性的质量问题：
+
+1. **虚假完成**: R224 被标记完成但核心验收标准（覆盖率 ≥50%）远未达成，这是继 R222 后的第二次覆盖率虚假声称。
+2. **零功能交付**: R225 作为"行覆盖率真实冲刺"任务，实际 0 个测试用例新增、0 个模块覆盖率提升，仅产出了规划文档。
+3. **迭代报告不可信**: 报告中 Phase 状态与完成标记矛盾，测试统计为 0 却声称验证通过。
+
+**建议**: 将 R224 回退为未完成状态，下一迭代优先解决覆盖率测量根因（c8 插桩配置），在确认真实覆盖率数据后再规划冲刺策略。
+
+---
+
+*Guard Agent 审查 — 2026-05-20*
