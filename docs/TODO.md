@@ -717,4 +717,23 @@
 
 - [x] **R170: 书签批注与笔记 BookmarkAnnotations** — 新建 `lib/bookmark-annotations.js`，为书签增加个人思考沉淀层：(1) 为任意书签添加批注/笔记（支持 Markdown 格式文本）；(2) 每个书签可有多条笔记（按时间倒序排列），支持编辑/删除；(3) 笔记全文检索（与 bookmark-semantic-search.js 集成，笔记内容纳入 TF-IDF 索引）；(4) 笔记与知识条目双向关联（复用 bookmark-knowledge-link.js）；(5) 导入导出支持（复用 bookmark-io.js，笔记随书签一起导出）；(6) AI 辅助：基于书签内容和已有笔记自动推荐"思考问题"（复用 ai-client-context.js）；(7) 笔记统计：总笔记数、本周新增、按领域分布；(8) 测试 ≥25 用例。复杂度: Medium
 
-- [ ] **R171: 全量回归与迭代收尾 IterationCloseR62** — R168-R170 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6350 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R168-R170 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+- [x] **R171: 全量回归与迭代收尾 IterationCloseR62** — R168-R170 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6350 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R168-R170 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+
+---
+
+## Phase U: 深度学习闭环与智能升级 (R172-R176) — 5 轮
+
+> 飞轮迭代 R63 起，2026-05-20
+> 现状: Phase T 知识沉淀完成，190 个 lib 模块、177 个测试文件、6350+ 测试通过、技术债务全部关闭、Lint 0/0
+> 方向: 从"知识沉淀"升级为"智能学习伙伴"——引入离线阅读、智能阅读队列、学习效能分析、一键整页速存、用户画像
+> 任务来源优先级: 新功能探索 > 性能优化 > 代码质量
+
+- [x] **R172: 离线内容缓存 OfflineContentCache** — 新建 `lib/bookmark-offline-cache.js`，为书签提供离线内容存储：(1) 书签页面正文提取与本地缓存（基于 Readability 算法提取正文，存入 IndexedDB）；(2) 离线搜索：基于缓存内容的全文检索（复用 bookmark-semantic-search.js TF-IDF 索引）；(3) 缓存管理：LRU 淘汰（最大 500 篇）、存储用量统计与警告、手动清除指定域名/时间范围；(4) 自动缓存：已读/收藏书签自动后台缓存（复用 BookmarkPerformance.js 分批处理）；(5) 缓存状态标记：书签详情面板显示"已缓存/未缓存/缓存过期"；(6) 导出：缓存内容随书签导出（复用 bookmark-io.js）；(7) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R173: 智能阅读队列 ReadingQueue** — 新建 `lib/bookmark-reading-queue.js`，构建动态优先级阅读调度系统：(1) 基于多维度综合评分排序：紧急度（死线/推荐频率）、兴趣度（标签匹配用户偏好）、新鲜度（未读时长）、难度梯度（结合 learning-path.js 难度标记）；(2) 队列操作：enqueue/dequeue/reorder/snooze（推迟 N 天）/dismiss（移除）；(3) 与 SpacedRepetition(R163) 集成：复习任务自动插入队列优先位；(4) 与 LearningGoals(R169) 集成：当日阅读完成自动扣减队列；(5) 队列视图：分"今日必读/本周推荐/稍后阅读"三档展示；(6) 队列统计：平均阅读完成率、拖延率、推荐命中率；(7) 持久化：chrome.storage.local；(8) 测试 ≥30 用例。复杂度: Complex
+
+- [ ] **R174: 学习效能分析 LearningEffectivenessAnalytics** — 新建 `lib/bookmark-learning-analytics.js`，基于已有数据深度分析用户学习模式：(1) 学习效率指数：知识保留率（SpacedRepetition 数据）× 阅读完成率 × 笔记活跃度（BookmarkAnnotations）加权计算；(2) 时间模式分析：识别用户最高效学习时段（按小时/星期统计产出）；(3) 领域投入-产出比：每个领域投入阅读时间 vs. 知识保留率，识别"高投入低产出"领域并建议策略调整；(4) 学习趋势图数据：7日/30日/90日效率趋势（含移动平均线）；(5) AI 洞察：基于分析数据生成自然语言学习建议（复用 ai-client.js，如"您在前端领域学习效率最高，建议将后端学习拆分为小单元"）；(6) 导出报告：Markdown/HTML 格式（复用 WeeklyDigest.toMarkdown/toHTML）；(7) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R175: 一键整页速存 QuickPageCapture** — 新建 `lib/bookmark-quick-capture.js`，提供从任意网页一键保存完整学习快照：(1) 整页捕获：同时保存书签 + 页面正文提取 + 当前所有高亮（复用 highlight-store.js）+ 页面截图缩略图（tabCapture API）；(2) AI 摘要：自动生成 150 字页面摘要 + 5 个关键词标签（复用 bookmark-tagger.js + ai-client.js）；(3) 智能归类：自动建议文件夹/智能集合（复用 bookmark-smart-collections.js + bookmark-clusterer.js）；(4) 快捷入口：右键菜单"用 PageWise 速存此页" + 快捷键 Ctrl+Shift+S（复用 bookmark-keyboard-shortcuts.js）；(5) 保存后弹出面板：展示摘要预览、标签编辑、集合选择、一键确认；(6) 批量模式：当前窗口所有标签页一键批量速存；(7) 测试 ≥20 用例。复杂度: Medium
+
+- [ ] **R176: 用户画像与偏好引擎 UserProfileEngine** — 新建 `lib/bookmark-user-profile.js`，构建跨模块统一用户画像：(1) 显性偏好：用户手动设置的兴趣领域、难度偏好、每日学习时长目标；(2) 隐性偏好：基于阅读历史自动推断（标签频率、域名频率、阅读完成率加权）；(3) 偏好向量：生成用户兴趣领域向量（14 维，对应 14 个技术领域），定期更新（复用 BookmarkClusterer 领域分类）；(4) 偏好接口：`getProfile()` / `getPreferences()` / `getInterestVector()` / `suggestTopics()` 供其他模块消费；(5) 与 AI 推荐集成：兴趣向量注入 AI prompt（复用 bookmark-ai-recommender.js），提升推荐个性化；(6) 与 ReadingQueue 集成：兴趣向量影响排序权重；(7) 偏好变更历史：记录偏好漂移轨迹，支持"兴趣演化"可视化；(8) 持久化：chrome.storage.sync（跨设备同步）；(9) 测试 ≥30 用例。复杂度: Complex

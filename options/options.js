@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- DocMind AI 网关初始化 ---
-  const aiGatewaySection = document.getElementById('aiGatewaySection');
+  const _aiGatewaySection = document.getElementById('aiGatewaySection');
   const gatewayDot = document.getElementById('gatewayDot');
   const gatewayStatusText = document.getElementById('gatewayStatusText');
   const aiGatewayActions = document.getElementById('aiGatewayActions');
@@ -444,7 +444,7 @@ function applySettingsToUI(settings) {
   if (settings.maxTokens) document.getElementById('maxTokens').value = settings.maxTokens;
 }
 
-function showConflict(conflict, gateway) {
+function showConflict(conflict, _gateway) {
   const conflictDiv = document.getElementById('aiGatewayConflict');
   const detailsDiv = document.getElementById('conflictDetails');
 

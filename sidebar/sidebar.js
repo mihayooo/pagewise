@@ -6166,7 +6166,7 @@ ${sendContent}
     items.forEach(item => {
       let startX = 0;
       let currentX = 0;
-      let swiping = false;
+      let _swiping = false;
 
       item.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
@@ -7343,7 +7343,7 @@ ${sendContent}
     // 限制显示数量（性能）
     const display = bookmarks.slice(0, 100);
 
-    const listAttrs = this._bookmarkA11y.getBookmarkListAriaAttrs({ count: display.length })
+    const _listAttrs = this._bookmarkA11y.getBookmarkListAriaAttrs({ count: display.length })
     const listAttrStr = this._bookmarkA11y.getBookmarkListAttrString({ count: display.length })
 
     let html = `<div class="bk-list" ${listAttrStr}>`;
@@ -7358,7 +7358,7 @@ ${sendContent}
       const title = this._highlightMatch(bm.title || bm.url, this._bookmarkSearchQuery);
 
       // R79: 无障碍 ARIA 属性
-      const itemAttrs = this._bookmarkA11y.getBookmarkItemAriaAttrs({
+      const _itemAttrs = this._bookmarkA11y.getBookmarkItemAriaAttrs({
         title: bm.title || bm.url,
         url: bm.url,
         status,
@@ -7702,4 +7702,4 @@ ${sendContent}
   }
 }
 
-const app = new SidebarApp();
+const _app = new SidebarApp();
