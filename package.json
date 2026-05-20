@@ -5,9 +5,10 @@
   "type": "module",
   "description": "智阅 PageWise - Chrome 浏览器扩展",
   "scripts": {
-    "test": "node --test 'tests/*.js'",
-    "test:ci": "node --test $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' | sort)",
-    "test:all": "node --test 'tests/*.js' 'tests/e2e/*.js'",
+    "test": "node --test --test-concurrency=8 'tests/*.js'",
+    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' | sort)",
+    "test:all": "node --test --test-concurrency=8 'tests/*.js' 'tests/e2e/*.js'",
+    "test:smoke": "node --test --test-concurrency=4 tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-knowledge-base.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-bookmark-store.js tests/test-highlight-store.js tests/test-embedding-engine.js",
     "test:coverage": "node scripts/clean-coverage.js && c8 --reporter=lcov --reporter=text-summary --reporter=html npm run test:ci",
     "coverage:gate": "c8 check-coverage --lines 20",
     "lint": "eslint . --max-warnings 10000"

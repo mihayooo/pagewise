@@ -123,9 +123,9 @@ describe('getAllConversations — 获取全部', () => {
 
   it('返回所有对话，按 updatedAt 倒序', async () => {
     await saveConversation('https://first.com', 'First', []);
-    await new Promise((r) => setTimeout(r, 15));
+    await new Promise((r) => setTimeout(r, 5));
     await saveConversation('https://second.com', 'Second', []);
-    await new Promise((r) => setTimeout(r, 15));
+    await new Promise((r) => setTimeout(r, 5));
     await saveConversation('https://third.com', 'Third', []);
 
     const all = await getAllConversations();
@@ -154,7 +154,7 @@ describe('deleteConversation — 删除', () => {
 
   it('删除后不影响其他对话', async () => {
     const conv1 = await saveConversation('https://keep.com', 'Keep', []);
-    await new Promise((r) => setTimeout(r, 15));
+    await new Promise((r) => setTimeout(r, 5));
     const conv2 = await saveConversation('https://remove.com', 'Remove', []);
 
     await deleteConversation(conv2.id);

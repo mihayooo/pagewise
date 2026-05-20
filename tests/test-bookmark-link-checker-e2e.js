@@ -243,7 +243,7 @@ describe('BookmarkLinkChecker', () => {
         inflight++;
         maxInflight = Math.max(maxInflight, inflight);
 
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 5));
         inflight--;
         return new Response('', { status: 200, type: 'basic' });
       });
@@ -266,7 +266,7 @@ describe('BookmarkLinkChecker', () => {
         callCount++;
         if (callCount >= 3) {
           // 第 3 次调用时检查是否已取消
-          await new Promise(r => setTimeout(r, 10));
+          await new Promise(r => setTimeout(r, 5));
         }
         return new Response('', { status: 200, type: 'basic' });
       });

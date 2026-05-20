@@ -102,25 +102,25 @@ describe('AICache get — 缓存未命中', () => {
 
 describe('AICache TTL 过期', () => {
   it('超过 ttlMs 后 get 返回 null', async () => {
-    const cache = new AICache({ ttlMs: 50 });
+    const cache = new AICache({ ttlMs: 20 });
     cache.set('expire', { data: 'old' });
-    await sleep(60);
+    await sleep(25);
     assert.equal(cache.get('expire'), null);
     assert.equal(cache.stats().misses, 1);
   });
 
   it('超过 ttlMs 后 has 返回 false', async () => {
-    const cache = new AICache({ ttlMs: 50 });
+    const cache = new AICache({ ttlMs: 20 });
     cache.set('expire2', { data: 'old' });
     assert.equal(cache.has('expire2'), true);
-    await sleep(60);
+    await sleep(25);
     assert.equal(cache.has('expire2'), false);
   });
 
   it('在 ttlMs 内 get 正常返回', async () => {
     const cache = new AICache({ ttlMs: 5000 });
     cache.set('alive', { data: 'live' });
-    await sleep(30);
+    await sleep(25);
     const result = cache.get('alive');
     assert.equal(result.data, 'live');
   });
@@ -254,9 +254,9 @@ describe('AICache has', () => {
   });
 
   it('过期的键返回 false 并清理', async () => {
-    const cache = new AICache({ ttlMs: 50 });
+    const cache = new AICache({ ttlMs: 20 });
     cache.set('k', { v: 1 });
-    await sleep(80);
+    await sleep(25);
     assert.equal(cache.has('k'), false);
     assert.equal(cache.size(), 0, '过期键应被清理');
   });
@@ -291,10 +291,10 @@ describe('AICache clear', () => {
 
 describe('AICache evictExpired', () => {
   it('清理过期条目并返回数量', async () => {
-    const cache = new AICache({ ttlMs: 50 });
+    const cache = new AICache({ ttlMs: 20 });
     cache.set('a', { v: 1 });
     cache.set('b', { v: 2 });
-    await sleep(80);
+    await sleep(25);
     cache.set('c', { v: 3 }); // 新条目，未过期
     const evicted = cache.evictExpired();
     assert.equal(evicted, 2);
@@ -316,13 +316,13 @@ describe('AICache evictExpired', () => {
 
 describe('AICache stats', () => {
   it('综合场景统计正确', async () => {
-    const cache = new AICache({ maxSize: 2, ttlMs: 50 });
+    const cache = new AICache({ maxSize: 2, ttlMs: 20 });
     cache.set('a', { v: 1 });
     cache.set('b', { v: 2 });
     cache.get('a');           // hit: LRU → store=[b, a]
     cache.get('x');           // miss
     cache.set('c', { v: 3 }); // store满 → evict最老'b' → store=[a, c], evictions=1
-    await sleep(80);
+    await sleep(25);
     cache.get('b');           // miss: 已不在 store 中
 
     const s = cache.stats();

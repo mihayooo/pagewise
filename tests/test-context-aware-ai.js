@@ -167,7 +167,7 @@ describe('ContextRetriever.retrieveContext()', () => {
 
   it('搜索超时 500ms 时降级为空', async () => {
     const slowSearch = {
-      hybridSearch: () => new Promise(resolve => setTimeout(() => resolve([createSampleBookmark()]), 200)),
+      hybridSearch: () => new Promise(resolve => setTimeout(() => resolve([createSampleBookmark()]), 150)),
     }
     const retriever = new ContextRetriever({ semanticSearch: slowSearch, timeoutMs: 100 })
     const results = await retriever.retrieveContext('test')
