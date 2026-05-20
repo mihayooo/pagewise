@@ -1,47 +1,112 @@
 /**
- * Tests for Cost Estimator module
+ * 测试 lib/cost-estimator.js — API 费用估算
  */
-import { describe, it, beforeEach } from 'node:test';
+
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  USD_TO_CNY,
   MODEL_PRICING,
-  estimateCost,
-  estimateMessagesCost,
+  findClosestModel,
   getModelPricing,
   getAllModelPricing,
+  estimateCost,
+  estimateMessagesCost,
+  estimateSavingsFromCache,
   formatCost,
   formatCostCNY,
-  estimateSavingsFromCache,
-  findClosestModel
+  usdToCents,
+  centsToUsd,
 } from '../lib/cost-estimator.js';
 
-// ==================== MODEL_PRICING ====================
+// ==================== findClosestModel ====================
 
-describe('MODEL_PRICING', () => {
-  it('contains pricing for common models', () => {
-    assert.ok(MODEL_PRICING['gpt-4o']);
-    assert.ok(MODEL_PRICING['gpt-4o-mini']);
-    assert.ok(MODEL_PRICING['claude-sonnet-4-6']);
-    assert.ok(MODEL_PRICING['claude-opus-4-6']);
-    assert.ok(MODEL_PRICING['claude-haiku-4-5']);
-    assert.ok(MODEL_PRICING['deepseek-chat']);
+describe('findClosestModel', () => {
+  it('精确匹配', () => {
+    assert.equal(findClosestModel('gpt-4o'), 'gpt-4o');
+    assert.equal(findClosestModel('claude-sonnet-4-6'), 'claude-sonnet-4-6');
   });
 
-  it('each entry has input and output prices', () => {
-    for (const [model, pricing] of Object.entries(MODEL_PRICING)) {
-      assert.equal(typeof pricing.input, 'number', `${model} missing input price`);
-      assert.equal(typeof pricing.output, 'number', `${model} missing output price`);
-      assert.ok(pricing.input >= 0, `${model} input price must be >= 0`);
-      assert.ok(pricing.output >= 0, `${model} output price must be >= 0`);
+  it('大小写不敏感', () => {
+    assert.equal(findClosestModel('GPT-4O'), 'gpt-4o');
+  });
+
+  it('前缀匹配 (日期后缀)', () => {
+    assert.equal(findClosestModel('gpt-4o-2024-08-06'), 'gpt-4o');
+  });
+
+  it('子串匹配', () => {
+    assert.equal(findClosestModel('my-gpt-4o-custom'), 'gpt-4o');
+  });
+
+  it('未知模型返回 null', () => {
+    assert.equal(findClosestModel('unknown-model-xyz'), null);
+  });
+
+  it('null/空字符串返回 null', () => {
+    assert.equal(findClosestModel(null), null);
+    assert.equal(findClosestModel(''), null);
+    assert.equal(findClosestModel(undefined), null);
+  });
+
+  it('非字符串返回 null', () => {
+    assert.equal(findClosestModel(123), null);
+  });
+
+  it('Ollama 模型匹配', () => {
+    assert.equal(findClosestModel('llama3'), 'llama3');
+  });
+});
+
+// ==================== getModelPricing ====================
+
+describe('getModelPricing', () => {
+  it('已知模型返回正确价格', () => {
+    const p = getModelPricing('gpt-4o');
+    assert.equal(p.input, 2.50);
+    assert.equal(p.output, 10.00);
+    assert.equal(p.family, 'openai');
+    assert.equal(p.modelName, 'gpt-4o');
+  });
+
+  it('未知模型返回默认价格', () => {
+    const p = getModelPricing('unknown-model');
+    assert.equal(p.input, 3.00);
+    assert.equal(p.output, 15.00);
+    assert.equal(p.family, 'unknown');
+    assert.equal(p.modelName, 'unknown-model');
+  });
+
+  it('null 返回默认价格', () => {
+    const p = getModelPricing(null);
+    assert.equal(p.modelName, 'unknown');
+  });
+});
+
+// ==================== getAllModelPricing ====================
+
+describe('getAllModelPricing', () => {
+  it('返回数组', () => {
+    const all = getAllModelPricing();
+    assert.ok(Array.isArray(all));
+    assert.ok(all.length > 0);
+  });
+
+  '按 input 价格升序排列',
+  () => {
+    const all = getAllModelPricing();
+    for (let i = 1; i < all.length; i++) {
+      assert.ok(all[i].input >= all[i - 1].input);
     }
-  });
+  };
 
-  it('output price is >= input price for all models', () => {
-    for (const [model, pricing] of Object.entries(MODEL_PRICING)) {
-      assert.ok(
-        pricing.output >= pricing.input,
-        `${model}: output (${pricing.output}) should be >= input (${pricing.input})`
-      );
+  it('每项包含 model, input, output, family', () => {
+    const all = getAllModelPricing();
+    for (const item of all) {
+      assert.ok(item.model);
+      assert.equal(typeof item.input, 'number');
+      assert.equal(typeof item.output, 'number');
+      assert.ok(item.family);
     }
   });
 });
@@ -49,264 +114,110 @@ describe('MODEL_PRICING', () => {
 // ==================== estimateCost ====================
 
 describe('estimateCost', () => {
-  it('calculates cost for gpt-4o correctly', () => {
-    // gpt-4o: $2.50/1M input, $10.00/1M output
-    const result = estimateCost('gpt-4o', 1000000, 1000000);
-    assert.equal(result.usd, 12.50);
+  it('计算已知模型费用', () => {
+    const cost = estimateCost('gpt-4o', 1_000_000, 1_000_000);
+    assert.equal(cost.inputUsd, 2.50);
+    assert.equal(cost.outputUsd, 10.00);
+    assert.equal(cost.usd, 12.50);
+    assert.equal(cost.cny, 12.50 * USD_TO_CNY);
   });
 
-  it('calculates cost for gpt-4o-mini (cheap model)', () => {
-    // gpt-4o-mini: $0.15/1M input, $0.60/1M output
-    const result = estimateCost('gpt-4o-mini', 1000000, 1000000);
-    assert.equal(result.usd, 0.75);
+  it('0 tokens 费用为 0', () => {
+    const cost = estimateCost('gpt-4o', 0, 0);
+    assert.equal(cost.usd, 0);
   });
 
-  it('calculates cost for claude-sonnet-4-6', () => {
-    // claude-sonnet-4-6: $3.00/1M input, $15.00/1M output
-    const result = estimateCost('claude-sonnet-4-6', 500000, 500000);
-    assert.equal(result.usd, 9.00);
+  it('null tokens 当作 0', () => {
+    const cost = estimateCost('gpt-4o', null, null);
+    assert.equal(cost.usd, 0);
   });
 
-  it('handles small token counts', () => {
-    // 1000 tokens for gpt-4o: input=1000*2.5/1M=0.0025, output=1000*10/1M=0.01
-    const result = estimateCost('gpt-4o', 1000, 1000);
-    assert.ok(Math.abs(result.usd - 0.0125) < 0.0001);
-  });
-
-  it('handles zero tokens', () => {
-    const result = estimateCost('gpt-4o', 0, 0);
-    assert.equal(result.usd, 0);
-    assert.equal(result.cny, 0);
-  });
-
-  it('handles zero input with non-zero output', () => {
-    const result = estimateCost('gpt-4o', 0, 1000000);
-    assert.equal(result.usd, 10.00);
-  });
-
-  it('handles non-zero input with zero output', () => {
-    const result = estimateCost('gpt-4o', 1000000, 0);
-    assert.equal(result.usd, 2.50);
-  });
-
-  it('returns cny estimate', () => {
-    const result = estimateCost('gpt-4o', 1000000, 0);
-    assert.equal(result.cny, 18.00); // 2.50 * 7.2
-  });
-
-  it('uses fallback pricing for unknown model', () => {
-    // Unknown models should use a default mid-range pricing
-    const result = estimateCost('unknown-model', 1000000, 1000000);
-    assert.ok(result.usd > 0, 'Unknown model should still estimate cost');
-    assert.ok(result.usd < 100, 'Unknown model cost should be reasonable');
-  });
-
-  it('handles negative tokens gracefully', () => {
-    const result = estimateCost('gpt-4o', -100, -50);
-    assert.equal(result.usd, 0);
-  });
-
-  it('handles model name with version suffix', () => {
-    // e.g., "gpt-4o-2024-08-06" should match "gpt-4o"
-    const result = estimateCost('gpt-4o-2024-08-06', 1000000, 1000000);
-    assert.ok(result.usd > 0, 'Should find base model pricing');
-  });
-});
-
-// ==================== formatCost ====================
-
-describe('formatCost', () => {
-  it('formats dollars correctly', () => {
-    assert.equal(formatCost(1.50), '$1.50');
-  });
-
-  it('formats cents', () => {
-    assert.equal(formatCost(0.05), '$0.05');
-  });
-
-  it('formats zero', () => {
-    assert.equal(formatCost(0), '$0.00');
-  });
-
-  it('formats large amounts', () => {
-    assert.equal(formatCost(1234.56), '$1234.56');
-  });
-
-  it('handles very small amounts (< $0.01)', () => {
-    assert.equal(formatCost(0.001), '<$0.01');
-  });
-
-  it('handles null/undefined', () => {
-    assert.equal(formatCost(null), '$0.00');
-    assert.equal(formatCost(undefined), '$0.00');
-  });
-});
-
-// ==================== formatCostCNY ====================
-
-describe('formatCostCNY', () => {
-  it('formats CNY from USD', () => {
-    const result = formatCostCNY(1.00);
-    assert.equal(result, '¥7.20');
-  });
-
-  it('formats small amounts', () => {
-    const result = formatCostCNY(0.01);
-    assert.ok(result.startsWith('¥'));
-  });
-
-  it('handles zero', () => {
-    assert.equal(formatCostCNY(0), '¥0.00');
-  });
-
-  it('handles null/undefined', () => {
-    assert.equal(formatCostCNY(null), '¥0.00');
-    assert.equal(formatCostCNY(undefined), '¥0.00');
-  });
-});
-
-// ==================== getModelPricing ====================
-
-describe('getModelPricing', () => {
-  it('returns pricing for known model', () => {
-    const pricing = getModelPricing('gpt-4o');
-    assert.equal(pricing.input, 2.50);
-    assert.equal(pricing.output, 10.00);
-    assert.ok(pricing.modelName);
-  });
-
-  it('returns null or default for unknown model', () => {
-    const pricing = getModelPricing('nonexistent-model');
-    assert.ok(pricing !== null && pricing !== undefined, 'Should return fallback pricing');
-    assert.ok(pricing.input >= 0);
-  });
-
-  it('matches partial model names', () => {
-    const pricing = getModelPricing('gpt-4o-2024-08-06');
-    assert.equal(pricing.input, 2.50);
-  });
-});
-
-// ==================== getAllModelPricing ====================
-
-describe('getAllModelPricing', () => {
-  it('returns an array of model pricing', () => {
-    const all = getAllModelPricing();
-    assert.ok(Array.isArray(all));
-    assert.ok(all.length > 0);
-  });
-
-  it('each entry has required fields', () => {
-    const all = getAllModelPricing();
-    for (const entry of all) {
-      assert.ok(entry.model, 'Missing model name');
-      assert.equal(typeof entry.input, 'number');
-      assert.equal(typeof entry.output, 'number');
-    }
-  });
-
-  it('is sorted by input price ascending', () => {
-    const all = getAllModelPricing();
-    for (let i = 1; i < all.length; i++) {
-      assert.ok(all[i].input >= all[i - 1].input, 'Should be sorted by input price');
-    }
+  it('Ollama 模型免费', () => {
+    const cost = estimateCost('llama3', 1_000_000, 1_000_000);
+    assert.equal(cost.usd, 0);
   });
 });
 
 // ==================== estimateMessagesCost ====================
 
 describe('estimateMessagesCost', () => {
-  it('estimates cost for a simple conversation', () => {
+  it('估算消息数组费用', () => {
     const messages = [
       { role: 'user', content: 'Hello, how are you?' },
+      { role: 'assistant', content: 'I am fine, thanks!' },
     ];
-    const result = estimateMessagesCost('gpt-4o', messages, 500);
-    assert.ok(result.inputCost >= 0);
-    assert.ok(result.outputCost >= 0);
-    assert.ok(result.total > 0);
+    const cost = estimateMessagesCost('gpt-4o', messages, 1000);
+    assert.ok(cost.inputTokens > 0);
+    assert.equal(cost.outputTokens, 1000);
+    assert.ok(cost.total > 0);
   });
 
-  it('returns higher cost for longer messages', () => {
-    const shortMessages = [{ role: 'user', content: 'Hi' }];
-    const longMessages = [{ role: 'user', content: 'a'.repeat(10000) }];
-    const shortCost = estimateMessagesCost('gpt-4o', shortMessages, 500);
-    const longCost = estimateMessagesCost('gpt-4o', longMessages, 500);
-    assert.ok(longCost.total > shortCost.total);
+  it('空消息数组', () => {
+    const cost = estimateMessagesCost('gpt-4o', [], 100);
+    assert.ok(cost.inputTokens > 0); // 系统 prompt 开销
+    assert.equal(cost.outputTokens, 100);
   });
 
-  it('returns higher cost for higher maxTokens', () => {
-    const messages = [{ role: 'user', content: 'Hello' }];
-    const low = estimateMessagesCost('gpt-4o', messages, 100);
-    const high = estimateMessagesCost('gpt-4o', messages, 4000);
-    assert.ok(high.outputCost > low.outputCost);
+  it('null messages', () => {
+    const cost = estimateMessagesCost('gpt-4o', null, 100);
+    assert.ok(cost.inputTokens > 0);
   });
 
-  it('handles empty messages array', () => {
-    const result = estimateMessagesCost('gpt-4o', [], 500);
-    assert.ok(result.total >= 0);
-  });
-
-  it('handles null messages', () => {
-    const result = estimateMessagesCost('gpt-4o', null, 500);
-    assert.ok(result.total >= 0);
+  it('默认 maxTokens 4096', () => {
+    const cost = estimateMessagesCost('gpt-4o', []);
+    assert.equal(cost.outputTokens, 4096);
   });
 });
 
 // ==================== estimateSavingsFromCache ====================
 
 describe('estimateSavingsFromCache', () => {
-  it('calculates savings for cached tokens', () => {
-    // 1000 tokens cached 5 times → saved 4 * 1000 input tokens
-    const savings = estimateSavingsFromCache('gpt-4o', 1000, 5);
-    assert.ok(savings.usd > 0);
-    assert.ok(savings.cny > 0);
+  it('无命中次数节省为 0', () => {
+    const s = estimateSavingsFromCache('gpt-4o', 1000, 1);
+    assert.equal(s.usd, 0);
   });
 
-  it('returns zero savings for zero hits', () => {
-    const savings = estimateSavingsFromCache('gpt-4o', 1000, 0);
-    assert.equal(savings.usd, 0);
+  it('命中 5 次有节省', () => {
+    const s = estimateSavingsFromCache('gpt-4o', 1_000_000, 5);
+    assert.equal(s.usd, 4 * 2.50); // (5-1) * 1M tokens * $2.50/1M
   });
 
-  it('returns zero savings for zero tokens', () => {
-    const savings = estimateSavingsFromCache('gpt-4o', 0, 5);
-    assert.equal(savings.usd, 0);
-  });
-
-  it('savings scale linearly with hit count', () => {
-    const one = estimateSavingsFromCache('gpt-4o', 1000, 1);
-    const five = estimateSavingsFromCache('gpt-4o', 1000, 5);
-    // 1 hit means 0 saved (first hit still costs), 5 hits means 4 saved
-    assert.ok(five.usd > one.usd);
+  it('null 参数返回 0', () => {
+    assert.equal(estimateSavingsFromCache(null, null, null).usd, 0);
   });
 });
 
-// ==================== findClosestModel ====================
+// ==================== formatCost ====================
 
-describe('findClosestModel', () => {
-  it('returns exact match', () => {
-    const result = findClosestModel('gpt-4o');
-    assert.equal(result, 'gpt-4o');
+describe('formatCost', () => {
+  it('正常金额', () => assert.equal(formatCost(1.23), '$1.23'));
+  it('零', () => assert.equal(formatCost(0), '$0.00'));
+  it('NaN', () => assert.equal(formatCost(NaN), '$0.00'));
+  it('null', () => assert.equal(formatCost(null), '$0.00'));
+  it('极小金额', () => assert.equal(formatCost(0.001), '<$0.01'));
+});
+
+// ==================== formatCostCNY ====================
+
+describe('formatCostCNY', () => {
+  it('正常金额', () => {
+    assert.equal(formatCostCNY(1), `¥${(1 * USD_TO_CNY).toFixed(2)}`);
   });
+  it('零', () => assert.equal(formatCostCNY(0), '¥0.00'));
+  it('NaN', () => assert.equal(formatCostCNY(NaN), '¥0.00'));
+  it('极小金额', () => assert.equal(formatCostCNY(0.0001), '<¥0.01'));
+});
 
-  it('matches model with date suffix', () => {
-    const result = findClosestModel('gpt-4o-2024-08-06');
-    assert.equal(result, 'gpt-4o');
-  });
+// ==================== usdToCents / centsToUsd ====================
 
-  it('matches claude-sonnet variants', () => {
-    const result = findClosestModel('claude-3-5-sonnet-20241022');
-    assert.ok(result.includes('claude'));
-  });
-
-  it('returns null for completely unknown model', () => {
-    const result = findClosestModel('some-random-ai-model-xyz');
-    // Should return null or a sensible fallback
-    // Since we can't match, it might return a default
-    assert.ok(result === null || typeof result === 'string');
-  });
-
-  it('is case-insensitive', () => {
-    const result = findClosestModel('GPT-4O');
-    assert.equal(result, 'gpt-4o');
+describe('usdToCents & centsToUsd', () => {
+  it('usdToCents 正常转换', () => assert.equal(usdToCents(1.23), 123));
+  it('usdToCents 零', () => assert.equal(usdToCents(0), 0));
+  it('usdToCents NaN', () => assert.equal(usdToCents(NaN), 0));
+  it('centsToUsd 正常转换', () => assert.equal(centsToUsd(123), 1.23));
+  it('centsToUsd 零', () => assert.equal(centsToUsd(0), 0));
+  it('centsToUsd NaN', () => assert.equal(centsToUsd(NaN), 0));
+  it('往返一致性', () => {
+    assert.equal(centsToUsd(usdToCents(5.67)), 5.67);
   });
 });

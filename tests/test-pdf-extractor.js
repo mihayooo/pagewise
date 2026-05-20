@@ -1,150 +1,106 @@
 /**
- * PDF Extractor 单元测试
- * 测试 PdfExtractor 类的基本功能和错误处理
+ * 测试 lib/pdf-extractor.js — PDF 文本提取器
  */
 
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { installChromeMock, resetChromeMock } from './helpers/chrome-mock.js';
 
-// Mock pdf.js 库
+installChromeMock();
+
+// Mock pdf.js 动态导入
 const mockPdfjsLib = {
   GlobalWorkerOptions: { workerSrc: '' },
   getDocument: (opts) => ({
     promise: Promise.resolve({
-      numPages: 3,
+      numPages: 2,
       getPage: async (num) => ({
         getTextContent: async () => ({
-          items: [
-            { str: `Page ${num} line 1` },
-            { str: `Page ${num} line 2` }
-          ]
+          items: [{ str: `Page ${num} text` }, { str: 'more text' }]
         })
       }),
       getMetadata: async () => ({
         info: {
           Title: 'Test PDF',
           Author: 'Test Author',
-          Subject: 'Test Subject'
+          Subject: 'Testing',
+          Keywords: 'test,pdf',
+          Creator: 'Test Creator',
+          Producer: 'Test Producer',
+          CreationDate: '2024-01-01',
+          ModDate: '2024-06-01',
         }
       })
     })
   })
 };
 
-// 模拟 PdfExtractor（不依赖 pdf.js 的实际加载）
-class MockPdfExtractor {
-  static async extractText(arrayBuffer) {
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error('无效的 PDF 数据：ArrayBuffer 为空或类型不正确');
-    }
+// 拦截动态 import
+const originalImport = globalThis.import;
+let PdfExtractor;
 
-    const pdfjsLib = mockPdfjsLib;
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+beforeEach(async () => {
+  resetChromeMock();
+  installChromeMock();
+  // 重新加载模块（pdf.js mock 通过 import 拦截）
+  // 由于 ES module 缓存，我们直接测试 extractText 的逻辑
+});
 
-    const pages = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map(item => item.str).join(' ');
-      pages.push(text);
-    }
+// ==================== PdfExtractor.extractText ====================
 
-    const meta = await pdf.getMetadata();
-    return {
-      text: pages.join('\n\n'),
-      numPages: pdf.numPages,
-      metadata: {
-        title: meta.info?.Title || '',
-        author: meta.info?.Author || ''
-      },
-      pages
-    };
-  }
+describe('PdfExtractor.extractText', () => {
+  // 注意: 由于 pdf.js 是动态 import 的，在 Node.js 测试环境中
+  // 我们主要测试输入验证逻辑
 
-  static async extractFromUrl(url) {
-    // Mock fetch
-    if (!url || url === 'invalid') {
-      throw new Error('获取 PDF 失败: HTTP 404');
-    }
-    const buffer = new ArrayBuffer(100);
-    return this.extractText(buffer);
-  }
-}
-
-describe('PdfExtractor', () => {
-  describe('extractText()', () => {
-    it('从 ArrayBuffer 提取文本', async () => {
-      const buffer = new ArrayBuffer(100);
-      const result = await MockPdfExtractor.extractText(buffer);
-
-      assert.ok(result.text.length > 0, '应提取到文本');
-      assert.equal(result.numPages, 3, '应有 3 页');
-      assert.ok(result.text.includes('Page 1 line 1'), '应包含第 1 页内容');
-      assert.ok(result.text.includes('Page 3 line 2'), '应包含第 3 页内容');
-    });
-
-    it('提取元数据', async () => {
-      const buffer = new ArrayBuffer(100);
-      const result = await MockPdfExtractor.extractText(buffer);
-
-      assert.equal(result.metadata.title, 'Test PDF');
-      assert.equal(result.metadata.author, 'Test Author');
-    });
-
-    it('返回分页数据', async () => {
-      const buffer = new ArrayBuffer(100);
-      const result = await MockPdfExtractor.extractText(buffer);
-
-      assert.equal(result.pages.length, 3, '应有 3 页数据');
-      assert.ok(result.pages[0].includes('Page 1'), '第 1 页应包含正确内容');
-    });
-
-    it('空 ArrayBuffer 抛出错误', async () => {
-      const buffer = new ArrayBuffer(0);
-      await assert.rejects(
-        () => MockPdfExtractor.extractText(buffer),
-        { message: /无效的 PDF 数据/ }
-      );
-    });
-
-    it('null 输入抛出错误', async () => {
-      await assert.rejects(
-        () => MockPdfExtractor.extractText(null),
-        { message: /无效的 PDF 数据/ }
-      );
-    });
+  it('空 ArrayBuffer 抛错', async () => {
+    // 动态 import 获取最新模块
+    const { PdfExtractor: PE } = await import('../lib/pdf-extractor.js');
+    await assert.rejects(
+      () => PE.extractText(new ArrayBuffer(0)),
+      { message: /无效的 PDF 数据/ }
+    );
   });
 
-  describe('extractFromUrl()', () => {
-    it('通过 URL 提取文本', async () => {
-      const result = await MockPdfExtractor.extractFromUrl('https://example.com/test.pdf');
-
-      assert.ok(result.text.length > 0, '应提取到文本');
-      assert.equal(result.numPages, 3);
-    });
-
-    it('无效 URL 抛出错误', async () => {
-      await assert.rejects(
-        () => MockPdfExtractor.extractFromUrl('invalid'),
-        { message: /获取 PDF 失败/ }
-      );
-    });
+  it('null 抛错', async () => {
+    const { PdfExtractor: PE } = await import('../lib/pdf-extractor.js');
+    await assert.rejects(
+      () => PE.extractText(null),
+      { message: /无效的 PDF 数据/ }
+    );
   });
 
-  describe('文本合并', () => {
-    it('页间用双换行分隔', async () => {
-      const buffer = new ArrayBuffer(100);
-      const result = await MockPdfExtractor.extractText(buffer);
+  it('非 ArrayBuffer 抛错', async () => {
+    const { PdfExtractor: PE } = await import('../lib/pdf-extractor.js');
+    await assert.rejects(
+      () => PE.extractText('not a buffer'),
+      { message: /无效的 PDF 数据/ }
+    );
+  });
 
-      assert.ok(result.text.includes('\n\n'), '页间应有双换行分隔');
-    });
+  it('undefined 抛错', async () => {
+    const { PdfExtractor: PE } = await import('../lib/pdf-extractor.js');
+    await assert.rejects(
+      () => PE.extractText(undefined),
+      { message: /无效的 PDF 数据/ }
+    );
+  });
+});
 
-    it('同页内用空格连接', async () => {
-      const buffer = new ArrayBuffer(100);
-      const result = await MockPdfExtractor.extractText(buffer);
+// ==================== PdfExtractor.extractFromUrl ====================
 
-      // 同页内容用空格连接
-      assert.ok(result.pages[0].includes('Page 1 line 1 Page 1 line 2'), '同页内容应用空格连接');
-    });
+describe('PdfExtractor.extractFromUrl', () => {
+  it('fetch 失败时抛错', async () => {
+    const { PdfExtractor: PE } = await import('../lib/pdf-extractor.js');
+    // Mock global fetch
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 404 });
+    try {
+      await assert.rejects(
+        () => PE.extractFromUrl('https://example.com/test.pdf'),
+        { message: /HTTP 404/ }
+      );
+    } finally {
+      globalThis.fetch = origFetch;
+    }
   });
 });
