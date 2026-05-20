@@ -869,7 +869,7 @@
 
 - [x] **R205: 行覆盖率冲刺 50% CoverageSprint50** — 当前行覆盖率仅 23.72%（11900/50153），`coverage:gate --lines 20` 门禁形同虚设；(1) 分析未覆盖行 Top-20 模块（按未覆盖行数排序），重点关注纯逻辑/工具函数模块（utils.js、sanitize.js、error-handler.js、cache-manager.js）；(2) 为 Top-10 模块补充边界用例和异常路径测试；(3) 将 `coverage:gate --lines` 从 20 收紧至 50；(4) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥60%。复杂度: Medium
 
-- [ ] **R206: 超大模块拆分十二期 ModuleSplitPhase12** — 当前 14 个 lib 文件仍 >400 行：page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+- [x] **R206: 超大模块拆分十二期 ModuleSplitPhase12** — 当前 14 个 lib 文件仍 >400 行：page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
 - [ ] **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — R183 识别出功能重叠模块对：bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js；(1) 实际执行合并 Top-3 重叠模块对，保留更完善的实现，将被合并模块改为 re-export wrapper；(2) 统计合并后 lib/ 模块数变化（目标减少 ≥3 个）；(3) 消除合并后的孤立导出和死代码；(4) 更新 lib-api-reference 文档；(5) 全量回归 0 fail。复杂度: Medium
 
