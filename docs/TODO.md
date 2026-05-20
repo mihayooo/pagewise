@@ -871,7 +871,7 @@
 
 - [x] **R206: 超大模块拆分十二期 ModuleSplitPhase12** — 当前 14 个 lib 文件仍 >400 行：page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
-- [ ] **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — R183 识别出功能重叠模块对：bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js；(1) 实际执行合并 Top-3 重叠模块对，保留更完善的实现，将被合并模块改为 re-export wrapper；(2) 统计合并后 lib/ 模块数变化（目标减少 ≥3 个）；(3) 消除合并后的孤立导出和死代码；(4) 更新 lib-api-reference 文档；(5) 全量回归 0 fail。复杂度: Medium
+- [x] **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — R183 识别出功能重叠模块对：bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js；(1) 实际执行合并 Top-3 重叠模块对，保留更完善的实现，将被合并模块改为 re-export wrapper；(2) 统计合并后 lib/ 模块数变化（目标减少 ≥3 个）；(3) 消除合并后的孤立导出和死代码；(4) 更新 lib-api-reference 文档；(5) 全量回归 0 fail。复杂度: Medium
 
 - [ ] **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline** — 项目功能完备但缺少标准化发布流程；(1) 完善 `scripts/build.sh` 生成可直接上传的 .zip 产物（manifest.json、lib/、popup/、options/、sidebar/、icons/、_locales/，排除 tests/、docs/、coverage/、scripts/）；(2) 新增 `scripts/publish-check.sh` 发布前自检（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(3) 生成 Chrome Web Store 所需截图脚本指引；(4) 验证 .zip 产物可在 Chrome 中正常加载运行；(5) 更新 RELEASE-NOTES-v3.1.md。复杂度: Medium
 
