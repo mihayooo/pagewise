@@ -797,7 +797,7 @@
 
 > 由 Guardian 飞轮引擎生成（基于项目状态分析：测试结果、代码覆盖、技术债务）
 
-- [ ] **R185: EmbeddingEngine 性能断言收紧** — 将性能测试断言从 `< 500ms` 收紧到 `< 100ms`（预计算向量后搜索应近即时），同步更新测试名称与断言一致性
+- [x] **R185: EmbeddingEngine 性能断言收紧** — 将性能测试断言从 `< 500ms` 收紧到 `< 100ms`（预计算向量后搜索应近即时），同步更新测试名称与断言一致性
 - [ ] **R186: 核心模块测试补全 — ai-client 系列** — 为 `ai-client-context.js`、`ai-client-stream.js`、`ai-client-tokens.js` 补充单元测试（当前 0 测试文件），目标 ≥20 用例/模块
 - [ ] **R187: 核心模块测试补全 — bookmark 系列** — 为 `bookmark-core.js`、`bookmark-search-core.js`、`bookmark-graph-engine.js` 补充单元测试，目标 ≥15 用例/模块
 - [ ] **R188: knowledge-graph 模块测试补全** — 为 `knowledge-graph-layout.js`、`knowledge-graph-utils.js`、`knowledge-graph-wiki.js` 补充单元测试，目标 ≥15 用例/模块

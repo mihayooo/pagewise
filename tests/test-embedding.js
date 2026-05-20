@@ -306,7 +306,7 @@ describe('EmbeddingEngine — 静态搜索接口', () => {
 // ==================== 性能测试 ====================
 
 describe('EmbeddingEngine — 性能', () => {
-  it('1000 条数据搜索 < 200ms', () => {
+  it('1000 条数据搜索 < 100ms', () => {
     const entries = [];
     const topics = ['JavaScript', 'Python', 'React', 'Node.js', 'CSS', 'HTML', 'Vue', 'Angular', 'TypeScript', 'Go'];
     const actions = ['基础', '进阶', '入门', '教程', '实战', '原理', '优化', '调试'];
@@ -329,7 +329,7 @@ describe('EmbeddingEngine — 性能', () => {
     const elapsed = performance.now() - start;
 
     assert.ok(results.length > 0, '应有结果');
-    assert.ok(elapsed < 500, `搜索耗时 ${elapsed.toFixed(1)}ms 应 < 500ms`);
+    assert.ok(elapsed < 100, `搜索耗时 ${elapsed.toFixed(1)}ms 应 < 100ms`);
   });
 
   it('向量生成 < 5ms', () => {

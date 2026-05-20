@@ -6,6 +6,9 @@
      6|
      7|## [Unreleased]
 
+### 变更
+- **R185: EmbeddingEngine 性能断言收紧** — 将性能测试断言从 `< 500ms` 收紧到 `< 100ms`，同步更新测试名称与断言一致性（纯测试层修改，无源码变更）
+
 ### 新增
 - **R165: 学习周报生成 WeeklyDigest** — 新建 `lib/bookmark-weekly-digest.js`
   - `WeeklyDigest` 类 — 自动生成用户每周学习摘要
