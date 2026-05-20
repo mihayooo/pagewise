@@ -6,9 +6,11 @@
   "description": "智阅 PageWise - Chrome 浏览器扩展",
   "scripts": {
     "test": "node --test --test-concurrency=8 'tests/*.js'",
-    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' | sort)",
+    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' | sort)",
+    "test:ci:lint": "node --test tests/test-lint-r159.js tests/test-r201-lint-warning-final.js tests/test-eslint-infra.js",
     "test:all": "node --test --test-concurrency=8 'tests/*.js' 'tests/e2e/*.js'",
-    "test:smoke": "node --test --test-concurrency=4 tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-knowledge-base.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-bookmark-store.js tests/test-highlight-store.js tests/test-embedding-engine.js",
+    "test:smoke": "node --test --test-concurrency=4 tests/test-smoke.js tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-storage-adapter.js tests/test-sanitize.js tests/test-cost-estimator.js tests/test-bookmark-indexer.js tests/test-bookmark-core-unit.js",
+    "test:shard": "node scripts/test-shard.js --shards=4 --concurrency=4",
     "test:coverage": "node scripts/clean-coverage.js && c8 --reporter=lcov --reporter=text-summary --reporter=html npm run test:ci",
     "coverage:gate": "c8 check-coverage --lines 20",
     "lint": "eslint . --max-warnings 0"

@@ -852,7 +852,7 @@
 
 - [x] **R201: Lint 警告清零 LintWarningFinalR200** — 当前 0 errors / 4 warnings（全部 `no-unused-vars`）：(1) bookmark-notifier.js:46 `MS_PER_DAY` 赋值未使用；(2) 第 258 行某文件 `id` 赋值未使用；逐文件审查删除或前缀 `_` 标记；将 `eslint.config.js` 中 `max-warnings` 从 10000 收紧为 0；验证 `npm run lint` 0 errors 0 warnings。复杂度: Simple ✅
 
-- [ ] **R202: 测试执行效率优化三期 TestExecutionOpt3** — R198 目标 ≤30s 未达成（当前 45.4s，6977 用例 / 1470 suites）；(1) 分析 Top-10 最慢测试文件（按 duration_ms 排序），识别 >1s 的阻塞用例；(2) 移除测试中残留的 `setTimeout`/`await sleep`/同步阻塞；(3) 建立 CI smoke test 子集（`npm run test:smoke` 核心流程 ≤60 用例，<3s）；(4) 按测试文件拆分为 4 组并行执行；(5) 目标: 全量 ≤30s。复杂度: Medium
+- [x] **R202: 测试执行效率优化三期 TestExecutionOpt3** — R198 目标 ≤30s 未达成（当前 45.4s，6977 用例 / 1470 suites）；(1) 分析 Top-10 最慢测试文件（按 duration_ms 排序），识别 >1s 的阻塞用例；(2) 移除测试中残留的 `setTimeout`/`await sleep`/同步阻塞；(3) 建立 CI smoke test 子集（`npm run test:smoke` 核心流程 ≤60 用例，<3s）；(4) 按测试文件拆分为 4 组并行执行；(5) 目标: 全量 ≤30s。复杂度: Medium
 
 - [ ] **R203: 超大模块拆分十一期 ModuleSplitPhase11** — 当前 22 个 lib 文件 >400 行：bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)、bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)、bookmark-link-checker.js(456)、page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
