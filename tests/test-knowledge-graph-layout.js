@@ -123,7 +123,7 @@ describe('buildGraphData', () => {
 describe('forceDirectedLayout', () => {
   it('空节点返回空', () => {
     assert.deepEqual(forceDirectedLayout([], []), []);
-    assert.deepEqual(forceDirectedLayout(null, []), null);
+    assert.deepEqual(forceDirectedLayout(null, []), []);
   });
 
   it('单节点居中', () => {

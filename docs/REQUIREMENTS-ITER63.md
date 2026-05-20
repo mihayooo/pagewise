@@ -1,10 +1,10 @@
-# 需求文档 — R223: 超大模块拆分收尾 ModuleSplitFinal
+# 需求文档 — R224: 全量回归与迭代收尾 IterationCloseR71
 
 > 版本: 1.0
 > 日期: 2026-05-20
-> 迭代: 质量收尾 (R63)
-> 复杂度: Medium
-> 前序迭代: R217 (ModuleSplitPhase13)
+> 迭代: 质量收尾 (R71)
+> 复杂度: Simple
+> 前序迭代: R220 (E2ETestFix)、R221 (E2ESmokeVerification)、R222 (CoverageBreak50)、R223 (ModuleSplitFinal)
 
 ---
 
@@ -12,93 +12,95 @@
 
 ### 1.1 现状分析
 
-R217（ModuleSplitPhase13）声称完成了全部 13 个 >400 行 lib 文件的拆分，但实际验证发现 **仍有 7 个文件超过 ≤400 行的架构门禁阈值**：
+R220-R223 共 4 个任务已完成增量开发：
 
-| 文件 | 行数 | 超出 | 模块职责 |
-|------|------|------|----------|
-| `bookmark-learning-coach.js` | 416 | +16 | 学习教练：每日计划生成、执行追踪、回顾反馈 |
-| `docmind-sync.js` | 414 | +14 | DocMind 同步管理：自动/增量同步、冲突处理、状态管理 |
-| `bookmark-detail-panel.js` | 414 | +14 | 书签详情面板：元数据展示、相似推荐、标注交互 |
-| `bookmark-tag-editor-v2.js` | 412 | +12 | 标签编辑器 v2：标签 CRUD、智能推荐、批量操作 |
-| `bookmark-onboarding.js` | 406 | +6 | 引导向导：4 步引导流程、主题选择、自动采集开关、i18n |
-| `chat-mode.js` | 403 | +3 | Chat 快捷模式：Ctrl+K 唤起、显示模式切换、消息渲染 |
-| `bookmark-indexer.js` | 401 | +1 | 书签索引器：倒排索引、中英文分词、快速搜索 |
+| 任务 | 描述 | 状态 |
+|------|------|------|
+| R220 | E2E 测试失败修复与基线建立 | ✅ 已合并 |
+| R221 | E2E 框架验证与冒烟测试 | ✅ 已合并 |
+| R222 | 行覆盖率突破 50% | ✅ 已合并 |
+| R223 | 超大模块拆分收尾（7 个文件 ≤400 行） | ✅ 已合并 |
 
-7 个文件共 2866 行，超出总额外 66 行。这些文件恰好处于 400 行门禁线上下，属于 R217 拆分不彻底的遗留问题。
+这 4 个任务分别涉及 E2E 修复、覆盖率提升和模块拆分，各自独立运行并通过验证，但**尚未在合并后执行统一的全量回归**。增量变更可能引入跨任务的隐式冲突（如 R223 拆分子模块的测试用例是否被 R222 的覆盖率新增测试正确引用）。
 
-### 1.2 架构约束违规
+此外，`CHANGELOG.md` 的 `[3.1.0]` 区段截至 R217，**R218-R223 共 6 个任务的变更记录缺失**；`docs/architecture-metrics.md` 的统计指标仍停留在 R209 水平，与当前代码库实际状态（模块数、测试用例数、覆盖率门禁值）不一致。
 
-`docs/architecture-metrics.md` 明确声明：
+### 1.2 问题清单
 
-> **单文件上限**: ≤400 行（scripts/architecture-guard.sh）
-
-当前 230 个 lib 模块中，7 个违规文件占比 3%。虽然超出量不大（1-16 行），但会导致：
-
-1. **CI 门禁不稳定** — 如果存在 architecture-guard 检查，当前状态会导致构建失败
-2. **架构指标文档失真** — `docs/architecture-metrics.md` 声称"所有 lib 文件均 ≤400 行"，与事实不符
-3. **技术债务累积** — 每轮迭代新增代码会继续叠加到这些文件上
+1. **回归风险** — 4 个任务合并后未执行统一 `npm run test:ci`，可能有隐式冲突导致失败
+2. **CHANGELOG 缺失** — R218-R223 变更未记录到 CHANGELOG.md
+3. **架构指标过时** — `architecture-metrics.md` 未反映 R210-R223 的模块数/测试数/覆盖率门禁变化
+4. **版本号未升** — package.json 仍为 3.1.0，需评估是否生成发布候选版本
 
 ### 1.3 目标
 
-完成 R217 的收尾工作，将最后 7 个违规文件全部拆分至 ≤400 行，彻底消除架构违规，确保 `architecture-metrics.md` 的数据准确性。
+执行迭代收尾的标准流程：全量回归 → 质量门禁 → 文档同步 → 发布候选版本号，确保 R71 迭代的交付物完整、可追溯、可发布。
 
 ---
 
 ## 2. 用户故事
 
-> **作为** PageWise 项目的维护者 / CI 守门人，
-> **我希望** 所有 lib 模块严格遵守 ≤400 行的架构约束，
-> **以便** 架构指标文档准确反映项目状态，CI 门禁稳定通过，后续迭代不受历史遗留债务影响。
+> **作为** PageWise 项目的发布管理者，
+> **我希望** 在 R220-R223 全部完成后执行一次完整的全量回归与文档同步，
+> **以便** 确认当前代码库处于可发布状态，变更记录完整，架构指标准确，并获得一个明确的发布候选版本号。
 
 ---
 
 ## 3. 验收标准
 
-### AC-1: 全部 7 个文件拆分至 ≤400 行 ✅
+### AC-1: 全量测试回归 0 fail（≥7200 pass）
 
-每个文件拆分后，**原始入口文件** 行数 ≤400 行（不含空行和注释也应符合 400 行限制）。拆分子模块命名遵循已有约定：
+执行 `npm run test:ci`，结果要求：
+- **失败数 = 0**
+- **通过数 ≥ 7200**（基线：R222 后为 ~7200+，R223 可能因拆分新增少量测试）
+- 测试通过率 = 100%
 
-| 原始文件 | 建议拆分方案 | 目标行数 |
-|----------|-------------|---------|
-| `bookmark-learning-coach.js` | 提取常量 + 计划生成逻辑 → `bookmark-learning-coach-planner.js` | ≤400 / ≤100 |
-| `docmind-sync.js` | 提取冲突处理 + 同步状态 → `docmind-sync-conflict.js` | ≤400 / ≤50 |
-| `bookmark-detail-panel.js` | 提取推荐逻辑 + 面板渲染 → `bookmark-detail-panel-recommend.js` | ≤400 / ≤50 |
-| `bookmark-tag-editor-v2.js` | 提取标签推荐 + 批量操作 → `bookmark-tag-editor-v2-recommend.js` | ≤400 / ≤50 |
-| `bookmark-onboarding.js` | 提取 locale 字符串 → `bookmark-onboarding-locales.js` | ≤400 / ≤50 |
-| `chat-mode.js` | 提取消息渲染/存储逻辑 → `chat-mode-storage.js` | ≤400 / ≤30 |
-| `bookmark-indexer.js` | 提取分词逻辑 → `bookmark-indexer-tokenizer.js` | ≤400 / ≤30 |
+若存在失败用例，需逐一分析根因并修复（不得 skip 已有通过用例，仅允许 skip R220 已标记的 E2E 不稳定用例）。
 
-> ⚠️ 以上为建议方案，执行者可根据代码内聚性自行决定最佳拆分粒度，唯一硬约束是行数 ≤400。
+### AC-2: Lint 0 errors 0 warnings
 
-### AC-2: API 向后兼容（re-export 模式）✅
+执行 `npm run lint`，结果要求：
+- **errors = 0**
+- **warnings = 0**
 
-拆分后的**原始入口文件**必须通过 `export { ... } from './xxx.js'` 或 `import + re-export` 保持所有现有公共 API 不变。验证方式：
+这是项目的硬性质量基线（`--max-warnings 0`），任何 lint 违规必须在本轮修复。
 
-- 所有现有 `import { X } from './bookmark-learning-coach.js'` 语句无需修改
-- 所有现有 `import { Y } from './chat-mode.js'` 语句无需修改
-- 其余 5 个文件同理
+### AC-3: 行覆盖率 ≥ 50%
 
-### AC-3: 全量回归测试 0 fail ✅
+执行 `npm run test:coverage && npm run coverage:gate`，结果要求：
+- **行覆盖率 (Lines) ≥ 50%**（`coverage:gate --lines 50 --functions 60`）
+- **函数覆盖率 (Functions) ≥ 60%**
 
-拆分完成后，执行全量测试：
+这是 R222 设定的门禁阈值（从 35% 收紧至 50%），需确认 R223 的模块拆分未导致覆盖率下降。
 
-```bash
-node --test tests/
-```
+### AC-4: CHANGELOG.md 补充 R220-R223 变更记录
 
-要求：**0 个测试失败**，测试通过数不低于当前基线（≥7088 用例）。
+在 `[3.1.0]` 区段末尾补充以下变更记录：
 
-### AC-4: 更新架构指标文档 ✅
+| 任务 | 分类 | 条目要点 |
+|------|------|----------|
+| R218 | 文档 | CHANGELOG [3.1.0] 区段补全，RELEASE-NOTES-v3.1.md 生成 |
+| R219 | 测试 | E2E 框架验证，Puppeteer/Playwright 本地运行验证 |
+| R220 | 修复 | E2E 5 个测试文件选择器/断言/超时修复，35+ 用例通过 |
+| R221 | 测试 | E2E 冒烟测试基线，CI chrome-e2e job（soft-fail） |
+| R222 | 测试 | 行覆盖率从 48.79% 突破至 ≥50%，门禁从 35 收紧至 50 |
+| R223 | 架构 | 最后 7 个 >400 行 lib 文件拆分，13 轮拆分全部完成 |
 
-更新 `docs/architecture-metrics.md`：
+格式遵循 Keep a Changelog 规范，与现有 `[3.1.0]` 条目风格一致。
 
-1. **模块拆分历程** 表格新增 Phase 13 行，记录本轮 7 个文件的拆分
-2. 确认"所有 lib 文件均 ≤400 行"的声明与实际一致
-3. 更新迭代轮次和日期
+### AC-5: `docs/architecture-metrics.md` 更新
 
-### AC-5: Lint 零错误 ✅
+更新以下指标至当前实际值：
 
-拆分产生的新文件必须通过 ESLint 检查，0 errors / 0 warnings。
+| 指标 | 当前文档值 | 更新为实际值 |
+|------|-----------|-------------|
+| 版本 | v3.1.0 | 保持（或更新至 RC 版本号） |
+| 迭代轮次 | R209 | R224 (R71) |
+| lib 模块数 | 222 | 实际值（R223 拆分可能增加 re-export wrapper 数量） |
+| 测试用例数 | 7088 | `npm run test:ci` 实际通过数 |
+| 覆盖率门禁 | ≥50% | 确认与 package.json `coverage:gate` 一致 |
+| 拆分历程 | Phase 12 (R206) | 补充 Phase 13 (R217) + Phase 13-final (R223) |
+| 质量基线 | 技术债务 TD001-TD004 | 确认当前状态 |
 
 ---
 
@@ -106,95 +108,54 @@ node --test tests/
 
 | 约束 | 说明 |
 |------|------|
-| **行数上限** | 每个 lib 文件 ≤400 行（含注释和空行），与 architecture-guard.sh 保持一致 |
-| **拆分模式** | 必须使用 re-export 模式保持向后兼容（参考 `bookmark-io.js` → `bookmark-io-standalone.js` 的成功案例） |
-| **命名约定** | 子模块命名：`{原文件名}-{功能}.js`（如 `-planner.js`、`-conflict.js`、`-locales.js`） |
-| **零外部依赖** | 不引入新的 npm 包或外部依赖 |
-| **纯前端** | 所有模块均为 ES Module，运行于 Chrome 扩展环境 |
-| **无破坏性变更** | 不修改任何现有模块的函数签名、参数、返回值 |
-| **测试文件** | 拆分不要求新增测试文件，但现有测试必须全部通过 |
+| 不引入新功能 | 本轮仅做回归验证和文档更新，不新增 lib 模块或测试用例 |
+| 不修改业务代码 | 除非回归发现失败用例需修复，否则不修改 `lib/` 或 `tests/` 目录 |
+| 覆盖率门禁对齐 | `package.json` 中 `coverage:gate` 参数必须与 `architecture-metrics.md` 记录一致 |
+| CHANGELOG 格式 | 遵循 Keep a Changelog 格式，使用 `[3.1.0] - 2026-05-20` 区段 |
+| 版本号策略 | 若全量回归通过且文档同步完成，生成发布候选版本号 `3.1.1-rc.1` 或维持 `3.1.0` |
+| Git 规范 | 所有变更在单个 commit 中提交，commit message 遵循 conventional commits |
 
 ---
 
 ## 5. 依赖关系
 
-### 5.1 前置依赖
-
-| 依赖项 | 状态 | 说明 |
-|--------|------|------|
-| R217 (ModuleSplitPhase13) | ✅ 已完成 | 本轮为 R217 的收尾修复，处理其遗留的 7 个未达标文件 |
-| Phase 1-12 模块拆分 | ✅ 已完成 | 前 12 轮拆分建立了 re-export 模式和命名规范 |
-
-### 5.2 下游影响
-
-| 被影响方 | 影响 | 缓解措施 |
-|----------|------|----------|
-| `docs/architecture-metrics.md` | 需更新模块拆分历程 | AC-4 覆盖 |
-| CI 门禁 (architecture-guard) | 拆分后应零违规通过 | AC-1 覆盖 |
-| 所有 import 上游文件 | **零影响**（re-export 保证兼容） | AC-2 覆盖 |
-
-### 5.3 不依赖项
-
-- 不依赖覆盖率相关迭代（R222 等）
-- 不依赖 E2E 测试相关迭代（R220 等）
-- 不涉及新功能开发，纯技术债务清理
-
----
-
-## 6. 风险评估
-
-| 风险 | 可能性 | 影响 | 缓解 |
-|------|--------|------|------|
-| 拆分后导入路径遗漏 | 低 | 高 — 测试失败 | AC-3 全量回归可检测 |
-| 拆分粒度不足，子模块仍 >400 行 | 低 | 中 — 需二次拆分 | 拆分后立即 wc -l 验证 |
-| 循环依赖引入 | 极低 | 高 — 运行时报错 | 拆分方向为单向依赖（子→父），不会产生循环 |
-| 测试 mock 路径需更新 | 低 | 中 — 测试失败 | re-export 模式下测试无需修改 mock 路径 |
-
----
-
-## 7. 工作量估算
-
-| 阶段 | 工作量 |
-|------|--------|
-| 代码拆分 (7 文件) | 30 分钟 |
-| re-export 验证 | 10 分钟 |
-| 全量回归测试 | 5 分钟 |
-| architecture-metrics.md 更新 | 10 分钟 |
-| **合计** | **~55 分钟** |
-
----
-
-## 附录 A: 成功案例参考
-
-`bookmark-io.js`（94 行）通过 re-export `bookmark-io-standalone.js` 实现向后兼容：
-
-```javascript
-// bookmark-io.js — 入口文件 (94 行)
-// 向后兼容 re-exports
-export { exportToHTML, exportToJSON, exportToCSV, importFromHTML, importFromJSON, validateImportData } from './bookmark-io-standalone.js'
-
-export class BookmarkImportExport { /* ... */ }
+```
+R220 (E2ETestFix)     ─┐
+R221 (E2ESmokeVerify) ─┤
+R222 (CoverageBreak50)─┼─→ R224 (IterationCloseR71) ─→ 发布候选
+R223 (ModuleSplitFinal)─┘
 ```
 
-所有 7 个文件应遵循此模式。
+| 方向 | 依赖 | 说明 |
+|------|------|------|
+| 前置 | R220 | E2E 测试修复 — 回归中需确认 E2E 用例状态不变 |
+| 前置 | R221 | E2E 冒烟测试 — 回归中需确认 CI pipeline 正常 |
+| 前置 | R222 | 覆盖率突破 50% — 回归中需确认覆盖率门禁通过 |
+| 前置 | R223 | 模块拆分收尾 — 回归中需确认拆分后模块结构完整 |
+| 后续 | 发布流程 | 若 R224 通过，可触发 Chrome Web Store 灰度发布（R214 流水线） |
 
 ---
 
-## 附录 B: 当前违规文件行数基线
+## 6. 非功能需求
 
-```
-  416 lib/bookmark-learning-coach.js
-  414 lib/docmind-sync.js
-  414 lib/bookmark-detail-panel.js
-  412 lib/bookmark-tag-editor-v2.js
-  406 lib/bookmark-onboarding.js
-  403 lib/chat-mode.js
-  401 lib/bookmark-indexer.js
-  ───
- 2866 total (需削减 ≥66 行)
-```
+| 维度 | 要求 |
+|------|------|
+| 执行时间 | `npm run test:ci` ≤ 30s（R202 基线为 24s） |
+| 可追溯性 | 迭代报告 `docs/reports/2026-05-20-R71.md` 自动生成 |
+| 回滚预案 | 若回归失败超过 3 个用例，暂停收尾，回退到 R223 后状态单独排查 |
 
 ---
 
-*文档遵循 PageWise 需求模板 v2*
-*下一阶段: docs/DESIGN-ITER63.md (技术设计)*
+## 7. 风险识别
+
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| R223 拆分导致测试 import 路径失效 | 回归失败 | 逐一修复 import，re-export wrapper 保证 API 兼容 |
+| R222 新增测试覆盖 R223 拆分子模块的边界 | 测试失败 | 修复测试中的模块引用路径 |
+| CHANGELOG 条目遗漏 | 文档不完整 | 参照 git log R218-R223 的 commit message 逐条补充 |
+| architecture-metrics 模块数统计偏差 | 指标不准 | 使用 `find lib -name '*.js' | wc -l` 实际统计 |
+| 版本号策略争议 | 发布延迟 | 维持 3.1.0 不变，仅补充文档，不做版本号升级 |
+
+---
+
+*文档生成于 2026-05-20，遵循飞轮迭代流程 (flywheel-iteration)*
