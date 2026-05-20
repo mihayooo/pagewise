@@ -164,14 +164,14 @@ describe('Preflight 清理机制验证', () => {
   const tmpDir = join(PROJECT_ROOT, 'coverage', 'tmp');
 
   after(() => {
-    // 清理测试残留
-    try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    // 清理测试残留 — 使用 execSync rm -rf 避免 root 所有文件的 EACCES
+    try { execSync('rm -rf coverage/tmp', { cwd: PROJECT_ROOT }); } catch { /* ignore */ }
   });
 
   it('rm -rf coverage/tmp 可清理不存在的目录（静默跳过）', () => {
-    // 确保 tmp 目录不存在
+    // 确保 tmp 目录不存在 — 使用 execSync rm -rf 避免 root 所有文件的 EACCES
     if (existsSync(tmpDir)) {
-      rmSync(tmpDir, { recursive: true, force: true });
+      execSync('rm -rf coverage/tmp', { cwd: PROJECT_ROOT });
     }
     assert.ok(!existsSync(tmpDir), 'tmp 目录不应存在');
 
@@ -197,9 +197,9 @@ describe('Preflight 清理机制验证', () => {
   });
 
   it('清理后可创建新的 tmp 目录', () => {
-    // 确保 tmp 不存在
+    // 确保 tmp 不存在 — 使用 execSync rm -rf 避免 root 所有文件的 EACCES
     if (existsSync(tmpDir)) {
-      rmSync(tmpDir, { recursive: true, force: true });
+      execSync('rm -rf coverage/tmp', { cwd: PROJECT_ROOT });
     }
 
     // 创建 tmp 目录模拟 c8 行为
@@ -209,8 +209,8 @@ describe('Preflight 清理机制验证', () => {
     const stat = statSync(tmpDir);
     assert.ok(stat.isDirectory(), 'tmp 应为目录');
 
-    // 清理
-    rmSync(tmpDir, { recursive: true, force: true });
+    // 清理 — 使用 execSync rm -rf 避免 root 所有文件的 EACCES
+    execSync('rm -rf coverage/tmp', { cwd: PROJECT_ROOT });
   });
 });
 
