@@ -121,3 +121,44 @@ node --test tests/test-*.js 2>&1 | grep -E "^(not ok|# (tests|pass|fail))"
 - Chrome Extension MV3 规范，不使用 MV2 API
 - 权限最小化原则，manifest.json 中只声明必要权限
 - 修改代码后必须运行测试确认无回归
+
+## Git Hygiene（提交前必须运行）
+
+每次 `git commit` 前，必须运行 Git Hygiene 脚本检查：
+
+```bash
+/home/claude-user/scripts/git-hygiene.sh /home/claude-user/pagewise
+```
+
+### 检查项
+1. **敏感信息泄露** — 密码、API Key、Token、真实 IP 地址
+2. **大文件** — 超过 1MB 的文件不应提交到 Git
+3. **代码质量** — `console.log`、`debugger`、`TODO/FIXME`
+4. **提交信息格式** — 必须符合 Conventional Commits（`feat:`, `fix:`, `docs:` 等）
+
+### 规则
+- **ERROR** → 必须修复后才能提交
+- **WARN** → 建议修复，可选择跳过
+
+## Evolution Log（迭代完成后自动记录）
+
+每次飞轮迭代完成后，必须调用 Evolution Log 记录变更：
+
+```bash
+/home/claude-user/scripts/log-evolution.sh /home/claude-user/pagewise <迭代号> "<变更描述>"
+```
+
+### 示例
+```bash
+/home/claude-user/scripts/log-evolution.sh /home/claude-user/pagewise R184 "新增知识包分享功能，支持导出为 JSON"
+```
+
+### 记录内容
+- 迭代号和时间戳
+- Git 分支和提交哈希
+- 变更文件数量和行数统计
+- 变更描述（手动填写）
+
+### 文件位置
+- 日志文件: `docs/EVOLUTION-LOG.md`
+- 格式: Markdown 表格，便于阅读和搜索
