@@ -2,6 +2,53 @@
 
 ---
 
+## 迭代 R165 — 学习周报生成 WeeklyDigest
+
+> 日期: 2026-05-19
+> 任务: R165 学习周报生成 WeeklyDigest — 新建 `lib/bookmark-weekly-digest.js`，自动生成用户每周学习摘要
+
+### 实现方案
+
+| 功能 | 方法 | 说明 |
+|------|------|------|
+| 本周新增书签 | `getNewBookmarksThisWeek()` | 按 dateAdded/createdAt/timestamp 过滤本周范围 |
+| 上周新增书签 | `getNewBookmarksLastWeek()` | 对比上周数据计算增长趋势 |
+| 阅读完成数 | `getCompletedReadingsThisWeek()` | 从 readingHistory 按 completedAt 过滤 |
+| 提问次数 | `getQuestionCountThisWeek()` | 从 conversations 按 timestamp 过滤 |
+| 知识条目增长 | `getNewKnowledgeEntriesThisWeek()` | 从 knowledgeEntries 按 createdAt 过滤 |
+| 领域分布 | `getDomainDistribution()` | 基于 DOMAIN_KEYWORDS 从标签/标题/文件夹推断领域 |
+| 重点领域 | `getFocusDomains(limit)` | 本周新增书签最多的领域 Top-N |
+| 薄弱领域 | `getWeakDomains()` | 复用 BookmarkGapDetector.getWeaknesses() |
+| 下周推荐 | `getNextWeekRecommendations(limit)` | 结合 GapDetector.getRecommendations() + buildTopicStats() |
+| 完整报告 | `generateReport()` | 汇总所有统计数据为结构化对象 |
+| Markdown 导出 | `toMarkdown()` | 表格 + 列表 + 进度条式领域分布 |
+| HTML 导出 | `toHTML(escapeHtml?)` | 统计卡片 + 领域进度条 + 推荐区块 |
+| 周一推送 | `sendWeeklyNotification(notifier)` / `notifyIfMonday(notifier)` | 通过 NotificationManager.notify() 推送摘要 |
+| 周判断 | `isMonday(now)` | 静态方法，判断是否周一 |
+
+### 设计决策
+
+- **时间注入**: 构造函数接受 `now` 参数（Date），便于测试而不依赖系统时间
+- **领域推断**: `inferDomains()` 通过关键词匹配（标签、标题、文件夹路径）推断领域，覆盖 14 个技术领域
+- **复用策略**: 薄弱领域检测复用 `BookmarkGapDetector`，主题统计复用 `buildTopicStats`，不重复造轮子
+- **XSS 安全**: `toHTML()` 默认使用内置 escapeHtml，所有用户数据通过转义后再拼接 HTML
+- **通知集成**: 兼容 `NotificationManager` 接口（`notify(message, type)`），周一自动推送可选
+
+### 修改文件
+
+1. **lib/bookmark-weekly-digest.js** — 新建，580 行
+2. **tests/test-bookmark-weekly-digest.js** — 新建，46 个测试用例
+3. **docs/CHANGELOG.md** — 新增 R165 条目
+4. **docs/TODO.md** — R165 标记完成
+5. **docs/IMPLEMENTATION.md** — 本记录
+
+### 测试结果
+
+- R165 专项测试: 46 pass / 0 fail
+- 测试覆盖: 工具函数(14) + 统计方法(6) + 领域分析(3) + 下周推荐(2) + 报告生成(3) + Markdown导出(5) + HTML导出(4) + 通知推送(5) + 模块导出(3) + 时间范围(1)
+
+---
+
 ## 迭代 R134 — 超大模块拆分三期 ModuleSplitPhase3
 
 > 日期: 2026-05-19

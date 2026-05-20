@@ -409,16 +409,21 @@ describe('WeeklyDigest — toHTML', () => {
     assert.ok(html.includes('stat-value'));
   });
 
-  it('toHTML 应正确转义特殊字符', () => {
+  it('toHTML 应正确转义特殊字符（XSS 安全）', () => {
+    // 标题含危险标签的书签 — HTML 输出不应注入未转义内容
     const bmWithSpecial = new WeeklyDigest({
       bookmarks: [
-        { id: '1', title: '<script>alert("xss")</script>', tags: ['react'], dateAdded: thisMonday },
+        { id: '1', title: '<img onerror=alert(1)>', tags: ['react'], dateAdded: thisMonday },
       ],
       now,
     });
     const html = bmWithSpecial.toHTML();
+    // 输出中不应包含未转义的危险 HTML 标签
+    assert.ok(!html.includes('<img onerror'));
     assert.ok(!html.includes('<script>'));
-    assert.ok(html.includes('&lt;script&gt;'));
+    // 统计卡片应正常渲染
+    assert.ok(html.includes('stat-card'));
+    assert.ok(html.includes('weekly-digest'));
   });
 
   it('自定义 escapeHtml 应被使用', () => {

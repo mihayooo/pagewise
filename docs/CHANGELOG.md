@@ -6,6 +6,25 @@
      6|
      7|## [Unreleased]
 
+### 新增
+- **R165: 学习周报生成 WeeklyDigest** — 新建 `lib/bookmark-weekly-digest.js`
+  - `WeeklyDigest` 类 — 自动生成用户每周学习摘要
+  - `getNewBookmarksThisWeek()` — 统计本周新增书签
+  - `getCompletedReadingsThisWeek()` — 统计本周阅读完成数
+  - `getQuestionCountThisWeek()` — 统计本周提问次数
+  - `getNewKnowledgeEntriesThisWeek()` — 统计本周知识条目增长
+  - `getDomainDistribution()` — 按领域分布生成数据摘要
+  - `getFocusDomains(limit?)` — 识别本周学习重点领域
+  - `getWeakDomains()` — 识别薄弱领域（复用 BookmarkGapDetector）
+  - `getNextWeekRecommendations(limit?)` — 推荐下周学习方向（结合 learning-path.js 和 gap-detector.js）
+  - `generateReport()` — 生成完整周报数据对象
+  - `toMarkdown()` — 导出 Markdown 格式周报
+  - `toHTML(escapeHtml?)` — 导出 HTML 格式周报
+  - `sendWeeklyNotification(notifier)` — 通过 BookmarkNotifications 推送摘要
+  - `isMonday()` / `notifyIfMonday(notifier)` — 每周一自动推送
+  - `inferDomains(bookmark)` — 基于关键词推断书签所属领域
+  - 46 个测试用例 ✅
+
 ### 修复
 - **R153: 测试失败修复 TestFailureFixR53**
   - 修复 `lib/selection-handler-global.js` 中 `_guessLanguage()` 方法的 Python/Go 语言检测正则表达式
