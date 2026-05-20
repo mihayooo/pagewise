@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Run tests before release
         run: |
           TEST_FILES=$(find tests -name "test-*.js" -not -name "test-e2e-*" -not -path "tests/e2e/*" | sort)
