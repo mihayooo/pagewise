@@ -1,240 +1,174 @@
-# 需求文档 — R163: 间隔复习系统 SpacedRepetition
+# R219: E2E 框架验证与冒烟测试 — 需求文档
 
-> 版本: 1.0
-> 日期: 2026-05-19
-> 迭代: Phase S — 产品体验升级 (R61)
-> 复杂度: Complex
-
----
-
-## 1. 背景与动机
-
-PageWise 用户在日常浏览中积累了大量书签和知识条目，但缺乏**主动回顾机制**，导致知识随时间遗忘。现有的 `ReviewSession` 模块仅管理单次复习会话的生命周期（start → recordCard → finish），缺少**长期复习调度引擎**——即"何时复习什么"的核心决策逻辑。
-
-本需求将 R015（P2 级"学习模式——间隔重复"）从规划阶段推进至实现，建立完整的间隔复习闭环：**纳入队列 → 智能调度 → 复习交互 → 统计追踪 → 提醒推送**。
+> 迭代: 61 | 优先级: P1 | 复杂度: Medium
+> 作者: Plan Agent | 日期: 2026-05-20
+> 前序依赖: R211 (E2E Chrome 测试框架搭建)
 
 ---
 
-## 2. 用户故事
+## 0. 背景与问题
 
-**US-1 (核心):**
-作为一名技术学习者，我希望系统根据遗忘曲线自动安排复习计划，这样我可以在最佳时间点回顾已学知识，避免遗忘。
+R211 建立了 `tests/e2e-chrome/` 目录，包含 **1 个 helpers 文件 + 5 个测试文件、共 42 个测试用例**，覆盖侧边栏核心流程、书签流程、知识库流程、权限/API 验证、性能基准。但存在以下遗留问题：
 
-**US-2 (复习交互):**
-作为一名用户，我希望复习时看到书签的摘要内容，并通过选择"Again / Hard / Good / Easy"来评估记忆强度，系统据此调整下次复习时间。
-
-**US-3 (统计与激励):**
-作为一名用户，我希望看到今日待复习数、连续打卡天数和记忆保持率，以此保持学习动力。
-
-**US-4 (提醒):**
-作为一名用户，我希望每天收到"今日待复习"的推送提醒，而不需要主动去查看复习列表。
-
----
-
-## 3. 验收标准
-
-### AC-1: 复习队列管理
-- 将状态为 `read` 的书签和知识条目自动纳入复习队列
-- 新增条目默认加入队列；状态变更为 `unread` 或被删除时自动移除
-- 队列持久化到 `chrome.storage.local`，重启后不丢失
-
-### AC-2: SM-2 调度算法
-- 实现标准 SM-2 间隔调整公式：
-  - 评级 `Again`（quality=1）: 重置间隔为 1 天，easeFactor 不变
-  - 评级 `Hard`（quality=2）: 间隔 × 1.2，easeFactor − 0.15
-  - 评级 `Good`（quality=3）: 间隔 × easeFactor，easeFactor 不变
-  - 评级 `Easy`（quality=4）: 间隔 × easeFactor × 1.3，easeFactor + 0.15
-- easeFactor 下限 1.3，首次默认 2.5
-- 默认间隔序列: 1d → 3d → 7d → 14d → 30d（首次 Good 评级）
-- `getDueItems()` 返回当天及之前到期的待复习列表，按优先级排序
-
-### AC-3: 复习交互
-- `reviewItem(itemId, quality)` 接受评级（1-4），更新 SM-2 参数，计算下次复习时间
-- 每次复习记录写入历史（itemId, quality, reviewDate, interval, easeFactor）
-- 支持单次会话连续复习多个条目
-
-### AC-4: 复习统计
-- `getTodayDueCount()`: 当日待复习条目数
-- `getStreak()`: 连续打卡天数（每天至少完成 1 次复习计为打卡）
-- `getRetentionRate(days?)`: 最近 N 天的记忆保持率（quality ≥ 3 的比例，默认 30 天）
-- `getReviewHistory(itemId?)`: 单条目或全局复习历史
-
-### AC-5: 通知联动
-- 通过 `NotificationManager.notify()` 推送"今日待复习"提醒
-- 通知类型: 复用 `info` 类型，消息格式: `"今日有 N 条内容待复习"`
-- 提供 `checkAndNotify()` 方法供外部定时调用（如 background service worker 每日触发）
-
-### AC-6: 测试覆盖
-- 单元测试 ≥ 30 用例
-- 覆盖: SM-2 公式正确性、边界条件（easeFactor 下限、间隔溢出）、队列 CRUD、统计计算、通知触发、持久化读写
-
----
-
-## 4. 技术约束
-
-| 约束项 | 说明 |
-|--------|------|
-| **模块规范** | 纯 ES Module，工厂函数注入依赖（storage、notificationManager），不直接引用 `chrome.*` 全局对象 |
-| **文件上限** | 新建文件 `lib/bookmark-spaced-repetition.js` ≤ 400 行；若超限则拆分（如 `bookmark-spaced-repetition-core.js` + `bookmark-spaced-repetition-stats.js`） |
-| **数据结构** | 复习卡片 schema: `{ id, nextReview: timestamp, interval: days, easeFactor: float, repetitions: number, lastReview: timestamp }` |
-| **持久化** | 使用 `chrome.storage.local`（与 ReviewSession 一致），key: `pagewise_spaced_repetition_cards` |
-| **无外部依赖** | 不引入第三方库（如 `supermemo` npm 包），SM-2 算法自行实现 |
-| **向后兼容** | 不修改 `review-session.js` 现有 API；新模块作为上层调度器独立运作 |
-| **性能** | 1000+ 书签场景下 `getDueItems()` 响应 < 50ms |
-| **i18n** | 复习界面字符串需支持中英文（复用 `bookmark-i18n.js` 注册机制） |
-
----
-
-## 5. 依赖关系
-
-### 5.1 上游依赖（本模块消费）
-
-| 模块 | 依赖方式 | 说明 |
-|------|----------|------|
-| `bookmark-status.js` | 查询 `read` 状态书签 | 确定哪些书签可纳入复习队列 |
-| `bookmark-preview.js` | 调用 `generateTextPreview()` | 复习时展示书签摘要 |
-| `bookmark-notifications.js` | 调用 `NotificationManager.notify()` | 推送"今日待复习"提醒 |
-| `review-session.js` | 数据层复用 | 参考其 quality 评分语义（≥3 为正确）保持一致 |
-| `bookmark-learning-progress.js` | streak 数据共享 | 连续打卡天数可与学习进度 streak 互通 |
-
-### 5.2 下游消费者（依赖本模块）
-
-| 模块 | 依赖方式 | 说明 |
-|------|----------|------|
-| `popup/bookmark-overview.js` (R166) | 读取 `getTodayDueCount()` | 弹窗展示待复习提醒卡片 |
-| `sidebar.js` / 书签面板 | 调用复习 API | 侧边栏内嵌复习界面 |
-| `background service worker` | 调用 `checkAndNotify()` | 每日定时触发复习提醒 |
-
-### 5.3 与现有模块的关系
-
-```
-┌─────────────────────────┐
-│  BookmarkStatusManager  │ ← 提供 read 状态书签列表
-│  (bookmark-status.js)   │
-└───────────┬─────────────┘
-            │ read 书签
-            ▼
-┌─────────────────────────┐
-│  SpacedRepetition        │ ← **本模块 (R163)**
-│  (bookmark-spaced-      │    SM-2 调度 + 队列管理
-│   repetition.js)        │
-└──┬────────┬───────┬─────┘
-   │        │       │
-   ▼        ▼       ▼
-┌──────┐ ┌──────────────┐ ┌───────────────────┐
-│Review│ │ContentPreview│ │NotificationManager│
-│Session│ │(摘要展示)    │ │(复习提醒推送)     │
-└──────┘ └──────────────┘ └───────────────────┘
-```
-
----
-
-## 6. SM-2 算法规格
-
-### 6.1 核心公式
-
-```
-IF quality < 3:
-    interval = 1
-    repetitions = 0
-ELSE:
-    IF repetitions == 0: interval = 1
-    IF repetitions == 1: interval = 3
-    IF repetitions >= 2: interval = round(interval * easeFactor)
-    repetitions += 1
-
-easeFactor = easeFactor + (0.1 - (4 - quality) * (0.08 + (4 - quality) * 0.02))
-easeFactor = max(easeFactor, 1.3)
-
-nextReview = now + interval * 86400000  (毫秒)
-```
-
-### 6.2 评级映射
-
-| 用户评级 | quality 值 | 含义 | 行为 |
-|----------|-----------|------|------|
-| Again | 1 | 完全遗忘 | 重置间隔至 1 天 |
-| Hard | 2 | 勉强记住 | 间隔 × 1.2 |
-| Good | 3 | 正常回忆 | 间隔 × easeFactor |
-| Easy | 4 | 轻松回忆 | 间隔 × easeFactor × 1.3，easeFactor 提升 |
-
-### 6.3 默认参数
-
-| 参数 | 默认值 | 说明 |
+| 问题 | 严重度 | 说明 |
 |------|--------|------|
-| initialInterval | 1 (天) | 首次复习间隔 |
-| defaultEaseFactor | 2.5 | 初始 EF 值 |
-| minEaseFactor | 1.3 | EF 下限 |
-| maxInterval | 365 (天) | 最大间隔（防止间隔无限增长） |
+| 从未在 CI 中运行 | **P0** | `ci.yml` 仅有 `lint`/`test`/`package-check` 三个 job，无 E2E job |
+| 无 npm script 入口 | **P0** | `package.json` 中不存在 `test:e2e` 或 `test:chrome-e2e` script |
+| `test:all` 路径错误 | **P1** | 指向 `tests/e2e/*.js` 而非实际的 `tests/e2e-chrome/*.js` |
+| 测试从未实际执行 | **P1** | 选择器/断言/超时从未经过真实 Chrome 验证，可能全部失败 |
+| R211 未记录到主需求文档 | **P2** | `REQUIREMENTS.md` 中无 R211 条目 |
 
 ---
 
-## 7. API 设计预览
+## 1. 用户故事
 
-> 注: 以下仅为需求层 API 契约，非最终实现代码。
-
-```javascript
-class SpacedRepetition {
-  // — 队列管理 —
-  addToQueue(bookmark)              // 纳入复习队列
-  removeFromQueue(bookmarkId)       // 从队列移除
-  getDueItems(date?)                // 获取到期待复习列表
-  getQueueSize()                    // 队列总数
-
-  // — 复习操作 —
-  reviewItem(bookmarkId, quality)   // 提交评级 (1-4)
-
-  // — 统计查询 —
-  getTodayDueCount()                // 今日待复习数
-  getStreak()                       // 连续打卡天数
-  getRetentionRate(days?)           // 记忆保持率 (0-100)
-  getReviewHistory(bookmarkId?)     // 复习历史
-
-  // — 通知 —
-  checkAndNotify()                  // 检查并推送待复习提醒
-}
-```
+**作为** PageWise 项目的开发者和维护者，  
+**我希望** R211 建立的 E2E 测试框架能在本地 headless Chrome 和 CI 环境中稳定运行，  
+**以便** 每次提交都能获得真实浏览器环境的回归保障，而不是停留在未验证的测试代码。
 
 ---
 
-## 8. 风险与缓解
+## 2. 验收标准
+
+### AC-1: E2E 测试可在本地 headless Chrome 中全量运行并记录基线
+
+- `npm run test:chrome-e2e` 可正常执行（或 `./scripts/run-chrome-e2e.sh`）
+- 所有 42 个测试用例（5 个文件）在本地 headless Chrome 中执行完毕
+- 执行结果（通过/跳过/失败 + 耗时）记录到 `docs/reports/e2e-baseline.md`
+- 已知不稳定的测试标记为 `skip` 并在基线文档中注明原因
+
+### AC-2: 运行时错误全部修复
+
+- 修复测试中发现的：选择器不匹配、断言逻辑错误、超时值不合理、API 调用方式过时等问题
+- 修复后：**≥ 35 个用例通过**（42 个中允许 ≤ 7 个因环境限制 skip）
+- 0 个用例因代码错误而失败（skip ≠ fail）
+
+### AC-3: npm script 和运行脚本可正常工作
+
+- `package.json` 中新增 `"test:chrome-e2e"` script，指向 `scripts/run-chrome-e2e.sh`
+- `scripts/run-chrome-e2e.sh` 可在干净环境（已安装依赖）下直接执行
+- `test:all` script 中的路径修正为实际的 `tests/e2e-chrome/*.js`
+
+### AC-4: CI workflow 包含 E2E job（soft-fail）
+
+- `.github/workflows/ci.yml` 新增 `chrome-e2e` job
+- 该 job：
+  - 在 `ubuntu-latest` 上运行
+  - 安装 Chromium（通过 `npx playwright install chromium --with-deps`）
+  - 执行 `npm run test:chrome-e2e`
+  - 使用 `continue-on-error: true`（soft-fail，不阻塞 `lint`/`test`/`package-check`）
+- 该 job 不依赖其他 job（可并行运行）
+
+### AC-5: E2E 基线报告已生成
+
+- `docs/reports/e2e-baseline.md` 包含：
+  - 测试日期、环境信息（Node/Chrome/Playwright 版本）
+  - 每个测试文件的用例数、通过数、skip 数、失败数、耗时
+  - 性能基准数据（首屏渲染、面板切换等来自 `test-performance.js`）
+  - 已知问题 / skip 原因列表
+- `REQUIREMENTS.md` 中新增 R211 和 R219 条目（状态：✅）
+
+---
+
+## 3. 技术约束
+
+### 3.1 E2E 测试文件现状
+
+| 文件 | 用例数 | 覆盖范围 |
+|------|--------|----------|
+| `test-sidebar-core.js` | 11 | 扩展加载、SidePanel 打开、标签切换、输入框交互、面板渲染 |
+| `test-bookmarks-flow.js` | 7 | 书签面板 UI 元素、搜索、详情面板、无障碍属性 |
+| `test-knowledge-flow.js` | 6 | 知识库面板、子标签页、导入导出按钮、搜索模式、图谱 |
+| `test-permissions.js` | 12 | Service Worker 生命周期、storage/tabs/runtime API、manifest 验证 |
+| `test-performance.js` | 6 | 首屏渲染 <500ms、面板切换 <300ms、DOM 节点、内存 |
+
+### 3.2 技术栈
+
+- **测试框架**: `node:test`（Node.js 内置，非 Jest/Mocha）
+- **浏览器自动化**: Playwright ^1.60.0（已安装为 devDependency）
+- **浏览器**: Chromium（通过 `npx playwright install chromium` 安装）
+- **扩展加载方式**: `chromium.launchPersistentContext()` + `--load-extension` 参数
+- **运行超时**: 单个测试 60s（`--test-timeout=60000`），并发度 1（`--test-concurrency=1`）
+
+### 3.3 关键风险与缓解
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
-| 复习队列随时间无限增长 | 存储膨胀、查询变慢 | 限制队列最大 5000 条；已复习间隔 >365 天的条目可选择归档 |
-| chrome.storage.local 读写性能 | 大队列场景写入卡顿 | 写入节流（debounce 300ms）；增量更新而非全量覆写 |
-| SM-2 参数越界（EF < 1.3） | 算法行为异常 | easeFactor 强制下限 1.3；单元测试覆盖边界值 |
-| ReviewSession quality 语义不一致 | 数据混乱 | 复用 ReviewSession 的 quality 1-4 语义，≥3 为正确 |
-| 用户未使用复习功能导致 streak 中断 | 统计无意义 | streak 仅统计有复习行为的天数；提供"跳过今日"选项 |
+| CI 环境无 GUI，扩展加载可能失败 | E2E 全部失败 | 使用 `--headless=new` + `--no-sandbox` + `--disable-gpu` + `--disable-dev-shm-usage`（已在 helpers.js 中配置） |
+| Service Worker 事件时序不确定 | 随机超时 | `launchChromeWithExtension` 已有 15s 超时等待 SW 事件；不稳定用例标记 skip |
+| 选择器可能因 R212-R218 迭代而失效 | 大量断言失败 | 本次需逐一验证，修复选择器至与当前 DOM 结构一致 |
+| 性能测试在 CI 机器上不稳定 | 间歇性失败 | `assertWithinBudget` 已设计为超预算仅 warn、2x 超预算才 fail；CI 中可用宽松阈值 |
+| Playwright 版本升级导致 API 变化 | 构建失败 | 锁定 `^1.60.0`，CI 中显式安装 |
+
+### 3.4 不变式
+
+- E2E 测试 **不得** 影响现有 `npm run test:ci` 流程（已通过 `find -not -path 'tests/e2e/*'` 排除）
+- E2E 测试 **不得** 修改生产代码逻辑（仅修复测试代码中的选择器/断言/超时）
+- CI 中 E2E job **不得** 阻塞主流程（soft-fail）
+- 修复测试时保持 `node:test` 框架，不引入 Jest/Mocha 等外部依赖
 
 ---
 
-## 9. 非目标（Out of Scope）
+## 4. 依赖关系
 
-- ❌ 间隔复习的 UI 面板实现（由 R166 PopupExperienceOpt 负责）
-- ❌ 卡片式正面/背面翻转动画（未来增强）
-- ❌ 与 Anki 等外部工具的数据导入导出
-- ❌ AI 自动生成复习问题（未来可探索）
-- ❌ 修改 `review-session.js` 现有 API
+### 4.1 前置依赖
+
+| 依赖项 | 状态 | 说明 |
+|--------|------|------|
+| R211: E2E Chrome 测试框架搭建 | ✅ 已完成 | `tests/e2e-chrome/` 目录和 5 个测试文件已存在 |
+| Playwright devDependency | ✅ 已安装 | `package.json` 中 `"playwright": "^1.60.0"` |
+| `scripts/run-chrome-e2e.sh` | ✅ 已存在 | 需验证可执行性 |
+| 当前 42 个测试用例代码 | ✅ 已存在 | 需经过真实环境验证和修复 |
+
+### 4.2 产出物
+
+| 产出物 | 路径 | 说明 |
+|--------|------|------|
+| 修复后的 E2E 测试 | `tests/e2e-chrome/*.js` | 选择器/断言/超时修复，可能新增 skip 标记 |
+| npm script | `package.json` → `test:chrome-e2e` | 新增脚本入口 |
+| 修正的 test:all | `package.json` → `test:all` | 路径修正 |
+| CI job | `.github/workflows/ci.yml` → `chrome-e2e` | 新增 soft-fail job |
+| E2E 基线报告 | `docs/reports/e2e-baseline.md` | 测试结果基线 |
+| 需求更新 | `docs/REQUIREMENTS.md` | 新增 R211/R219 条目 |
+
+### 4.3 后续影响
+
+- **R220+**: 后续迭代可基于 E2E 基线新增测试用例
+- **覆盖率**: E2E 测试不影响 `c8` 行覆盖率统计（独立执行路径）
+- **开发者体验**: 新增 `npm run test:chrome-e2e` 供开发者本地验证
 
 ---
 
-## 10. 测试策略
+## 5. 范围界定
 
-| 测试类别 | 用例数 | 覆盖范围 |
-|----------|--------|----------|
-| SM-2 核心算法 | 8 | 各评级场景、EF 上下限、连续复习间隔递增、Again 重置 |
-| 队列 CRUD | 6 | 添加/移除/查询/去重/持久化/队列上限 |
-| 复习操作 | 5 | reviewItem 正常/边界/历史记录/重复复习 |
-| 统计计算 | 5 | dueCount/streak/retentionRate/history |
-| 通知联动 | 3 | checkAndNotify 有待复习/无待复习/参数校验 |
-| 边界与异常 | 3+ | 空队列/无效 ID/无效 quality/storage 读写失败 |
-| **合计** | **≥30** | |
+### 包含 (In Scope)
+
+1. 验证 Playwright + Chromium 在本地环境的安装和运行
+2. 执行全部 5 个测试文件、42 个用例，记录结果
+3. 修复测试代码中的运行时错误（选择器、断言、超时）
+4. 在 `package.json` 中新增 `test:chrome-e2e` script，修正 `test:all` 路径
+5. 在 `ci.yml` 中新增 `chrome-e2e` soft-fail job
+6. 生成 `docs/reports/e2e-baseline.md` 基线报告
+7. 更新 `docs/REQUIREMENTS.md`
+
+### 不包含 (Out of Scope)
+
+- 新增 E2E 测试用例（本次仅验证和修复现有 42 个用例）
+- 修改生产代码以适配测试（如 DOM 选择器不匹配时应修改测试而非生产代码）
+- E2E 测试的覆盖率统计集成
+- 测试截图/录屏功能
+- 多浏览器（Firefox/Safari）支持
+- 从 soft-fail 升级为 hard-fail（需要在基线稳定后再考虑）
 
 ---
 
-## 需求变更记录
+## 6. 成功度量
 
-| 日期 | 需求 | 变更内容 |
-|------|------|----------|
-| 2026-05-19 | R163 | 新建间隔复习系统 SpacedRepetition 需求文档 |
+| 指标 | 目标值 | 度量方式 |
+|------|--------|----------|
+| E2E 用例通过率 | ≥ 83%（35/42） | `npm run test:chrome-e2e` 输出 |
+| 失败用例（非 skip） | 0 | 区分 skip 和 fail |
+| CI E2E job 执行 | 可运行（不阻塞主流程） | GitHub Actions 日志 |
+| 基线报告完整性 | 包含所有 5 个文件的详细结果 | 人工审查 `e2e-baseline.md` |
+| 主流程无回归 | `npm run test:ci` 0 fail | CI 通过 |
+| lint 无新增警告 | 0/0 | `npm run lint` |
