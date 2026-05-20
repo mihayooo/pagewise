@@ -1458,3 +1458,26 @@ BookmarkSpacedRepetition (新建, R163)
 
 - 新增: 43 个测试，全部通过
 - 总测试: 43 (本模块)
+
+---
+
+## R215: 测试失败修复 TestFailureFixR215
+
+### 问题描述
+
+R212 新增 `lib/feedback-collector.js` 时定义了 `const MS_PER_DAY = 24 * 60 * 60 * 1000`，未使用 `_` 下划线前缀。`test-r201-lint-warning-final.js:164` 的断言检查所有 lib 文件中非导出的 `MS_PER_DAY` 常量必须使用 `_MS_PER_DAY` 前缀（匹配 ESLint `varsIgnorePattern: '^_'` 规范），导致测试失败。
+
+### 修改内容
+
+1. **`lib/feedback-collector.js`**: `const MS_PER_DAY` → `const _MS_PER_DAY`，并更新 `shouldShowPrompt()` 中的引用
+
+### 变更统计
+
+- 修改文件: 1 (`lib/feedback-collector.js`)
+- 变更行数: 2 行（常量声明 + 使用处）
+
+### 验证结果
+
+- `npm run lint`: 0 errors / 0 warnings ✅
+- `test-r201-lint-warning-final.js`: 17 pass / 0 fail ✅
+- `npm run test:ci`: 7139 pass（E2E Chrome 测试因缺少浏览器环境 12 fail，为预期内的已知问题）

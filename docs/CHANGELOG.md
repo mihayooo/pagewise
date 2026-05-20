@@ -14,6 +14,11 @@
   - 全量回归: 6887 pass / 0 fail ✅
 
 ### 修复
+- **R215: 测试失败修复 TestFailureFixR215** — 修复 `npm run test:ci` 中 1 个失败用例
+  - `test-r201-lint-warning-final.js:164` 断言 `feedback-collector.js` 中 `MS_PER_DAY` 应使用 `_MS_PER_DAY` 下划线前缀
+  - R212 新增的 telemetry 模块引入了未加前缀的常量，违反 ESLint `varsIgnorePattern: '^_'` 规范
+  - 在 `lib/feedback-collector.js` 中将 `MS_PER_DAY` 重命名为 `_MS_PER_DAY` 并更新所有引用
+  - 结果: `npm run lint` 0/0，`test-r201-lint-warning-final.js` 17 pass / 0 fail
 - **R192: 覆盖率基础设施修复 CoverageInfraFixR190** — 修复 coverage 目录权限 EACCES 导致 HTML 报告生成失败
   - 修复 `coverage/lcov-report/` 目录权限并添加 `.gitignore` 规则排除旧报告
   - 验证覆盖率报告正常生成 lcov + text-summary + HTML

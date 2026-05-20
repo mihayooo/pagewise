@@ -905,7 +905,7 @@
 > 目标: 修复 1 个失败测试、覆盖率提升至 ≥40%、完成剩余超大模块拆分、补全 CHANGELOG、验证 E2E 框架可用性
 > 任务来源优先级: 修复失败测试 > 覆盖率治理 > 架构治理 > 文档补全 > E2E 加固
 
-- [ ] **R215: 测试失败修复 TestFailureFixR215** — 修复 `npm run test:ci` 中 1 个失败用例：`test-r201-lint-warning-final.js:164` 断言 `feedback-collector.js` 中 `MS_PER_DAY` 应使用 `_MS_PER_DAY` 下划线前缀（R212 新增的 telemetry 模块引入了未加前缀的常量）；(1) 在 `lib/feedback-collector.js` 中将 `MS_PER_DAY` 重命名为 `_MS_PER_DAY` 并更新所有引用；(2) 验证 `npm run lint` 仍 0/0；(3) 验证 `npm run test:ci` 7173 pass / 0 fail。复杂度: Simple
+- [x] **R215: 测试失败修复 TestFailureFixR215** — 修复 `npm run test:ci` 中 1 个失败用例：`test-r201-lint-warning-final.js:164` 断言 `feedback-collector.js` 中 `MS_PER_DAY` 应使用 `_MS_PER_DAY` 下划线前缀（R212 新增的 telemetry 模块引入了未加前缀的常量）；(1) 在 `lib/feedback-collector.js` 中将 `MS_PER_DAY` 重命名为 `_MS_PER_DAY` 并更新所有引用；(2) 验证 `npm run lint` 仍 0/0；(3) 验证 `npm run test:ci` 7173 pass / 0 fail。复杂度: Simple ✅
 
 - [ ] **R216: 行覆盖率冲刺 40% CoverageSprint40** — 当前行覆盖率仅 23.22%（11807/50831），R205 声称冲刺 50% 但未落地，`coverage:gate --lines 20` 门禁形同虚设；(1) 分析未覆盖行 Top-20 模块，重点补充纯逻辑/工具函数的边界用例（telemetry.js、feedback-collector.js、bookmark-onboarding.js、bookmark-accessibility.js、error-handler.js、cache-manager.js）；(2) 为 R210-R214 新增模块补充测试（当前覆盖率未知）；(3) 将 `coverage:gate --lines` 从 20 收紧至 35；(4) 目标: 行覆盖率 ≥40%、函数覆盖率 ≥55%；(5) 测试 ≥40 用例。复杂度: Medium
 
