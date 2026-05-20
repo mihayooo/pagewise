@@ -928,7 +928,7 @@
 
 - [x] **R221: Lint 警告清零 LintWarningFinalR220** — 当前 0 errors / 5 warnings（全部在 `lib/bookmark-security-audit.js`：`auditContentScripts`、`auditCSP`、`UNSAFE_CSP_VALUES`、`MINIMAL_CSP`、共 5 处 `no-unused-vars`）；(1) 审查 `bookmark-security-audit.js` 中 5 个未使用变量/导出，删除或前缀 `_` 标记有意忽略项；(2) 验证 `npm run lint` 0 errors 0 warnings；(3) 验证 `npm run test:ci` 0 fail。复杂度: Simple
 
-- [ ] **R222: 行覆盖率突破 50% CoverageBreak50** — 当前行覆盖率 48.79%（24786/50794），函数覆盖率 71.95%，分支覆盖率 84.25%；需再覆盖约 650 行即可突破 50%；(1) 分析未覆盖行 Top-10 模块（按未覆盖行数排序），重点补充纯逻辑/工具函数的边界用例；(2) 为覆盖率最低的 5 个 lib 模块补充异常路径和边界测试；(3) 将 `coverage:gate --lines` 从 35 收紧至 50；(4) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥75%；(5) 测试 ≥30 用例。复杂度: Medium
+- [x] **R222: 行覆盖率突破 50% CoverageBreak50** — 当前行覆盖率 48.79%（24786/50794），函数覆盖率 71.95%，分支覆盖率 84.25%；需再覆盖约 650 行即可突破 50%；(1) 分析未覆盖行 Top-10 模块（按未覆盖行数排序），重点补充纯逻辑/工具函数的边界用例；(2) 为覆盖率最低的 5 个 lib 模块补充异常路径和边界测试；(3) 将 `coverage:gate --lines` 从 35 收紧至 50；(4) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥75%；(5) 测试 ≥30 用例。复杂度: Medium
 
 - [ ] **R223: 超大模块拆分收尾 ModuleSplitFinal** — R217 声称完成全部 13 个文件拆分但实测仍有 7 个 lib 文件 >400 行：bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)；(1) 全部 7 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；(2) 验证拆分后全量回归 0 fail；(3) 更新 `docs/architecture-metrics.md` 模块统计。复杂度: Medium
 
