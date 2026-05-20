@@ -715,6 +715,6 @@
 
 - [x] **R169: 学习目标与打卡系统 LearningGoals** — 新建 `lib/bookmark-learning-goals.js`，引入游戏化激励机制提升用户留存：(1) 用户设定每周学习目标（阅读完成 X 篇、复习 Y 条、提问 Z 次、摘录 W 条）；(2) 每日打卡统计（当日是否达成目标），连续打卡天数 streak 追踪；(3) 目标完成度实时可视化（进度条 + 百分比）；(4) 与 R163 SpacedRepetition 集成：复习完成自动计入目标；(5) 与 R165 WeeklyDigest 集成：周报中新增"目标完成"板块；(6) 成就里程碑系统（7 天/30 天/100 天连续打卡解锁成就徽章）；(7) 目标数据持久化（chrome.storage.local）；(8) 测试 ≥30 用例。复杂度: Medium
 
-- [ ] **R170: 书签批注与笔记 BookmarkAnnotations** — 新建 `lib/bookmark-annotations.js`，为书签增加个人思考沉淀层：(1) 为任意书签添加批注/笔记（支持 Markdown 格式文本）；(2) 每个书签可有多条笔记（按时间倒序排列），支持编辑/删除；(3) 笔记全文检索（与 bookmark-semantic-search.js 集成，笔记内容纳入 TF-IDF 索引）；(4) 笔记与知识条目双向关联（复用 bookmark-knowledge-link.js）；(5) 导入导出支持（复用 bookmark-io.js，笔记随书签一起导出）；(6) AI 辅助：基于书签内容和已有笔记自动推荐"思考问题"（复用 ai-client-context.js）；(7) 笔记统计：总笔记数、本周新增、按领域分布；(8) 测试 ≥25 用例。复杂度: Medium
+- [x] **R170: 书签批注与笔记 BookmarkAnnotations** — 新建 `lib/bookmark-annotations.js`，为书签增加个人思考沉淀层：(1) 为任意书签添加批注/笔记（支持 Markdown 格式文本）；(2) 每个书签可有多条笔记（按时间倒序排列），支持编辑/删除；(3) 笔记全文检索（与 bookmark-semantic-search.js 集成，笔记内容纳入 TF-IDF 索引）；(4) 笔记与知识条目双向关联（复用 bookmark-knowledge-link.js）；(5) 导入导出支持（复用 bookmark-io.js，笔记随书签一起导出）；(6) AI 辅助：基于书签内容和已有笔记自动推荐"思考问题"（复用 ai-client-context.js）；(7) 笔记统计：总笔记数、本周新增、按领域分布；(8) 测试 ≥25 用例。复杂度: Medium
 
 - [ ] **R171: 全量回归与迭代收尾 IterationCloseR62** — R168-R170 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6350 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R168-R170 变更记录；(5) 输出发布候选版本号。复杂度: Simple
