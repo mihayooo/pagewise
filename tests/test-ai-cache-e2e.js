@@ -104,7 +104,7 @@ describe('AICache TTL 过期', () => {
   it('超过 ttlMs 后 get 返回 null', async () => {
     const cache = new AICache({ ttlMs: 50 });
     cache.set('expire', { data: 'old' });
-    await sleep(80);
+    await sleep(60);
     assert.equal(cache.get('expire'), null);
     assert.equal(cache.stats().misses, 1);
   });
@@ -113,7 +113,7 @@ describe('AICache TTL 过期', () => {
     const cache = new AICache({ ttlMs: 50 });
     cache.set('expire2', { data: 'old' });
     assert.equal(cache.has('expire2'), true);
-    await sleep(80);
+    await sleep(60);
     assert.equal(cache.has('expire2'), false);
   });
 

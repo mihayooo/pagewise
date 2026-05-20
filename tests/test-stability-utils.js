@@ -466,7 +466,7 @@ describe('withTimeout', () => {
   })
 
   it('Promise 超时抛出错误', async () => {
-    const slow = new Promise((resolve) => setTimeout(() => resolve('slow'), 5000))
+    const slow = new Promise((resolve) => setTimeout(() => resolve('slow'), 200))
     await assert.rejects(
       () => withTimeout(slow, 50),
       (err) => {
@@ -575,7 +575,7 @@ describe('debounce', () => {
     const fn = debounce(() => { called = true }, 100)
     fn()
     assert.equal(called, false) // 立即未调用
-    await new Promise(r => setTimeout(r, 150))
+    await new Promise(r => setTimeout(r, 120))
     assert.equal(called, true) // 延迟后调用
   })
 
@@ -585,7 +585,7 @@ describe('debounce', () => {
     fn()
     fn()
     fn()
-    await new Promise(r => setTimeout(r, 150))
+    await new Promise(r => setTimeout(r, 120))
     assert.equal(count, 1)
   })
 

@@ -173,7 +173,7 @@ describe('BookmarkLinkChecker', () => {
         return new Promise((resolve, reject) => {
           const timer = setTimeout(() => {
             resolve(new Response('', { status: 200 }));
-          }, 10000);
+          }, 500);
 
           if (opts?.signal) {
             opts.signal.addEventListener('abort', () => {
@@ -243,7 +243,7 @@ describe('BookmarkLinkChecker', () => {
         inflight++;
         maxInflight = Math.max(maxInflight, inflight);
 
-        await new Promise(r => setTimeout(r, 50));
+        await new Promise(r => setTimeout(r, 10));
         inflight--;
         return new Response('', { status: 200, type: 'basic' });
       });
