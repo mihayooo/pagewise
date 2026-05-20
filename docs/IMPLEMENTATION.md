@@ -2,6 +2,26 @@
 
 ---
 
+## R218: CHANGELOG [3.1.0] 区段补全与发布收尾 ChangelogV310Finalize
+
+### 问题
+
+CHANGELOG.md 从 [3.0.0] 直接跳至 [2.3.0]，缺少 [3.1.0] 区段（R190-R214 共 25 轮增量迭代的变更记录全部缺失）。RELEASE-NOTES-v3.1.md 仅覆盖至 R208，R215-R217 内容未纳入。
+
+### 修改内容
+
+1. **CHANGELOG.md**：补充 `[3.1.0] - 2026-05-20` 区段，涵盖 R190-R217 变更，按 Keep a Changelog 规范分类（新增/架构/修复/性能优化/测试/文档），共 6 个一级分类、30+ 个条目
+2. **docs/RELEASE-NOTES-v3.1.md**：新增 "Post-R208 Iterations (R210-R218)" 区段，覆盖 R210-R218 全部变更；更新统计表（R208→R218, 7000+→7100+ 测试用例）
+3. **版本号验证**：确认 package.json / manifest.json 版本号均为 `3.1.0` 且一致
+4. **测试**：新增 `tests/test-r218-changelog-v310.js`，30 个验收用例覆盖 5 个验收标准（AC-1: CHANGELOG [3.1.0] 区段完整性, AC-2: 版本号一致性, AC-3: RELEASE-NOTES 覆盖新内容, AC-4: 格式规范, AC-5: R190-R217 迭代覆盖）
+
+### 验证结果
+
+- `npm run test:ci`: pass / 0 fail ✅
+- `npm run lint`: 0 errors / 0 warnings ✅
+
+---
+
 ## 迭代 R209 — 项目文档全面更新 DocumentationOverhaul
 
 > 日期: 2026-05-20

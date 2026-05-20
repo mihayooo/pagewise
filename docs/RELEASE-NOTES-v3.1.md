@@ -8,7 +8,7 @@
 
 ## 🎉 Overview
 
-PageWise v3.1.0 builds upon the landmark v3.0.0 release (R92) with 116 additional rounds of iteration focused on **code quality**, **test coverage**, **module architecture optimization**, and **release automation**. This release establishes a standardized build and publish pipeline for Chrome Web Store submission.
+PageWise v3.1.0 builds upon the landmark v3.0.0 release (R92) with 126 additional rounds of iteration (R190-R218) focused on **code quality**, **test coverage**, **module architecture optimization**, **release automation**, **telemetry & feedback**, **E2E testing**, and **Chrome Web Store compliance**. This release establishes a standardized build and publish pipeline for Chrome Web Store submission.
 
 ---
 
@@ -47,13 +47,14 @@ PageWise v3.1.0 builds upon the landmark v3.0.0 release (R92) with 116 additiona
 
 | Metric | v3.0.0 | v3.1.0 | Change |
 |--------|--------|--------|--------|
-| Iteration rounds | R92 | R208 | +116 |
-| Test cases | 6,887 | 7,000+ | +113+ |
+| Iteration rounds | R92 | R218 | +126 |
+| Test cases | 6,887 | 7,100+ | +213+ |
 | Test execution time | 45s | 24s | -47% |
-| Line coverage gate | 20% | 50% | +30pp |
+| Line coverage gate | 20% | 35% | +15pp |
 | lib/ modules >400 lines | 22 | 0 | -22 |
 | lib/ total modules | 190 | 187 | -3 (consolidation) |
 | ESLint warnings | 4 | 0 | -4 |
+| New lib modules | — | telemetry.js, feedback-collector.js | +2 |
 
 ---
 
@@ -77,6 +78,17 @@ PageWise v3.1.0 builds upon the landmark v3.0.0 release (R92) with 116 additiona
 
 ### Release
 - R208: 发布产物构建 — 标准化 build.sh + publish-check.sh + 截图指引 + 发布说明
+
+### Post-R208 Iterations (R210-R218)
+- **R210**: Chrome Web Store 合规与提交 — 隐私政策页面、Listing 资产（5 张截图 + 宣传图）、权限最小化最终审查
+- **R211**: 真实 Chrome 环境 E2E 验证 — `tests/e2e-chrome/` Puppeteer 框架，核心流程 + 书签流程 + 权限验证 + 性能基准
+- **R212**: 发布后遥测与反馈收集 — `lib/telemetry.js` 本地遥测（使用频率/错误率/性能指标）、`lib/feedback-collector.js` NPS 评分收集
+- **R213**: 性能回归 CI 门禁 — `perf-gate` job + `scripts/perf-benchmark.js` + bundle size 门禁 ≤500KB
+- **R214**: 自动化发布流水线 — GitHub Actions `release.yml`、`bump-version.sh`、CHANGELOG 自动生成、灰度发布策略、版本回滚预案
+- **R215**: 测试失败修复 — `feedback-collector.js` 中 `MS_PER_DAY` → `_MS_PER_DAY` 命名规范修复
+- **R216**: 行覆盖率冲刺 40% — 为 telemetry.js、feedback-collector.js 等 Top-20 模块补充边界用例，coverage:gate 收紧至 35%
+- **R217**: 超大模块拆分十三期 — 最终 13 个 >400 行文件全部拆分至 ≤400 行（bookmark-io.js 606 行为最严重违规）
+- **R218**: CHANGELOG [3.1.0] 区段补全与发布收尾 — 补充 R190-R217 变更记录、验证版本一致性、生成完整发布说明
 
 ---
 

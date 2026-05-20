@@ -4,6 +4,83 @@
 
 ---
 
+## [3.1.0] - 2026-05-20
+
+质量治理里程碑版本 — 经过 R190-R218 共 29 轮飞轮迭代，完成超大模块拆分、覆盖率基础设施建设、ESLint 清零、E2E 框架搭建、遥测反馈系统、性能 CI 门禁、发布自动化流水线以及 Chrome Web Store 合规提交。
+
+### 新增
+
+#### Chrome Web Store 合规与发布（R208-R214）
+- **标准化构建流水线**：`scripts/build.sh` 生成 Chrome Web Store 就绪的 .zip 产物，白名单模式控制文件包含
+- **发布前自检脚本**：`scripts/publish-check.sh` 自动化验证版本一致性、权限审计、图标完整性、i18n 完整性
+- **截图指引**：`docs/SCREENSHOT-GUIDE.md` 完整的 Chrome Web Store 截图生成指南
+- **隐私政策**：`docs/privacy-policy.html` 覆盖数据收集范围、AI API 调用说明、用户数据权利、GDPR 合规
+- **Chrome Web Store Listing 资产**：5 张功能截图（1280×800）、宣传图（1400×560）、中英文描述文案
+- **权限最小化审查**：逐项验证 manifest.json permissions/host_permissions 必要性
+- **真实 Chrome E2E 框架**：`tests/e2e-chrome/` 基于 Puppeteer 的端到端测试框架（R211）
+- **本地遥测模块**：`lib/telemetry.js` 功能使用频率、错误率追踪、性能指标（纯本地存储，R212）
+- **NPS 反馈收集器**：`lib/feedback-collector.js` 使用 7 天后弹出 NPS 评分，支持 JSON 导出（R212）
+- **性能回归 CI 门禁**：`perf-gate` job 运行 smoke test 基准，超基线 20% 则 CI 失败（R213）
+- **性能基准脚本**：`scripts/perf-benchmark.js` 书签索引/语义搜索/图谱构建/知识库查询基准测量（R213）
+- **自动化发布流水线**：GitHub Actions `release.yml` workflow，git tag `v*` 触发自动构建+发布（R214）
+- **版本号自动化**：`scripts/bump-version.sh` 同步更新 package.json / manifest.json / CHANGELOG（R214）
+- **CHANGELOG 自动生成**：从 git log 解析 conventional commits 生成 CHANGELOG 条目（R214）
+- **灰度发布策略**：Chrome Web Store 10% → 50% → 100% 分阶段放量（R214）
+- **版本回滚预案**：`scripts/rollback.sh` 回滚脚本 + 文档化回滚步骤（R214）
+
+#### E2E 学习闭环集成测试（R199）
+- **间隔复习完整流程**：加入复习队列 → 复习提醒 → 用户评级 → 间隔更新
+- **学习目标打卡流程**：设定目标 → 每日打卡 → 连续天数追踪 → 成就解锁
+- **智能摘录归档流程**：选中文字 → AI 摘要 → 一键归档 → 知识库关联
+- **学习教练每日计划**：生成计划 → 阅读执行 → 完成扣减 → 教练回顾
+- **跨模块数据流验证**：UserProfile ↔ ReadingQueue ↔ SpacedRepetition ↔ LearningGoals 完整闭环
+
+### 架构
+
+#### 超大模块拆分（R193, R196, R203, R206, R217）
+- **Phase 9**（R193）：bookmark-knowledge-packs.js(624→≤400)、bookmark-weekly-digest.js(580→≤400)、bookmark-highlight-archive.js(549→≤400) 等 6 个文件
+- **Phase 10**（R196）：bookmark-user-profile.js(535→≤400)、knowledge-panel.js(528→≤400)、bookmark-spaced-repetition.js(528→≤400) 等 8 个文件
+- **Phase 11**（R203）：architecture-health-monitor.js(498→≤400)、bookmark-notifier.js(493→≤400)、bookmark-duplicate-detector.js(474→≤400) 等 8 个文件
+- **Phase 12**（R206）：page-sense.js(447→≤400)、utils.js(444→≤400)、docmind-client.js(443→≤400) 等剩余全部 14 个文件
+- **Phase 13**（R217）：bookmark-io.js(606→≤400)、docmind-client.js、i18n.js 等最终 13 个文件全部拆分至 ≤400 行
+- **Re-export 模式**：所有拆分保持 API 向后兼容，原模块入口改为 re-export wrapper
+
+#### 重叠模块合并（R207）
+- **bookmark-dedup.js → bookmark-duplicate-detector.js**：合并为单一实现，被合并模块改为 re-export
+- **bookmark-io.js → bookmark-import-export.js**：IO 功能统一
+- **模块总数减少 ≥3 个**，消除孤立导出和死代码
+
+### 修复
+
+- **测试失败修复（R190, R200, R215）**：累计修复 24+ 个失败用例，包括 BookmarkAIRecommendations 性能断言、BookmarkGraphEngine 超时、语义搜索性能超时、`MS_PER_DAY` 命名规范等
+- **ESLint 警告清零（R191, R201）**：从 4 warnings 降至 0 errors / 0 warnings，`max-warnings` 收紧为 0
+- **覆盖率基础设施修复（R192）**：解决 EACCES 权限问题，HTML 报告正常生成
+- **版本号统一（R197）**：package.json / manifest.json / CHANGELOG 对齐至 3.1.0
+- **CI 覆盖率门禁修复（R209）**：ci.yml 步骤名与实际阈值对齐
+
+### 性能优化
+
+- **测试执行效率优化（R198, R202）**：从 45s 降至 24s（47% 改善），移除残留 `setTimeout`/`await sleep` 阻塞
+- **CI Smoke Test 子集**：`npm run test:smoke` 核心流程 ≤60 用例，<3s
+- **并行执行优化**：`--test-concurrency=8` 提升并行度，测试分 4 组并行
+
+### 测试
+
+- **行覆盖率冲刺（R205, R216）**：覆盖率门禁从 20% 收紧至 35%，为 Top-20 未覆盖模块补充边界用例
+- **测试用例**：7100+ 个（从 v3.0.0 的 6887 增长）
+- **测试执行时间**：24s（从 45s 优化）
+- **Lint**：0 errors / 0 warnings
+
+### 文档
+
+- **ROADMAP.md 更新**：对齐至 v3.1.0/R209/7088 tests/222 lib modules
+- **README.md 更新**：补充 18 项新功能特性、更新测试统计
+- **architecture-metrics.md**：新建模块统计和增长趋势文档
+- **RELEASE-NOTES-v3.1.md**：完整 v3.0.0 → v3.1.0 发布说明
+- **CHANGELOG.md 补全**：R190-R217 全部变更记录
+
+---
+
 ## [3.0.0] - 2026-05-16
 
 BookmarkGraph v3.0.0 — 里程碑版本，经过 92 轮飞轮迭代，全面完成书签知识图谱系统、深度测试、兼容性验证与可靠性保障。
