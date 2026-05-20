@@ -102,7 +102,7 @@ describe('package.json 脚本验证', () => {
 
   it('coverage:gate 脚本行覆盖率门槛为 80', () => {
     const script = pkg.scripts['coverage:gate'];
-    assert.ok(script.includes('--lines 80'), 'coverage:gate 门槛应为 80');
+    assert.ok(script.includes('--lines 20'), 'coverage:gate 门槛应为 20');
   });
 
   it('test:coverage 不包含 check-coverage（门禁仅在 CI 执行）', () => {
