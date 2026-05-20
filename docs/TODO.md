@@ -895,3 +895,22 @@
 - [x] **R213: 性能回归 CI 门禁 PerformanceRegressionCI** — 当前 CI 仅有 lint + test，缺少性能回归检测；(1) 在 CI 中新增 `perf-gate` job：运行 `npm run test:smoke` 并记录执行时间，超基线 20% 则 fail；(2) 建立 `scripts/perf-benchmark.js`：测量核心操作基准（书签索引 1000 条 <50ms、语义搜索 1000 条 <100ms、图谱构建 500 节点 <200ms、知识库查询 <50ms），结果输出 JSON；(3) CI 每次运行 benchmark 并与历史基线对比，生成性能趋势报告（`docs/reports/perf-trend.md`）；(4) bundle size 门禁：构建产物 .zip 大小 ≤500KB（当前预估 ~300KB），超过则 CI fail；(5) 测试 ≥15 用例。复杂度: Medium
 
 - [x] **R214: 自动化发布流水线与版本管理 ReleaseAutomation** — 当前发布流程为手动构建+上传，需自动化；(1) GitHub Actions 新增 `release.yml` workflow：当 git tag `v*` 推送时自动运行 publish-check → build → 生成 .zip artifact → 创建 GitHub Release（附 RELEASE-NOTES）；(2) 版本号自动化：`scripts/bump-version.sh` 同步更新 package.json / manifest.json / CHANGELOG.md 版本号；(3) CHANGELOG 自动生成：从 git log 解析 `feat:` / `fix:` commit 生成 CHANGELOG 条目（conventional commits 规范）；(4) 灰度发布策略：Chrome Web Store 10% → 50% → 100% 分阶段放量，监控崩溃率；(5) 版本回滚预案：文档化回滚步骤 + `scripts/rollback.sh`；(6) 测试 ≥10 用例。复杂度: Medium
+
+---
+
+## Phase AC: 测试修复、覆盖率治理与发布收尾 (R215-R219) — 5 轮
+
+> 飞轮迭代 R57 起，2026-05-20
+> 现状: 7172 pass / 1 fail；Lint 0/0；行覆盖率 23.22%（门禁仅 20%）；13 个 lib 文件 >400 行；CHANGELOG 缺 [3.1.0] 区段（3.0.0 直接跳至 2.3.0）；R211 E2E 框架存在但实现标记 ❌
+> 目标: 修复 1 个失败测试、覆盖率提升至 ≥40%、完成剩余超大模块拆分、补全 CHANGELOG、验证 E2E 框架可用性
+> 任务来源优先级: 修复失败测试 > 覆盖率治理 > 架构治理 > 文档补全 > E2E 加固
+
+- [ ] **R215: 测试失败修复 TestFailureFixR215** — 修复 `npm run test:ci` 中 1 个失败用例：`test-r201-lint-warning-final.js:164` 断言 `feedback-collector.js` 中 `MS_PER_DAY` 应使用 `_MS_PER_DAY` 下划线前缀（R212 新增的 telemetry 模块引入了未加前缀的常量）；(1) 在 `lib/feedback-collector.js` 中将 `MS_PER_DAY` 重命名为 `_MS_PER_DAY` 并更新所有引用；(2) 验证 `npm run lint` 仍 0/0；(3) 验证 `npm run test:ci` 7173 pass / 0 fail。复杂度: Simple
+
+- [ ] **R216: 行覆盖率冲刺 40% CoverageSprint40** — 当前行覆盖率仅 23.22%（11807/50831），R205 声称冲刺 50% 但未落地，`coverage:gate --lines 20` 门禁形同虚设；(1) 分析未覆盖行 Top-20 模块，重点补充纯逻辑/工具函数的边界用例（telemetry.js、feedback-collector.js、bookmark-onboarding.js、bookmark-accessibility.js、error-handler.js、cache-manager.js）；(2) 为 R210-R214 新增模块补充测试（当前覆盖率未知）；(3) 将 `coverage:gate --lines` 从 20 收紧至 35；(4) 目标: 行覆盖率 ≥40%、函数覆盖率 ≥55%；(5) 测试 ≥40 用例。复杂度: Medium
+
+- [ ] **R217: 超大模块拆分十三期 ModuleSplitPhase13** — 当前 13 个 lib 文件 >400 行：bookmark-io.js(606)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)；bookmark-io.js 606 行为最严重违规；(1) 全部 13 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；(2) 验证拆分后全量回归 0 fail；(3) 更新 `docs/architecture-metrics.md` 模块统计。复杂度: Complex
+
+- [ ] **R218: CHANGELOG [3.1.0] 区段补全与发布收尾 ChangelogV310Finalize** — CHANGELOG.md 从 [3.0.0] 直接跳至 [2.3.0]，缺少 [3.1.0] 区段（R190-R214 共 25 轮增量迭代的变更记录全部缺失）；(1) 补充 `[3.1.0] - 2026-05-20` 区段，涵盖 R190-R214 变更（模块拆分、覆盖率基础设施、测试修复、ESLint 清零、版本号统一、E2E 框架、遥测反馈、性能 CI、发布自动化）；(2) 验证 package.json / manifest.json 版本号 `3.1.0` 一致；(3) 生成 `RELEASE-NOTES-v3.1.md`；(4) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple
+
+- [ ] **R219: E2E 框架验证与冒烟测试 E2ESmokeVerification** — R211 建立了 `tests/e2e-chrome/` 目录和 6 个测试文件，但实现阶段标记 ❌ 且从未在 CI 中运行；(1) 验证 E2E 框架依赖安装（Puppeteer/Playwright）并在本地 headless Chrome 中运行全部 6 个 E2E 测试；(2) 修复运行时发现的测试断言/选择器/超时问题；(3) 确保 `npm run test:e2e` 或 `scripts/run-chrome-e2e.sh` 可正常执行；(4) 在 CI workflow 中添加 `chrome-e2e` job（允许 soft-fail，不阻塞主流程）；(5) 记录 E2E 测试结果基线到 `docs/reports/e2e-baseline.md`。复杂度: Medium
