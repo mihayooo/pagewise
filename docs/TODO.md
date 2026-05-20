@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R171
+> 迭代轮次: R43 - R181
 > 最后更新: 2026-05-20
 
 ---
@@ -737,3 +737,22 @@
 - [x] **R175: 一键整页速存 QuickPageCapture** — 新建 `lib/bookmark-quick-capture.js`，提供从任意网页一键保存完整学习快照：(1) 整页捕获：同时保存书签 + 页面正文提取 + 当前所有高亮（复用 highlight-store.js）+ 页面截图缩略图（tabCapture API）；(2) AI 摘要：自动生成 150 字页面摘要 + 5 个关键词标签（复用 bookmark-tagger.js + ai-client.js）；(3) 智能归类：自动建议文件夹/智能集合（复用 bookmark-smart-collections.js + bookmark-clusterer.js）；(4) 快捷入口：右键菜单"用 PageWise 速存此页" + 快捷键 Ctrl+Shift+S（复用 bookmark-keyboard-shortcuts.js）；(5) 保存后弹出面板：展示摘要预览、标签编辑、集合选择、一键确认；(6) 批量模式：当前窗口所有标签页一键批量速存；(7) 测试 ≥20 用例。复杂度: Medium
 
 - [x] **R176: 用户画像与偏好引擎 UserProfileEngine** — 新建 `lib/bookmark-user-profile.js`，构建跨模块统一用户画像：(1) 显性偏好：用户手动设置的兴趣领域、难度偏好、每日学习时长目标；(2) 隐性偏好：基于阅读历史自动推断（标签频率、域名频率、阅读完成率加权）；(3) 偏好向量：生成用户兴趣领域向量（14 维，对应 14 个技术领域），定期更新（复用 BookmarkClusterer 领域分类）；(4) 偏好接口：`getProfile()` / `getPreferences()` / `getInterestVector()` / `suggestTopics()` 供其他模块消费；(5) 与 AI 推荐集成：兴趣向量注入 AI prompt（复用 bookmark-ai-recommender.js），提升推荐个性化；(6) 与 ReadingQueue 集成：兴趣向量影响排序权重；(7) 偏好变更历史：记录偏好漂移轨迹，支持"兴趣演化"可视化；(8) 持久化：chrome.storage.sync（跨设备同步）；(9) 测试 ≥30 用例。复杂度: Complex
+
+---
+
+## Phase V: 智能洞察与学习体验深化 (R177-R181) — 5 轮
+
+> 飞轮迭代 R64 起，2026-05-20
+> 现状: Phase U 深度学习闭环完成，190+ 个 lib 模块、87 个书签模块、6350+ 测试通过、技术债务全部关闭、Lint 0/0
+> 方向: 从"智能学习伙伴"升级为"知识洞察平台"——AI 跨域洞察、主动学习教练、学习旅程可视化、跨域知识连接图、知识墙新标签页
+> 任务来源优先级: 新功能探索 > 性能优化 > 代码质量
+
+- [ ] **R177: AI 知识洞察引擎 KnowledgeInsightEngine** — 新建 `lib/bookmark-insight-engine.js`，基于跨模块数据生成深度知识洞察：(1) 知识盲区预警：综合 GapDetector + LearningAnalytics + SpacedRepetition 数据，识别"以为已掌握但遗忘率高"的领域；(2) 跨领域关联发现：AI 分析书签/笔记/知识条目内容，发现用户未意识到的跨领域知识连接（如"您的 Docker 知识可帮助理解 K8s 部分概念"）；(3) 学习模式异常检测：识别学习行为突变（如连续 3 天无学习活动、突然大量收藏某新领域）并生成解释和建议；(4) 知识成熟度评估：按领域评估知识深度（入门→进阶→专家），结合阅读完成率、笔记密度、复习保持率；(5) 洞察卡片：每条洞察封装为结构化对象（title/category/severity/actionable/references）；(6) 每日洞察推送：复用 BookmarkNotifications，在每日首次打开时推送 1-3 条最优先洞察；(7) 与 AI 推荐集成：洞察注入推荐 prompt（复用 bookmark-ai-recommender.js）；(8) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R178: 主动学习教练 ProactiveLearningCoach** — 新建 `lib/bookmark-learning-coach.js`，从被动工具升级为主动学习助手：(1) 每日学习建议：综合 ReadingQueue + LearningGoals + UserProfile + SpacedRepetition，生成每日个性化学习计划（今日必读 3 篇 + 复习 5 条 + 探索 1 个新领域）；(2) 学习节奏调整：根据用户历史完成率动态调整目标难度（完成率 >90% 时提高目标，<50% 时降低目标）；(3) 阅读策略建议：根据 BookmarkAnnotations 笔记密度和 BookmarkContentPreview 内容复杂度，推荐精读/泛读/略读策略；(4) 学习路径导航：基于 LearningPath + GapDetector 生成多条可选学习路径，AI 评估每条路径的 ROI；(5) 周期性回顾：每周生成"学习教练回顾"（复用 WeeklyDigest 框架），包含目标达成率、建议调整、下周计划；(6) 教练偏好：用户可设置教练严格程度（chill/balanced/strict）影响建议激进度；(7) 持久化：chrome.storage.local；(8) 测试 ≥30 用例。复杂度: Complex
+
+- [ ] **R179: 跨域知识连接图 CrossDomainKnowledgeMap** — 新建 `lib/bookmark-cross-domain-map.js`，在现有书签图谱之上构建跨领域概念级知识地图：(1) 概念提取：基于 AI 分析书签标题+笔记+知识条目，提取核心概念（如"React Hooks"、"REST API 设计"、"JWT 认证"）；(2) 跨域连接：计算概念间的语义关联度（TF-IDF 余弦相似度，复用 bookmark-semantic-search.js），识别跨领域桥梁概念（如"容器化"连接 DevOps 和 Cloud）；(3) 知识拓扑：生成 {concepts, connections, domains} 拓扑数据，供可视化使用；(4) 知识路径发现：给定起点概念和目标概念，找出最短学习路径（Dijkstra 算法）；(5) 与 BookmarkVisualizer 集成：复用力导向图渲染，概念节点按领域着色，跨域连接用虚线展示；(6) 孤立概念检测：识别与其他知识无连接的"孤岛概念"，建议补充学习；(7) 持久化：chrome.storage.local（概念缓存）；(8) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R180: 学习旅程可视化 LearningJourneyVisualization** — 新建 `lib/bookmark-learning-journey.js`，为用户提供沉浸式学习成长回顾：(1) 时间轴视图：按月/季度/年生成学习里程碑时间线（首次提问、首个书签收藏、连续打卡成就、领域进阶等）；(2) 知识热力图：GitHub 贡献图风格，按日展示学习活跃度（阅读数+提问数+复习数+笔记数加权）；(3) 领域雷达图：14 维技术领域覆盖度+深度雷达图数据（复用 UserProfileEngine 兴趣向量 + GapDetector 覆盖度）；(4) 学习里程碑：定义并追踪关键里程碑（100 篇已读、1000 条知识、30 天连续打卡、首个领域达到专家级）；(5) 成长对比：任意两个时间点的知识状态对比（新增领域、提升的领域、淡化的兴趣）；(6) 导出：生成可分享的学习旅程报告（Markdown/HTML，复用 WeeklyDigest.toMarkdown/toHTML）；(7) 与 BookmarkAnalytics 集成：复用数据采集层；(8) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R181: 全量回归与迭代收尾 IterationCloseR64** — R177-R180 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6450 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R177-R180 变更记录；(5) 输出发布候选版本号。复杂度: Simple
