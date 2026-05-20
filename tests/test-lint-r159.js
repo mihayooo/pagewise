@@ -18,12 +18,16 @@ describe('R159: ESLint 0 warnings', () => {
       output = err.stdout || err.stderr || '';
       exitCode = err.status ?? 1;
     }
-    // Extract summary line
+    // Extract summary line — when ESLint finds 0 issues, no summary line is printed
     const summaryMatch = output.match(/(\d+)\s+problems?\s*\((\d+)\s+errors?,\s*(\d+)\s+warnings?\)/);
-    assert.ok(summaryMatch, `Could not parse ESLint output:\n${output}`);
-    const errors = parseInt(summaryMatch[2], 10);
-    const warnings = parseInt(summaryMatch[3], 10);
-    assert.equal(errors, 0, `Expected 0 errors, got ${errors}`);
-    assert.equal(warnings, 0, `Expected 0 warnings, got ${warnings}`);
+    if (!summaryMatch) {
+      // No summary line means 0 errors and 0 warnings (clean output)
+      assert.ok(exitCode === 0, `ESLint exited with code ${exitCode} but no problems reported`);
+    } else {
+      const errors = parseInt(summaryMatch[2], 10);
+      const warnings = parseInt(summaryMatch[3], 10);
+      assert.equal(errors, 0, `Expected 0 errors, got ${errors}`);
+      assert.equal(warnings, 0, `Expected 0 warnings, got ${warnings}`);
+    }
   });
 });

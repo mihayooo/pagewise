@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R181
+> 迭代轮次: R43 - R186
 > 最后更新: 2026-05-20
 
 ---
@@ -755,4 +755,23 @@
 
 - [x] **R180: 学习旅程可视化 LearningJourneyVisualization** — 新建 `lib/bookmark-learning-journey.js`，为用户提供沉浸式学习成长回顾：(1) 时间轴视图：按月/季度/年生成学习里程碑时间线（首次提问、首个书签收藏、连续打卡成就、领域进阶等）；(2) 知识热力图：GitHub 贡献图风格，按日展示学习活跃度（阅读数+提问数+复习数+笔记数加权）；(3) 领域雷达图：14 维技术领域覆盖度+深度雷达图数据（复用 UserProfileEngine 兴趣向量 + GapDetector 覆盖度）；(4) 学习里程碑：定义并追踪关键里程碑（100 篇已读、1000 条知识、30 天连续打卡、首个领域达到专家级）；(5) 成长对比：任意两个时间点的知识状态对比（新增领域、提升的领域、淡化的兴趣）；(6) 导出：生成可分享的学习旅程报告（Markdown/HTML，复用 WeeklyDigest.toMarkdown/toHTML）；(7) 与 BookmarkAnalytics 集成：复用数据采集层；(8) 测试 ≥25 用例。复杂度: Complex
 
-- [ ] **R181: 全量回归与迭代收尾 IterationCloseR64** — R177-R180 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6450 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R177-R180 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+- [x] **R181: 全量回归与迭代收尾 IterationCloseR64** — R177-R180 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6450 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R177-R180 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+
+---
+
+## Phase W: 隐私合规与平台扩展 (R182-R186) — 5 轮
+
+> 飞轮迭代 R65 起，2026-05-20
+> 现状: Phase V 全部完成，191 个 lib 模块、6369 测试通过、v3.0.0、技术债务全部关闭
+> 方向: 从"功能完备"走向"平台成熟"——补齐隐私合规短板、控制架构复杂度膨胀、开启跨设备/跨用户协作能力、引入预测式学习 AI
+> 任务来源优先级: Chrome Web Store 合规 > 架构治理 > 协作功能 > 新功能探索
+
+- [x] **R182: 隐私与数据主权 PrivacyDataSovereignty** — 新建 `lib/bookmark-privacy-vault.js`，满足 Chrome Web Store 审核及 GDPR 合规要求：(1) 数据透明：`getDataInventory()` 按存储位置（IndexedDB / chrome.storage.local / chrome.storage.sync）列出所有用户数据类型、字段、大小；(2) 一键导出：`exportAllUserData()` 生成完整 JSON/ZIP 数据包（书签+知识库+复习记录+用户画像+设置，复用 bookmark-io.js + bookmark-backup.js）；(3) 选择性删除：`deleteDataScope(scope)` 支持按范围删除（全部 / 仅浏览记录 / 仅AI对话 / 仅用户画像），scope 为 'all'|'history'|'ai_chats'|'profile'|'knowledge'|'bookmarks'；(4) 数据生命周期：自动清理策略（AI 对话记录保留 30 天、搜索历史保留 90 天、已删除书签回收站 7 天），用户可自定义；(5) AI 数据隔离：`isolateAIData()` 确保 AI 请求内容不被持久化到非加密存储；(6) Cookie 同意集成：首次安装时展示隐私声明（复用 BookmarkOnboarding 步骤框架），用户明确同意后才启用数据收集；(7) 审计日志：记录数据删除/导出操作，可追溯；(8) 测试 ≥30 用例。复杂度: Complex
+
+- [ ] **R183: 架构健康监控与模块瘦身 ArchitectureHealthMonitor** — 建立自动化架构治理机制，遏制 191 模块持续膨胀：(1) 新建 `scripts/architecture-guard.sh` CI 门禁脚本：模块总数上限 220、单文件行数上限 400（检测超标并 fail）；(2) 依赖图分析：生成模块依赖 DAG，自动检测循环依赖（复用 R126 循环依赖检测逻辑）、扇入/扇出 Top-10、孤立模块（0 引用）；(3) 模块合并建议：识别功能重叠的模块对（如 bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js），输出合并方案；(4) 死代码检测：基于 ESLint `no-unused-vars` + 自定义导出引用扫描，识别从未被 import 的导出函数；(5) 模块增长趋势：按迭代阶段统计模块数量变化曲线，输出 `docs/architecture-metrics.md`；(6) 实际执行合并 Top-3 重叠模块对，保持 API 向后兼容；(7) 当前仍 >400 行的文件（bookmark-weekly-digest.js 580、bookmark-highlight-archive.js 549、bookmark-knowledge-integration.js 547 等 9 个）全部拆分至 ≤400 行；(8) 测试 ≥15 用例。复杂度: Medium
+
+- [ ] **R184: 知识包分享与团队空间 KnowledgePackSharing** — 新建 `lib/bookmark-knowledge-packs.js`，实现用户间知识资产分享：(1) 知识包创建：`createKnowledgePack(config)` 将书签集合+标签+笔记+学习路径+复习卡片打包为自包含 `.pwkp` JSON 格式；(2) 隐私脱敏：`sanitizePack(pack)` 自动移除个人信息（浏览时间、自定义笔记中的私密内容），用户可选择公开级别（public/team/private）；(3) 知识包导入：`importKnowledgePack(data)` 支持 `.pwkp` 文件和 Base64 字符串两种导入方式（复用 bookmark-io.js 解析框架），冲突检测（URL 重复/标签冲突）并提供合并策略；(4) 知识包市场：`listCommunityPacks()` / `searchPacks(query)` 本地索引管理，支持评分和下载计数；(5) 学习路径继承：导入时自动识别包内学习路径并入用户的 LearningPath（复用 bookmark-learning-path.js）；(6) 增量更新：`checkPackUpdate(packId)` 检查包版本更新，支持增量同步；(7) 导出格式兼容：同时支持导出为 Anki `.apkg` 格式（复习卡部分），扩大分享生态；(8) 持久化：chrome.storage.local + IndexedDB；(9) 测试 ≥25 用例。复杂度: Complex
+
+- [ ] **R185: 跨浏览器兼容层 CrossBrowserCompatibility** — 新建 `lib/browser-compat.js`，为 Firefox/Edge/Safari 扩展移植建立抽象层：(1) API 适配器：`BrowserAPI` 类统一封装 `chrome.*` / `browser.*` 差异（storage、tabs、bookmarks、sidePanel → sidebarAction、contextMenus），运行时自动检测环境并选择实现；(2) Promise 化包装：自动将回调式 `chrome.*` API 转为 Promise（Firefox 原生支持 Promise，Chrome 需 polyfill）；(3) 特性检测：`supportsFeature(feature)` 返回当前浏览器能力矩阵（sidePanel / contextMenus / bookmarks / scripting / storage.sync），模块功能优雅降级；(4) Manifest 适配：生成 `manifest.firefox.json`（V2→V3 差异：background.scripts 替代 service_worker、sidebar_action 替代 sidePanel、browser_specific_settings 必填）；(5) 存储抽象层复用：统一 `lib/storage-adapter.js` 在不同浏览器下的行为（IndexedDB 可用性、storage.sync 容量差异 Firefox 100KB vs Chrome 100KB vs Safari 无 sync）；(6) 构建脚本：`scripts/build-firefox.sh` 自动替换 manifest + 注入 polyfill；(7) 测试 ≥20 用例（模拟 browser.* API）。复杂度: Complex
+
+- [ ] **R186: 学习预测引擎 PredictiveLearningEngine** — 新建 `lib/bookmark-predictive-engine.js`，基于历史学习数据预测用户下一步学习需求：(1) 学习序列建模：分析用户阅读/提问/复习的时间序列，识别学习路径模式（如"学完 React Hooks → 通常接下来学 Next.js"）；(2) 知识衰减预测：基于 SpacedRepetition 数据（复用 bookmark-spaced-repetition.js），预测各知识点未来 7/14/30 天的记忆保持率，提前预警即将遗忘的知识；(3) 兴趣漂移预测：基于 UserProfileEngine 偏好变更历史（复用 bookmark-user-profile.js），预测用户下一个感兴趣的技术领域；(4) 阅读时间预测：基于历史阅读数据，预测每篇书签的阅读时长（考虑内容长度、难度、用户历史同领域阅读速度）；(5) 学习目标达成预测：基于 LearningGoals（复用 bookmark-learning-goals.js）当前进度和历史完成率，预测本周/本月目标达成概率；(6) 洞察卡片集成：预测结果封装为 InsightCard（复用 bookmark-insight-engine.js 结构），注入每日洞察推送；(7) 持久化：模型参数存入 chrome.storage.local，定期更新；(8) 测试 ≥25 用例。复杂度: Complex

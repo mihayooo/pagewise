@@ -6171,7 +6171,7 @@ ${sendContent}
       item.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
         currentX = startX;
-        swiping = false;
+        _swiping = false;
         item.style.transition = 'none';
       }, { passive: true });
 
@@ -6179,7 +6179,7 @@ ${sendContent}
         currentX = e.touches[0].clientX;
         const diff = currentX - startX;
         if (Math.abs(diff) > 10) {
-          swiping = true;
+          _swiping = true;
           // Only allow left swipe
           const offset = Math.min(0, diff);
           item.style.transform = `translateX(${offset}px)`;
