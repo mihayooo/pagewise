@@ -873,6 +873,6 @@
 
 - [x] **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — R183 识别出功能重叠模块对：bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js；(1) 实际执行合并 Top-3 重叠模块对，保留更完善的实现，将被合并模块改为 re-export wrapper；(2) 统计合并后 lib/ 模块数变化（目标减少 ≥3 个）；(3) 消除合并后的孤立导出和死代码；(4) 更新 lib-api-reference 文档；(5) 全量回归 0 fail。复杂度: Medium
 
-- [ ] **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline** — 项目功能完备但缺少标准化发布流程；(1) 完善 `scripts/build.sh` 生成可直接上传的 .zip 产物（manifest.json、lib/、popup/、options/、sidebar/、icons/、_locales/，排除 tests/、docs/、coverage/、scripts/）；(2) 新增 `scripts/publish-check.sh` 发布前自检（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(3) 生成 Chrome Web Store 所需截图脚本指引；(4) 验证 .zip 产物可在 Chrome 中正常加载运行；(5) 更新 RELEASE-NOTES-v3.1.md。复杂度: Medium
+- [x] **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline** — 项目功能完备但缺少标准化发布流程；(1) 完善 `scripts/build.sh` 生成可直接上传的 .zip 产物（manifest.json、lib/、popup/、options/、sidebar/、icons/、_locales/，排除 tests/、docs/、coverage/、scripts/）；(2) 新增 `scripts/publish-check.sh` 发布前自检（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(3) 生成 Chrome Web Store 所需截图脚本指引；(4) 验证 .zip 产物可在 Chrome 中正常加载运行；(5) 更新 RELEASE-NOTES-v3.1.md。复杂度: Medium
 
 - [ ] **R209: 项目文档全面更新 DocumentationOverhaul** — ROADMAP.md 过期（仍显示 v1.5.1/R42/2111 tests），需与项目现状对齐；(1) 更新 ROADMAP.md 至 v3.1.0/R204/6993 tests/218 lib modules，补充 Phase F-AA 路线图概览；(2) 更新 README.md：功能特性列表（选中即问/AI 即答/知识图谱/间隔复习/学习教练/隐私合规等）、安装方式、开发指南、架构概览；(3) 补充 CHANGELOG.md R200-R204 条目；(4) 更新 docs/architecture-metrics.md 模块统计和增长趋势；(5) 全量回归 0 fail + lint 0/0。复杂度: Simple
