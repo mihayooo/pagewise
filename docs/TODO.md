@@ -818,4 +818,23 @@
 
 - [x] **R193: 超大模块拆分九期 ModuleSplitPhase9** — 当前 14 个 lib 文件 >400 行：bookmark-knowledge-packs.js(624)、bookmark-weekly-digest.js(580)、bookmark-highlight-archive.js(549)、bookmark-knowledge-integration.js(547)、message-renderer.js(539)、bookmark-user-profile.js(535)、knowledge-panel.js(528)、bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)、bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)。优先拆分前 6 个（>530 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
-- [ ] **R194: 全量回归与迭代收尾 IterationCloseR66** — R190-R193 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6887 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥75%；(4) 更新 CHANGELOG.md 补充 R190-R193 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+- [x] **R194: 全量回归与迭代收尾 IterationCloseR66** — R190-R193 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6887 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥75%；(4) 更新 CHANGELOG.md 补充 R190-R193 变更记录；(5) 输出发布候选版本号。复杂度: Simple
+
+---
+
+## Phase Y: 基础设施收尾与架构治理 (R195-R199) — 5 轮
+
+> 飞轮迭代 R67 起，2026-05-20
+> 现状: 6923 pass / 0 fail；Lint 0/0；24 个 lib 文件 >400 行；coverage `_tmp_root_stale/` 由 root 所有导致 EACCES；package.json 版本 1.0.0 与 CHANGELOG 3.0.0 不一致
+> 目标: 彻底修复覆盖率基础设施、完成超大模块拆分收尾、统一版本号体系、优化测试执行效率、深化 E2E 集成覆盖
+> 任务来源优先级: 基础设施修复 > 架构治理 > 性能优化 > 测试加固
+
+- [ ] **R195: 覆盖率基础设施根因修复 CoverageInfraRootFix** — `npm run test:coverage` 因 `coverage/_tmp_root_stale/` 目录由 root 所有导致 `rm` 命令 EACCES 权限拒绝（R192 未彻底修复）；(1) 排查 c8/istanbul 为何以 root 身份创建临时文件（CI vs 本地环境差异）；(2) 在 `test:coverage` 脚本前添加 `sudo rm -rf` 或改用 `--clean` 标志重建 coverage 目录；(3) 添加 `.gitignore` 规则排除 `_tmp_*` 目录；(4) 验证 `npm run test:coverage` 无权限错误，lcov + text-summary + HTML 报告正常生成；(5) 确认行覆盖率基线并记录。复杂度: Simple
+
+- [ ] **R196: 超大模块拆分十期 ModuleSplitPhase10** — 当前 24 个 lib 文件仍 >400 行（R193 声称完成但实测未完全落地）：bookmark-user-profile.js(535)、knowledge-panel.js(528)、bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)、bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)、bookmark-link-checker.js(456)、page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+
+- [ ] **R197: 版本号统一与 CHANGELOG 补全 VersionSyncAndChangelog** — package.json `version: 1.0.0` 与 CHANGELOG 中 `3.0.0`（2026-05-16）里程碑严重不一致；(1) 将 package.json 版本号更新为 `3.1.0`（反映 R93-R194 增量迭代）；(2) 补充 CHANGELOG.md `[3.1.0] - 2026-05-20` 区段，涵盖 R190-R194 变更（模块拆分九期、覆盖率基础设施修复、测试失败修复、ESLint 清零）；(3) 验证 `manifest.json` 中 `version` 字段一致；(4) 更新 docs/reports/ 迭代报告。复杂度: Simple
+
+- [ ] **R198: 测试执行效率深度优化 TestExecutionDeepOpt** — 当前 6923 用例执行耗时 42.9s，R152 目标 ≤25s 未达成；(1) 分析 Top-10 最慢测试文件（按 duration_ms 排序）；(2) 移除测试中不必要的 `setTimeout` / `await sleep` 阻塞；(3) 利用 `--test-concurrency=8` 提升并行度（当前默认串行）；(4) 建立 CI smoke test 子集（核心流程 ≤100 用例，<5s）；(5) 目标: 全量 ≤30s（降幅 ≥30%）。复杂度: Medium
+
+- [ ] **R199: E2E 学习闭环集成测试深化 LearningLoopE2E** — 在 R136 CoreFlowE2E 基础上，扩展端到端测试覆盖 Phase S-V 新增学习闭环功能：(1) 间隔复习完整流程（加入复习队列 → 复习提醒 → 用户评级 → 间隔更新，复用 bookmark-spaced-repetition.js）；(2) 学习目标打卡流程（设定目标 → 每日打卡 → 连续天数追踪 → 成就解锁，复用 bookmark-learning-goals.js）；(3) 智能摘录归档流程（选中文字 → AI 摘要 → 一键归档 → 知识库关联，复用 bookmark-highlight-archive.js）；(4) 学习教练每日计划（生成计划 → 阅读执行 → 完成扣减 → 教练回顾，复用 bookmark-learning-coach.js）；(5) 跨模块数据流验证：UserProfile ↔ ReadingQueue ↔ SpacedRepetition ↔ LearningGoals 完整闭环；(6) 异常路径：存储满/AI 降级/网络断开下的降级行为；(7) 目标 ≥30 用例。复杂度: Complex
