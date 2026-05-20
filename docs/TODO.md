@@ -947,8 +947,8 @@
 
 - [x] **R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal** — 当前仍有 4 个 lib 文件略超 400 行上限：bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)；(1) 全部 4 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；(2) 新增 CI 门禁脚本 `scripts/check-file-size.sh`：自动扫描 lib/ 下所有 .js 文件，若存在 >400 行文件则 CI fail（防止未来再次膨胀）；(3) 验证拆分后全量回归 0 fail；(4) 更新 `docs/architecture-metrics.md` 模块统计，确认 235 个 lib 模块全部 ≤400 行。复杂度: Simple
 
-- [ ] **R227: 测试执行效率深度优化 TestExecutionDeepOpt2** — 当前 7472 用例执行耗时 42.5s（`npm run test:ci`），历史目标 ≤30s 多次未达成；(1) 分析 Top-15 最慢测试文件（按 duration_ms 排序），识别 >500ms 的阻塞用例；(2) 移除测试中残留的 `setTimeout` / `await sleep` / 同步阻塞；(3) 利用 `--test-concurrency=8` 提升并行度；(4) 建立 CI smoke test 子集（`npm run test:smoke`，核心流程 ≤80 用例，<5s）；(5) 目标: 全量 ≤30s（降幅 ≥30%）。复杂度: Medium
+- [x] **R227: 测试执行效率深度优化 TestExecutionDeepOpt2** — 当前 7472 用例执行耗时 42.5s（`npm run test:ci`），历史目标 ≤30s 多次未达成；(1) 分析 Top-15 最慢测试文件（按 duration_ms 排序），识别 >500ms 的阻塞用例；(2) 移除测试中残留的 `setTimeout` / `await sleep` / 同步阻塞；(3) 利用 `--test-concurrency=8` 提升并行度；(4) 建立 CI smoke test 子集（`npm run test:smoke`，核心流程 ≤80 用例，<5s）；(5) 目标: 全量 ≤30s（降幅 ≥30%）。复杂度: Medium
 
-- [ ] **R228: E2E Chrome 测试框架真实运行验证 E2EChromeRealVerification** — R219 建立了 E2E 框架但从未验证可在 CI 中实际运行；(1) 安装 Playwright 依赖并在本地 headless Chrome 中运行全部 E2E 测试；(2) 修复选择器/DOM 不匹配问题（Chrome MV3 SidePanel 实际渲染与测试预期可能有差异）；(3) 确保 `npm run test:e2e` 可执行且 ≥30 个用例通过；(4) 在 CI workflow 中添加 `chrome-e2e` job（soft-fail 不阻塞主流程）；(5) 生成 `docs/reports/e2e-baseline.md` 基线报告。复杂度: Complex
+- [x] **R228: E2E Chrome 测试框架真实运行验证 E2EChromeRealVerification** — R219 建立了 E2E 框架但从未验证可在 CI 中实际运行；(1) 安装 Playwright 依赖并在本地 headless Chrome 中运行全部 E2E 测试；(2) 修复选择器/DOM 不匹配问题（Chrome MV3 SidePanel 实际渲染与测试预期可能有差异）；(3) 确保 `npm run test:e2e` 可执行且 ≥30 个用例通过；(4) 在 CI workflow 中添加 `chrome-e2e` job（soft-fail 不阻塞主流程）；(5) 生成 `docs/reports/e2e-baseline.md` 基线报告。复杂度: Complex
 
 - [ ] **R229: 全量回归与发布候选版 IterationCloseR64** — R225-R228 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7600 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥50%；(4) 全部 lib 文件 ≤400 行；(5) 测试执行 ≤30s；(6) 更新 CHANGELOG.md 补充 R225-R228 变更记录；(7) 输出 v3.2.0 发布候选版本号。复杂度: Simple

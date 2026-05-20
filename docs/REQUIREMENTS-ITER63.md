@@ -1,10 +1,10 @@
-# 需求文档 — R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal
+# 需求文档 — R227: 测试执行效率深度优化 TestExecutionDeepOpt2
 
 > 版本: 1.0
 > 日期: 2026-05-20
-> 迭代: 飞轮迭代 R63 (R226)
-> 复杂度: Simple
-> 前序迭代: R223 (ModuleSplitFinal)、R224 (IterationCloseR71)
+> 迭代: 飞轮迭代 R63 (R227)
+> 复杂度: Medium
+> 前序迭代: R222 (CoverageBreak50)、R226 (ModuleSplitAbsoluteFinal)
 
 ---
 
@@ -12,102 +12,117 @@
 
 ### 1.1 现状分析
 
-R223 声称完成全部 13 个文件拆分，`architecture-metrics.md` 第 91 行亦声明「所有 lib 文件均 ≤400 行」。但实测仍有 **4 个 lib 文件略超 400 行上限**：
+PageWise 项目当前拥有 **208 个 CI 测试文件**，`npm run test:ci` 执行 **~7472 个用例**，总耗时约 **42.5 秒**。历史目标 ≤30s 在 R202（24s 基线）之后多次尝试优化均未达成。
 
-| 文件 | 当前行数 | 超出 | 拆分难度 |
-|------|---------|------|----------|
-| `lib/bookmark-tag-editor-v2.js` | 412 | +12 | 需提取辅助函数 |
-| `lib/bookmark-onboarding.js` | 406 | +6 | 需提取配置/常量 |
-| `lib/chat-mode.js` | 403 | +3 | 极小拆分 |
-| `lib/bookmark-indexer.js` | 401 | +1 | 极小拆分 |
+`package.json` 中 `test:ci` 命令已配置 `--test-concurrency=8`，但实际执行时间仍远超 30s 目标，说明瓶颈不在并行度配置本身，而在测试文件内部的阻塞代码。
 
-同时，`architecture-metrics.md` 引用的 `scripts/architecture-guard.sh` **实际不存在**，当前无自动化手段防止文件再次膨胀。CI 流水线 (`ci.yml`) 也没有行数门禁步骤。
+经初步扫描，测试代码中存在 **64 处** `setTimeout` / `await sleep` / `new Promise(...setTimeout...)` 模式，分布在至少 **20 个测试文件**中。高频文件包括：
 
-此外，`architecture-metrics.md` 中的 lib 模块数记录为 222，而实际 `find lib -name '*.js' | wc -l` 返回 **235**，存在 13 个模块的差距。
+| 文件 | 阻塞模式出现次数 | 预估影响 |
+|------|-----------------|----------|
+| `tests/e2e/chrome-mock-inject.js` | 14 | e2e mock 层，高影响 |
+| `tests/test-ai-cache-e2e.js` | 8 | 缓存 e2e，高影响 |
+| `tests/test-cache-manager.js` | 5 | 缓存管理 |
+| `tests/test-ai-cache.js` | 5 | 缓存单元 |
+| `tests/test-conversation-store.js` | 3 | 对话存储 |
+| `tests/test-bookmark-search.js` | 2 | 搜索 |
+| 其他 14 个文件 | 27 | 分散在各模块 |
+
+此外，现有 `test:smoke` 脚本仅覆盖 **11 个文件**（~80 用例），但未设置 <5s 的时间门禁，也未集成到 CI 流水线作为快速反馈通道。
 
 ### 1.2 问题清单
 
-1. **4 个文件仍超 400 行** — R223 拆分未彻底，遗留尾巴
-2. **无 CI 门禁** — `scripts/architecture-guard.sh` 缺失，`scripts/check-file-size.sh` 不存在，文件膨胀无自动拦截
-3. **架构指标不准确** — `architecture-metrics.md` 模块数 222 vs 实际 235，拆分历程缺少 Phase 13-final 记录
+1. **42.5s 总耗时远超 ≤30s 目标** — 降幅需 ≥30%（从 42.5s → ≤30s）
+2. **64 处阻塞代码残留** — `setTimeout` / `await sleep` 等人为延迟散布在 20+ 个测试文件中
+3. **缺少慢用例分析** — 无 duration_ms 排名数据，无法定位 Top-15 最慢文件
+4. **Smoke test 未门禁化** — `test:smoke` 存在但无时间限制，未在 CI 中作为快速失败通道
 
 ### 1.3 目标
 
-彻底完成模块拆分收尾（4 个文件 → ≤400 行），新增 CI 门禁脚本防止未来膨胀，修正架构文档，实现「拆分 + 防守」闭环。
+通过「测量 → 消除阻塞 → 提升并行度 → 建立 smoke 门禁」四步，将全量测试从 42.5s 降至 ≤30s（降幅 ≥30%），并建立可持续的测试效率保障机制。
 
 ---
 
 ## 2. 用户故事
 
-> **作为** PageWise 项目的架构治理负责人，
-> **我希望** 将最后 4 个略超 400 行的 lib 文件拆分至 ≤400 行，并建立 CI 自动门禁，
-> **以便** 所有 235 个 lib 模块严格遵守 400 行上限，且未来任何新增代码都无法突破此约束。
+> **作为** PageWise 的开发者，
+> **我希望** CI 测试套件在 30 秒内完成全量执行，并有一个 5 秒内出结果的 smoke test 子集用于快速验证，
+> **以便** 每次提交后快速获得反馈，不因测试等待时间过长而中断开发节奏。
 
 ---
 
 ## 3. 验收标准
 
-### AC-1: 4 个目标文件全部 ≤ 400 行
+### AC-1: 完成 Top-15 最慢测试文件分析
 
-| 文件 | 目标行数 | 拆分策略 |
-|------|---------|----------|
-| `bookmark-tag-editor-v2.js` | ≤ 400 | 提取辅助/格式化函数至 `bookmark-tag-editor-v2-utils.js` |
-| `bookmark-onboarding.js` | ≤ 400 | 提取配置常量/引导步骤定义至 `bookmark-onboarding-config.js` |
-| `chat-mode.js` | ≤ 400 | 提取辅助逻辑至 `chat-mode-utils.js` |
-| `bookmark-indexer.js` | ≤ 400 | 提取辅助函数至 `bookmark-indexer-utils.js` |
+产出 `tests/slow-test-analysis.md` 文档，内容包括：
+- 按 `duration_ms` 排序的 Top-15 最慢测试文件清单
+- 每个文件中标记 >500ms 的阻塞用例（用例名 + 耗时 + 阻塞原因）
+- 每个文件的优化建议（移除 sleep / mock 替换 / 合并用例等）
+
+测量方式：
+```bash
+# 使用 Node.js 内置 test runner 的 --test-reporter 标准输出获取 duration
+node --test --test-concurrency=8 --test-reporter=spec $(find tests -name 'test-*.js' ...) 2>&1 | \
+  grep -E 'ms$' | sort -t: -k2 -nr | head -15
+```
+
+### AC-2: 移除测试中残留的阻塞代码
+
+在 `test:ci` 涉及的 208 个测试文件中：
+- 移除或替换所有不必要的 `setTimeout` / `await sleep()` / `new Promise(resolve => setTimeout(resolve, N))`
+- **保留**场景：测试 debounce/throttle 行为时的 `setTimeout`（需在代码中用注释标注 `// intentionally delayed for debounce test`）
+- **替换策略**：
+  - 等待异步操作 → 使用 `await` 直接等待 Promise resolve，或使用事件监听
+  - 模拟延迟 → mock `Date.now()` 或使用 `vi.useFakeTimers()`（若使用 vitest）或 `node:test` 的 mock timer
+  - 轮询等待 → 改为事件驱动或直接断言
 
 验证命令：
 ```bash
-for f in lib/bookmark-tag-editor-v2.js lib/bookmark-onboarding.js lib/chat-mode.js lib/bookmark-indexer.js; do
-  lines=$(wc -l < "$f")
-  echo "$f: $lines lines"
-  [ "$lines" -le 400 ] || exit 1
-done
+# 不含 "intentionally" 注释的 setTimeout/sleep 数量应为 0
+grep -rn "setTimeout\|await sleep" tests/ --include="*.js" -l | \
+  xargs grep -L "intentionally" | wc -l  # 期望: 0
 ```
 
-### AC-2: API 向后兼容（re-export 模式）
+### AC-3: 并行度优化
 
-每个拆分出的新文件，其公开 API 必须在原文件中以 re-export 方式暴露。其他模块的 `import` 路径无需修改。
+- 确认 `--test-concurrency=8` 在 CI 环境生效
+- 评估是否可提升至 `--test-concurrency=12` 或更高（取决于 CI runner CPU 核心数）
+- 将最慢的测试文件均匀分布到不同的并行分片中（避免多个慢文件在同一分片）
 
-验证方式：
-- `grep -r "from.*bookmark-tag-editor-v2" lib/ tests/` 中所有引用路径不需变更
-- 同理验证其余 3 个文件
-- 全量测试回归 0 fail（见 AC-4）
+验证：对比优化前后的 `time npm run test:ci` 输出。
 
-### AC-3: 新增 `scripts/check-file-size.sh` CI 门禁脚本
+### AC-4: 建立 `test:smoke` CI 门禁
 
-脚本功能要求：
-- **扫描范围**: `lib/` 目录下所有 `*.js` 文件
-- **行数阈值**: 400 行（硬编码常量，便于后续调整）
-- **退出码**: 若存在任意 >400 行文件，exit 1（CI fail）；否则 exit 0
-- **输出**: 列出所有违规文件的路径和行数，格式清晰可读
-- **集成**: 在 `package.json` 新增 `"check:file-size": "bash scripts/check-file-size.sh"`，并在 CI workflow 中调用
+`npm run test:smoke` 要求：
+- **用例数**: ≤ 80 个（覆盖核心流程：utils / ai-client / conversation-store / page-sense / skill-engine / storage-adapter / sanitize / cost-estimator / bookmark-indexer / bookmark-core-unit）
+- **执行时间**: < 5 秒
+- **时间门禁**: 在 `package.json` 或 CI 脚本中增加时间检查，超时则 fail
+
+```bash
+# package.json 中的 script
+"test:smoke": "node --test --test-concurrency=4 tests/test-smoke.js tests/test-utils.js ...",
+"test:smoke:gate": "timeout 5 npm run test:smoke || (echo '❌ Smoke test exceeded 5s limit' && exit 1)"
+```
 
 验证命令：
 ```bash
-# 当前应全部通过（4 个文件已拆分）
-npm run check:file-size  # exit 0
-
-# 手动验证：临时增加某文件至 401 行，应 exit 1
+npm run test:smoke:gate  # exit 0 且 < 5s
 ```
 
-### AC-4: 全量回归 0 fail
+### AC-5: 全量测试 ≤ 30 秒
 
 执行 `npm run test:ci`，结果要求：
+- **总耗时 ≤ 30 秒**（当前 42.5s，降幅 ≥30%）
 - **失败数 = 0**
-- **通过数 ≥ 7088**（R223 后基线）
+- **通过数 ≥ 7400**（不因优化而删除有效用例）
 - 测试通过率 = 100%
 
-### AC-5: `docs/architecture-metrics.md` 更新
-
-| 指标 | 当前值 | 更新为 |
-|------|-------|--------|
-| 迭代轮次 | R209 | R226 (R63) |
-| lib 模块数 | 222 | 235 + 拆分新增（实际 `find lib -name '*.js' \| wc -l`） |
-| 拆分历程 | Phase 12 (R206) | 补充 Phase 13 (R223) + Phase 14 (R226) |
-| 单文件上限 | ≤400 行 | 保持，但门禁脚本改为 `scripts/check-file-size.sh` |
-| 模块上限 | ≤220 个 | 更新为 ≤240 个（当前实际 235+） |
-| 代码质量基线行 | `scripts/architecture-guard.sh` | 更正为 `scripts/check-file-size.sh` |
+验证方式：
+```bash
+time npm run test:ci
+# 实际耗时应 ≤ 30s
+```
 
 ---
 
@@ -115,40 +130,43 @@ npm run check:file-size  # exit 0
 
 | 约束 | 说明 |
 |------|------|
-| API 向后兼容 | 严格使用 re-export 模式，所有现有 `import` 路径不得变更 |
-| 最小化拆分 | 4 个文件仅超出 1-12 行，拆分应精准提取，避免过度拆分导致模块碎片化 |
-| 不引入新功能 | 本轮仅做文件拆分 + CI 门禁 + 文档更新，不新增业务逻辑 |
-| 不修改测试 | 拆分后现有测试应全部通过，不需修改测试文件（re-export 保证） |
-| 新文件命名 | 拆分子模块遵循 `{原模块名}-{子功能}.js` 命名惯例（如 `-utils.js`、`-config.js`） |
-| 脚本可移植性 | `check-file-size.sh` 使用 POSIX sh 语法（非 bash 特有），兼容 CI Linux 环境 |
-| 行数计算 | 使用 `wc -l` 计算，包含空行和注释（与项目既有标准一致） |
-| Git 规范 | commit message 遵循 conventional commits 格式 |
+| 不删除有效用例 | 优化只移除人为延迟，不删除断言逻辑；通过数 ≥ 7400 |
+| API 不变 | `test:ci`、`test:smoke` 等现有 script 名称保持不变 |
+| 向后兼容 | `test:smoke` 的文件列表可调整但必须覆盖核心模块 |
+| Node.js 内置 test runner | 项目使用 `node --test`（非 Jest/Vitest/Mocha），优化手段需兼容 |
+| 无新依赖 | 不引入额外测试框架或计时工具，使用 Node.js 内置能力 |
+| CI 环境限制 | CI runner 通常 2-4 核，`--test-concurrency` 不应超过物理核心数 |
+| 覆盖率不降 | 本轮不涉及覆盖率指标调整，但优化后 `npm run coverage:gate` 需继续通过 |
+| 保留 e2e 排除 | `test:ci` 已排除 `e2e/` 和 `e2e-chrome/` 目录，本轮不改变此策略 |
 
 ---
 
 ## 5. 依赖关系
 
 ```
-R223 (ModuleSplitFinal) ──→ R226 (ModuleSplitAbsoluteFinal) ──→ R227 (后续迭代)
+R222 (CoverageBreak50) ──→ R227 (TestExecutionDeepOpt2) ──→ R228+ (后续迭代)
+R226 (ModuleSplitAbsoluteFinal) ──→ R227 (TestExecutionDeepOpt2)
 ```
 
 | 方向 | 依赖 | 说明 |
 |------|------|------|
-| 前置 | R223 | ModuleSplitFinal — 完成了 7/11 个文件拆分，遗留 4 个尾巴 |
-| 前置 | R224 | IterationCloseR71 — 确认全量回归基线 7088+ 用例 |
-| 后续 | CI 流水线 | `check-file-size.sh` 需被 `ci.yml` 调用，成为长期门禁 |
-| 后续 | R227+ | 未来所有迭代的模块变更自动受 400 行门禁约束 |
+| 前置 | R222 | CoverageBreak50 — 确认 7472 用例基线和行覆盖率 ≥50% |
+| 前置 | R226 | ModuleSplitAbsoluteFinal — 确认所有 lib 文件 ≤400 行，CI 门禁已建立 |
+| 并行 | CI 流水线 | `test:smoke:gate` 需集成到 `ci.yml` 作为快速失败通道 |
+| 后续 | R228+ | 未来迭代复用本轮建立的测试效率基线和 smoke 门禁 |
+| 后续 | 覆盖率 | 优化不应破坏 R222 建立的 ≥50% 行覆盖率门禁 |
 
 ---
 
 ## 6. 非功能需求
 
-| 维度 | 要求 |
-|------|------|
-| 执行时间 | `check-file-size.sh` 执行时间 ≤ 2s（纯文本扫描） |
-| 测试执行 | `npm run test:ci` ≤ 30s（R202 基线为 24s） |
-| 模块数量 | 拆分后 lib 模块总数 ≤ 245（235 基线 + 最多 4 个新子模块 + 余量） |
-| 可追溯性 | 迭代报告 `docs/reports/2026-05-20-R63.md` 更新 |
+| 维度 | 当前值 | 目标值 |
+|------|-------|--------|
+| `test:ci` 总耗时 | 42.5s | ≤ 30s（降幅 ≥30%） |
+| `test:smoke` 耗时 | 未限制 | < 5s |
+| `test:smoke` 用例数 | ~80 | ≤ 80 |
+| 阻塞代码残留 | 64 处 | ≤ 3 处（仅保留有明确注释的 intentional delay） |
+| 可追溯性 | — | `tests/slow-test-analysis.md` 持久保存分析结果 |
 
 ---
 
@@ -156,11 +174,32 @@ R223 (ModuleSplitFinal) ──→ R226 (ModuleSplitAbsoluteFinal) ──→ R227
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
-| 拆分导致 import 路径失效 | 测试失败 | re-export 模式保证 API 不变，回归验证 |
-| 过度拆分（如 chat-mode.js 仅超 3 行） | 模块碎片化 | 精准提取最小逻辑单元，不为拆而拆 |
-| check-file-size.sh 在不同 shell 环境下行为差异 | CI 失败 | 使用 POSIX sh 语法，CI 环境测试 |
-| architecture-metrics.md 更新引入错误数据 | 文档误导 | 使用脚本实际统计，不手动估算 |
-| 拆分新增模块影响覆盖率指标 | 覆盖率下降 | 新模块如有未覆盖行，补充基本测试 |
+| 移除 `setTimeout` 后测试语义改变 | 测试失败或误通过 | 仅移除人为延迟，保留测试真实异步行为的 await；每处修改需本地验证 |
+| 某些 `setTimeout` 是测试 debounce/throttle 的必要手段 | 误删导致测试不准确 | 用 `// intentionally delayed` 注释标记保留，AC-2 明确豁免 |
+| `--test-concurrency` 提升导致资源竞争 | 测试间互相干扰、随机失败 | 逐步提升（8 → 10 → 12），每次验证稳定性后再继续 |
+| Smoke test 覆盖不足 | 核心模块回归未被快速拦截 | 保留现有 11 个文件的选择，必要时增加 1-2 个关键模块 |
+| CI runner 性能不稳定 | 30s 目标在 CI 中偶尔超标 | 设置 30s 为硬目标，允许 ±2s 波动；烟雾测试 5s 为硬门禁 |
+| 优化后用例数下降 | 误删有效用例 | AC-5 要求 ≥ 7400 用例，对比优化前后用例差值 |
+
+---
+
+## 8. 实施策略（概要）
+
+### Phase 1: 度量基准 (≤1 次迭代)
+- 运行 `node --test --test-reporter=spec` 获取每个文件的 duration_ms
+- 产出 Top-15 慢文件分析报告
+
+### Phase 2: 消除阻塞 (≤1 次迭代)
+- 从 Top-15 开始，逐文件移除不必要 `setTimeout` / `await sleep`
+- 每个文件修改后立即运行该文件的测试验证
+
+### Phase 3: 并行度调整 (≤0.5 次迭代)
+- 调整 `--test-concurrency` 参数
+- 全量回归验证
+
+### Phase 4: Smoke 门禁 (≤0.5 次迭代)
+- 新增 `test:smoke:gate` script
+- 集成到 CI
 
 ---
 
