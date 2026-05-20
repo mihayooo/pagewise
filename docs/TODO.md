@@ -698,6 +698,6 @@
 
 - [x] **R165: 学习周报生成 WeeklyDigest** — 新建 `lib/bookmark-weekly-digest.js`，自动生成用户每周学习摘要：(1) 统计本周新增书签、阅读完成数、提问次数、知识条目增长；(2) 按领域分布生成文字报告 + 数据摘要；(3) 识别本周学习重点领域和薄弱领域（复用 bookmark-gap-detector.js）；(4) 推荐下周学习方向（结合 learning-path.js 和 gap-detector.js）；(5) 通过 BookmarkNotifications 在每周一推送摘要；(6) 支持导出 Markdown/HTML 格式周报；(7) 测试 ≥25 用例。复杂度: Medium
 
-- [ ] **R166: 弹窗体验优化 PopupExperienceOpt** — 优化 `popup/bookmark-overview.js` 用户体验：(1) 最近浏览历史时间线（今日/本周/本月书签活动可视化）；(2) 快捷操作面板（一键打开图谱/搜索/设置/周报）；(3) 待复习提醒卡片（与 R163 SpacedRepetition 集成）；(4) 学习进度环形图（已读/待读/复习中比例）；(5) 搜索结果即时预览（hover 展示书签摘要）；(6) 首次使用引导入口（与 R81 BookmarkOnboarding 集成）。复杂度: Medium
+- [x] **R166: 弹窗体验优化 PopupExperienceOpt** — 优化 `popup/bookmark-overview.js` 用户体验：(1) 最近浏览历史时间线（今日/本周/本月书签活动可视化）；(2) 快捷操作面板（一键打开图谱/搜索/设置/周报）；(3) 待复习提醒卡片（与 R163 SpacedRepetition 集成）；(4) 学习进度环形图（已读/待读/复习中比例）；(5) 搜索结果即时预览（hover 展示书签摘要）；(6) 首次使用引导入口（与 R81 BookmarkOnboarding 集成）。复杂度: Medium
 
 - [ ] **R167: 全量回归与迭代收尾 IterationCloseR61** — R163-R166 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥6200 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥80%；(4) 更新 CHANGELOG.md 补充 R163-R166 变更记录；(5) 输出发布候选版本号。复杂度: Simple
