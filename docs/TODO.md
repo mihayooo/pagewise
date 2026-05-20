@@ -774,4 +774,13 @@
 
 - [x] **R185: 跨浏览器兼容层 CrossBrowserCompatibility** — 新建 `lib/browser-compat.js`，为 Firefox/Edge/Safari 扩展移植建立抽象层：(1) API 适配器：`BrowserAPI` 类统一封装 `chrome.*` / `browser.*` 差异（storage、tabs、bookmarks、sidePanel → sidebarAction、contextMenus），运行时自动检测环境并选择实现；(2) Promise 化包装：自动将回调式 `chrome.*` API 转为 Promise（Firefox 原生支持 Promise，Chrome 需 polyfill）；(3) 特性检测：`supportsFeature(feature)` 返回当前浏览器能力矩阵（sidePanel / contextMenus / bookmarks / scripting / storage.sync），模块功能优雅降级；(4) Manifest 适配：生成 `manifest.firefox.json`（V2→V3 差异：background.scripts 替代 service_worker、sidebar_action 替代 sidePanel、browser_specific_settings 必填）；(5) 存储抽象层复用：统一 `lib/storage-adapter.js` 在不同浏览器下的行为（IndexedDB 可用性、storage.sync 容量差异 Firefox 100KB vs Chrome 100KB vs Safari 无 sync）；(6) 构建脚本：`scripts/build-firefox.sh` 自动替换 manifest + 注入 polyfill；(7) 测试 ≥20 用例（模拟 browser.* API）。复杂度: Complex
 
-- [ ] **R186: 学习预测引擎 PredictiveLearningEngine** — 新建 `lib/bookmark-predictive-engine.js`，基于历史学习数据预测用户下一步学习需求：(1) 学习序列建模：分析用户阅读/提问/复习的时间序列，识别学习路径模式（如"学完 React Hooks → 通常接下来学 Next.js"）；(2) 知识衰减预测：基于 SpacedRepetition 数据（复用 bookmark-spaced-repetition.js），预测各知识点未来 7/14/30 天的记忆保持率，提前预警即将遗忘的知识；(3) 兴趣漂移预测：基于 UserProfileEngine 偏好变更历史（复用 bookmark-user-profile.js），预测用户下一个感兴趣的技术领域；(4) 阅读时间预测：基于历史阅读数据，预测每篇书签的阅读时长（考虑内容长度、难度、用户历史同领域阅读速度）；(5) 学习目标达成预测：基于 LearningGoals（复用 bookmark-learning-goals.js）当前进度和历史完成率，预测本周/本月目标达成概率；(6) 洞察卡片集成：预测结果封装为 InsightCard（复用 bookmark-insight-engine.js 结构），注入每日洞察推送；(7) 持久化：模型参数存入 chrome.storage.local，定期更新；(8) 测试 ≥25 用例。复杂度: Complex
+- [x] **R186: 学习预测引擎 PredictiveLearningEngine** — 新建 `lib/bookmark-predictive-engine.js`，基于历史学习数据预测用户下一步学习需求：(1) 学习序列建模：分析用户阅读/提问/复习的时间序列，识别学习路径模式（如"学完 React Hooks → 通常接下来学 Next.js"）；(2) 知识衰减预测：基于 SpacedRepetition 数据（复用 bookmark-spaced-repetition.js），预测各知识点未来 7/14/30 天的记忆保持率，提前预警即将遗忘的知识；(3) 兴趣漂移预测：基于 UserProfileEngine 偏好变更历史（复用 bookmark-user-profile.js），预测用户下一个感兴趣的技术领域；(4) 阅读时间预测：基于历史阅读数据，预测每篇书签的阅读时长（考虑内容长度、难度、用户历史同领域阅读速度）；(5) 学习目标达成预测：基于 LearningGoals（复用 bookmark-learning-goals.js）当前进度和历史完成率，预测本周/本月目标达成概率；(6) 洞察卡片集成：预测结果封装为 InsightCard（复用 bookmark-insight-engine.js 结构），注入每日洞察推送；(7) 持久化：模型参数存入 chrome.storage.local，定期更新；(8) 测试 ≥25 用例。复杂度: Complex
+
+## 自动生成任务 — 2026-05-20 06:53
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [ ] **R181: 测试覆盖率提升** — 补充 0% 覆盖率模块的单元测试，目标 ≥80%
+- [ ] **R182: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [ ] **R183: 稳定性提升** — 修复边界情况和错误处理
+- [ ] **R184: 探索性改进** — 代码质量优化、性能提升或新功能原型
