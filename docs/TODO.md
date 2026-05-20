@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R186
+> 迭代轮次: R43 - R209
 > 最后更新: 2026-05-20
 
 ---
@@ -857,3 +857,22 @@
 - [x] **R203: 超大模块拆分十一期 ModuleSplitPhase11** — 当前 22 个 lib 文件 >400 行：bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)、bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)、bookmark-link-checker.js(456)、page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。优先拆分前 8 个（>460 行），每文件 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
 
 - [x] **R204: CHANGELOG 补全与版本收尾 ChangelogFinalize** — CHANGELOG.md 缺少 R195-R199 变更记录（覆盖率基础设施根因修复、超大模块拆分十期、版本号统一、测试执行效率优化、E2E 学习闭环深化）；(1) 补充 `[3.1.0]` 区段新增 R195-R199 条目；(2) 验证 package.json / manifest.json 版本号一致；(3) 更新 docs/reports/ 迭代报告；(4) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple
+
+---
+
+## Phase AA: 覆盖率治理与发布准备 (R205-R209) — 5 轮
+
+> 飞轮迭代 R69 起，2026-05-20
+> 现状: 6993 pass / 0 fail（24.2s）；Lint 0/0；行覆盖率 23.72%、函数覆盖率 48.17%（`coverage:gate --lines 20` 门禁过低）；14 个 lib 文件 >400 行；218 个 lib 模块待合并评估；ROADMAP.md 过期（v1.5.1/R42）
+> 目标: 行覆盖率提升至 ≥50%、完成超大模块拆分收尾、合并重叠模块、构建可发布产物、更新项目文档
+> 任务来源优先级: 覆盖率治理 > 架构治理 > 发布准备 > 文档更新
+
+- [x] **R205: 行覆盖率冲刺 50% CoverageSprint50** — 当前行覆盖率仅 23.72%（11900/50153），`coverage:gate --lines 20` 门禁形同虚设；(1) 分析未覆盖行 Top-20 模块（按未覆盖行数排序），重点关注纯逻辑/工具函数模块（utils.js、sanitize.js、error-handler.js、cache-manager.js）；(2) 为 Top-10 模块补充边界用例和异常路径测试；(3) 将 `coverage:gate --lines` 从 20 收紧至 50；(4) 目标: 行覆盖率 ≥50%、函数覆盖率 ≥60%。复杂度: Medium
+
+- [ ] **R206: 超大模块拆分十二期 ModuleSplitPhase12** — 当前 14 个 lib 文件仍 >400 行：page-sense.js(447)、utils.js(444)、docmind-client.js(443)、bookmark-documentation.js(437)、bookmark-graph.js(432)、i18n.js(418)、bookmark-security-audit.js(417)、bookmark-learning-coach.js(416)、docmind-sync.js(414)、bookmark-detail-panel.js(414)、bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)。全部拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）；验证拆分后全量回归 0 fail。复杂度: Complex
+
+- [ ] **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — R183 识别出功能重叠模块对：bookmark-dedup.js vs bookmark-duplicate-detector.js、bookmark-io.js vs bookmark-import-export.js；(1) 实际执行合并 Top-3 重叠模块对，保留更完善的实现，将被合并模块改为 re-export wrapper；(2) 统计合并后 lib/ 模块数变化（目标减少 ≥3 个）；(3) 消除合并后的孤立导出和死代码；(4) 更新 lib-api-reference 文档；(5) 全量回归 0 fail。复杂度: Medium
+
+- [ ] **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline** — 项目功能完备但缺少标准化发布流程；(1) 完善 `scripts/build.sh` 生成可直接上传的 .zip 产物（manifest.json、lib/、popup/、options/、sidebar/、icons/、_locales/，排除 tests/、docs/、coverage/、scripts/）；(2) 新增 `scripts/publish-check.sh` 发布前自检（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(3) 生成 Chrome Web Store 所需截图脚本指引；(4) 验证 .zip 产物可在 Chrome 中正常加载运行；(5) 更新 RELEASE-NOTES-v3.1.md。复杂度: Medium
+
+- [ ] **R209: 项目文档全面更新 DocumentationOverhaul** — ROADMAP.md 过期（仍显示 v1.5.1/R42/2111 tests），需与项目现状对齐；(1) 更新 ROADMAP.md 至 v3.1.0/R204/6993 tests/218 lib modules，补充 Phase F-AA 路线图概览；(2) 更新 README.md：功能特性列表（选中即问/AI 即答/知识图谱/间隔复习/学习教练/隐私合规等）、安装方式、开发指南、架构概览；(3) 补充 CHANGELOG.md R200-R204 条目；(4) 更新 docs/architecture-metrics.md 模块统计和增长趋势；(5) 全量回归 0 fail + lint 0/0。复杂度: Simple
