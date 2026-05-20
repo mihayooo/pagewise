@@ -1,8 +1,8 @@
-# VERIFICATION.md — Iteration #28 Review
+# VERIFICATION.md — Iteration #28 Review (R185)
 
-> 任务: **R131: 无障碍功能补全 AccessibilityComplete**
+> 任务: **R185: EmbeddingEngine 性能断言收紧** — 将性能测试断言从 `< 500ms` 收紧到 `< 100ms`，同步更新测试名称与断言一致性
 > 迭代: 28
-> 日期: 2026-05-19
+> 日期: 2026-05-20
 > 审查者: Guard Agent
 
 ---
@@ -11,12 +11,12 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ⚠️ | AC1-AC4 核心功能均已实现，但 AC3「Announcer 重复创建守卫」既无实现也无测试（需求明确要求） |
-| 代码质量 | ✅ | BUG-1 修复正确（`self._enabled` 闭包捕获）；3 个新 static 方法 API 设计简洁；向后兼容（`auditContrastSummary` 而非修改原方法）；零安全风险 |
-| 测试覆盖 | ⚠️ | 67/67 全通过零回归；+18 新用例有效覆盖新增功能；但 Shift+Tab 缺独立用例、Announcer 重复创建无测试；`afterEach` 作用域局限于 R131 describe 块 |
-| 文档同步 | ✅ | CHANGELOG.md、TODO.md（☐→☑）、IMPLEMENTATION.md、REQUIREMENTS-ITER28.md 均已更新且内容一致 |
+| 功能完整性 | ✅ | 设计文档列出的 3 处变更全部落地：test-embedding-engine.js 断言 500→100、test-embedding.js 名称 200ms→100ms + 断言 500→100；未变更项（向量生成 < 5ms 测试）正确保持不变 |
+| 代码质量 | ✅ | 纯数字/字符串字面量修改，零逻辑变更，零源码（lib/）变更；变更范围精确匹配需求 |
+| 测试覆盖 | ✅ | 两个文件共 85 用例（48+37）全部通过，零回归；收紧后的性能断言实际运行通过 |
+| 文档同步 | ✅ | CHANGELOG.md 新增 R185 条目；TODO.md R185 ☐→☑；IMPLEMENTATION.md 新增 R185 实现记录；DESIGN-ITER28.md 全面更新 |
 
-**总评: ⚠️ 有条件通过** — 核心功能完整、质量良好，但有 1 个需求项（AC3 重复创建守卫）完全未实现，建议补充后合并。
+**总评: ✅ 通过** — 极简变更，执行精确，零问题。
 
 ---
 
@@ -24,122 +24,99 @@
 
 | 文件 | 行数变化 | 说明 |
 |------|----------|------|
-| `lib/bookmark-accessibility.js` | 598→636 (+38) | BUG-1 修复 + 3 个新 static 方法 |
-| `tests/test-bookmark-accessibility.js` | 49→67 用例 (+18) | 键盘导航(6)、焦点陷阱(4)、ARIA(1)、Announcer(2)、对比度扩展(7) |
-| `docs/CHANGELOG.md` | +10 | R131 条目 |
-| `docs/TODO.md` | ±1 行 | R131 `☐` → `☑` |
-| `docs/IMPLEMENTATION.md` | +58 | R131 实现记录 |
-| `docs/REQUIREMENTS-ITER28.md` | +166 (新文件) | R131 需求文档 |
-| `docs/reports/2026-05-19-R27.md` | -53/+24 | R27 报告精简（与 R131 关联度低，属附带清理） |
+| `tests/test-embedding-engine.js` | ±1 行 | 断言阈值 `500` → `100`（第 446 行），错误消息同步更新 |
+| `tests/test-embedding.js` | ±2 行 | 测试名称 `< 200ms` → `< 100ms`（第 309 行）；断言阈值 `500` → `100`（第 332 行） |
+| `docs/CHANGELOG.md` | +3 | R185 变更条目 |
+| `docs/TODO.md` | ±1 行 | R185 `[ ]` → `[x]` |
+| `docs/IMPLEMENTATION.md` | +31 | R185 实现方案与设计决策记录 |
+| `docs/DESIGN-ITER28.md` | +208/-58 | 从 L2.5 增量编译设计重写为 R185 断言收紧设计文档 |
+
+**未变更（正确）：**
+
+| 文件 | 原因 |
+|------|------|
+| `lib/embedding-engine.js` | 性能优化已在 commit `1b5d936` 完成，本次无需源码变更 |
+| `tests/test-embedding.js` 第 342 行 `向量生成 < 5ms` | 测量向量生成而非搜索，不在 R185 范围内 |
 
 ---
 
 ## 逐项验收审查
 
-### AC1: 键盘导航 ✅
+### AC1: test-embedding-engine.js 断言收紧 ✅
 
 | 子项 | 状态 | 说明 |
 |------|------|------|
-| Tab 不被 createKeyHandler 拦截 | ✅ | 测试验证 `preventDefault` 未被调用 |
-| disabled 状态下不干预 | ✅ | `new BookmarkAccessibility({ enabled: false })` 测试覆盖 |
-| ArrowLeft/Right direction 一致性 | ✅ | Left→'up', Right→'down' 测试通过 |
-| 空列表守卫 | ✅ | Enter/ArrowDown 静默忽略 |
+| 断言阈值 500 → 100 | ✅ | 第 446 行: `assert.ok(elapsed < 100, ...)` |
+| 错误消息同步 | ✅ | 消息从 `应 < 500ms` 改为 `应 < 100ms` |
+| 测试名称无需变更 | ✅ | 第 421 行名称已是 `'1000 条数据搜索 < 100ms'`，与新断言一致 |
 
-### AC2: 焦点陷阱 ✅
-
-| 子项 | 状态 | 说明 |
-|------|------|------|
-| 单元素边界 | ✅ | 单元素容器 Tab 被拦截 |
-| 重复 activate 幂等 | ✅ | 验证事件监听器只注册一次 (addCount=2) |
-| 容器为空守卫 | ✅ | `doesNotThrow` 验证 |
-| previousFocus 为 null 安全 | ✅ | deactivate 不抛异常 |
-
-### AC3: ARIA 属性与 Live Region ⚠️
+### AC2: test-embedding.js 名称 + 断言同步收紧 ✅
 
 | 子项 | 状态 | 说明 |
 |------|------|------|
-| Announcer this 绑定修复 (BUG-1) | ✅ | `self._enabled` 闭包捕获，代码正确 |
-| Announcer disabled 守卫 | ✅ | disabled 时 textContent 不被修改 |
-| **Announcer 重复创建守卫** | **❌ 缺失** | 需求文档 AC3 明确要求「同一 container 多次调用 createAnnouncer() 应复用已有 live region 元素」，**既无实现也无测试** |
-| 详情面板 aria-modal=true | ✅ | 测试断言 `aria-modal: 'true'` |
+| 测试名称 `< 200ms` → `< 100ms` | ✅ | 第 309 行更新 |
+| 断言阈值 500 → 100 | ✅ | 第 332 行: `assert.ok(elapsed < 100, ...)` |
+| 错误消息同步 | ✅ | 消息从 `应 < 500ms` 改为 `应 < 100ms` |
+| `向量生成 < 5ms` 未动 | ✅ | 第 342 行保持不变，不在范围内 |
 
-### AC4: 颜色对比度审计 ✅
+### AC3: 零源码变更 ✅
 
 | 子项 | 状态 | 说明 |
 |------|------|------|
-| setContrastPairs 动态注入 | ✅ | 追加和替换模式均有测试 |
-| getFailingPairs 过滤 | ✅ | 失败/通过区分、全通过空数组场景 |
-| auditContrastSummary 摘要 | ✅ | 结构正确、混合统计测试通过 |
-| 向后兼容 | ✅ | 新方法而非修改 auditContrast 返回值 |
+| `lib/` 目录无变更 | ✅ | `git diff` 确认无 lib/ 文件被修改 |
+| 仅测试层修改 | ✅ | 设计文档承诺，实际执行一致 |
 
-### AC5: 测试覆盖 ✅
+### AC4: 测试通过 ✅
 
-| 指标 | 值 | 说明 |
-|------|-----|------|
-| 总用例数 | 67 | 要求 ≥62，✅ |
-| 新增用例 | 18 | 49→67 |
-| 通过率 | 100% (67/67) | 零回归 |
-| 用例分布 | 键盘(6) + 焦点(4) + ARIA(1) + Announcer(2) + 对比度扩展(7) | 合理 |
+| 测试文件 | 用例数 | 通过 | 失败 | 状态 |
+|----------|--------|------|------|------|
+| `test-embedding-engine.js` | 48 | 48 | 0 | ✅ |
+| `test-embedding.js` | 37 | 37 | 0 | ✅ |
+| **合计** | **85** | **85** | **0** | **✅** |
+
+### AC5: 名称/断言一致性 ✅
+
+| 文件 | 测试名称 | 断言阈值 | 一致性 |
+|------|----------|----------|--------|
+| `test-embedding-engine.js:421/446` | `1000 条数据搜索 < 100ms` | `elapsed < 100` | ✅ 一致 |
+| `test-embedding.js:309/332` | `1000 条数据搜索 < 100ms` | `elapsed < 100` | ✅ 一致 |
+
+---
+
+## 阈值合理性验证
+
+设计文档声明实测性能数据：
+
+| 指标 | 声明值 | 说明 |
+|------|--------|------|
+| 最小值 | 1.39 ms | — |
+| 最大值 | 6.43 ms | — |
+| 平均值 | 3.25 ms | — |
+| 安全余量 | ~15x | 100ms / ~6.4ms ≈ 15.6x |
+
+**Guard 评估**: 100ms 阈值合理。CI 环境（GitHub Actions 标准 runner）通常慢 3–5x，最差情况 ~32ms，仍在 100ms 内。设计文档的 Flaky 防护分析（含低端 CI 10–15x 慢倍数估算）可信。
 
 ---
 
 ## 发现的问题
 
-### P1 — Announcer 重复创建守卫缺失 (AC3)
-
-**严重度**: 中  
-**需求来源**: REQUIREMENTS-ITER28.md AC3:「Announcer 重复创建守卫: 同一 container 多次调用 `createAnnouncer()` 应复用已有 live region 元素，不重复创建」  
-
-**现状**: `createAnnouncer()` 内部 `ensureElement()` 已有 `container.querySelector('[aria-live]')` 查找逻辑，**功能层面上已隐式支持复用**。但：
-- 无独立测试验证此行为
-- `createAnnouncer()` 每次调用都会创建新的闭包对象（`{ announce, destroy }`），前一次返回的 announcer 引用会失效但其 `destroy()` 仍可操作 liveEl
-
-**建议**: 补充 1 个测试用例验证同一 container 调用两次 `createAnnouncer()` 后 DOM 中只有一个 `[aria-live]` 元素。
-
-### P2 — Shift+Tab 测试覆盖不足
-
-**严重度**: 低  
-**需求来源**: AC1「Tab/Shift+Tab 跳转行为（2 用例）」
-
-**现状**: 仅 1 个 Tab 测试用例（`shiftKey: false`），缺 Shift+Tab（`shiftKey: true`）场景。虽然逻辑上 Tab 和 Shift+Tab 都不做拦截（`createKeyHandler` 不处理 Tab 键），但需求明确要求 2 个用例。
-
-**建议**: 补充 1 个 `shiftKey: true` 的 Tab 测试，保持与需求文档一致。
-
-### P3 — afterEach 作用域局限
-
-**严重度**: 低  
-**描述**: 对比度色彩对的 `afterEach` 清理仅在 `BookmarkAccessibility — 对比度审计扩展 (R131)` describe 块内。当前测试执行顺序下不构成问题（对比度扩展测试在最后执行），但若未来测试顺序变化，可能导致全局状态污染。
-
-**建议**: 考虑将色彩对恢复逻辑移至文件级 `afterEach`，或改用测试内部局部设置（`beforeEach` 中固定初始状态）。
-
-### P4 — R27 报告附带修改
-
-**严重度**: 信息  
-**描述**: R131 提交中附带修改了 `docs/reports/2026-05-19-R27.md`（53 行删除、24 行新增），将 R27 报告从详尽格式精简为摘要格式。此改动与 R131 功能无关。
-
-**建议**: 无功能影响，但建议非相关文件变更单独提交以保持 git 历史清晰。
+无。
 
 ---
 
 ## 返工任务清单
 
-| # | 优先级 | 任务 | 预估工作量 |
-|---|--------|------|------------|
-| 1 | P1 | 补充 Announcer 重复创建守卫测试（1 个用例） | 5 min |
-| 2 | P2 | 补充 Shift+Tab 测试用例（1 个用例） | 3 min |
-| 3 | P3 | afterEach 作用域调整（可选） | 5 min |
-
-> 若仅修复 P1，总用例数增至 68，仍满足 ≥62 的 AC5 要求。
+无。
 
 ---
 
 ## 代码质量亮点
 
-1. **BUG-1 修复精确**: `const self = this` 是最小侵入式修复，仅改变一行代码，不引入 `bind`/箭头函数重写
-2. **向后兼容设计**: `auditContrastSummary()` 而非修改 `auditContrast()` 返回值，零 breaking change
-3. **CONTRAST_PAIRS.length = 0 清空技巧**: 利用 `Array.prototype.length` 直接清空模块级数组，简洁高效
-4. **测试设计**: mock DOM 对象模式（`querySelectorAll`/`addEventListener`/`activeElement`）与项目风格一致，不依赖浏览器环境
+1. **设计文档质量极高**: DESIGN-ITER28.md 包含架构图、现状分析、性能实测数据、5 项设计决策（D001–D005）及替代方案、风险评估、Flaky 防护矩阵，远超此类简单变更的标准
+2. **变更范围精确**: 仅修改 3 处（1 个测试名称 + 2 个断言阈值），不多不少，完全匹配需求
+3. **遗留技术债清理**: 顺便修复了 test-embedding.js 测试名称与断言不一致的历史遗留问题
+4. **CI 兼容性考量**: 100ms 阈值而非更激进的 10ms/50ms，充分考虑了 CI 环境的不确定性
 
 ---
 
-*自动生成于 2026-05-19 — Guard Agent Iteration #28 Review*
+*自动生成于 2026-05-20 — Guard Agent Iteration #28 Review (R185)*
