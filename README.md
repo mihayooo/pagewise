@@ -64,6 +64,20 @@
 - **学习路径生成**：AI 基于知识库生成个性化学习路线
 - **间隔复习系统**：基于 SM-2 算法的知识卡片复习
 - **页面高亮标注**：选中文本高亮保存，跨访问持久化
+- **智能摘录归档**：选中文字一键归档为知识条目，自动生成摘要和标签
+- **学习目标与打卡**：游戏化激励机制，连续打卡追踪，成就里程碑
+- **书签批注笔记**：为书签添加 Markdown 批注，笔记全文检索
+- **离线内容缓存**：已读书签自动缓存正文，支持离线搜索
+- **智能阅读队列**：多维度优先级排序的动态阅读调度
+- **学习效能分析**：学习效率指数、时间模式分析、领域投入产出比
+- **一键整页速存**：右键一键保存完整学习快照（正文+高亮+截图）
+- **AI 知识洞察**：跨域关联发现、知识衰减预警、学习模式异常检测
+- **主动学习教练**：个性化每日学习计划、节奏调整、策略建议
+- **跨域知识连接图**：概念级知识地图，最短学习路径发现
+- **学习旅程可视化**：时间轴里程碑、知识热力图、领域雷达图
+- **隐私数据保险箱**：GDPR 合规、一键数据导出/删除、数据生命周期管理
+- **知识包分享**：知识资产打包分享，支持 Anki 格式导出
+- **学习预测引擎**：知识衰减预测、兴趣漂移预测、阅读时间预测
 
 ### 记忆系统
 - 用户画像：自动学习技术水平、常用语言、关注领域
@@ -264,27 +278,45 @@ pagewise/
 │   ├── options.html              # 设置页面
 │   ├── options.css
 │   └── options.js
-├── lib/                          # 核心库（20+ 个模块）
-│   ├── browser-compat.js         # 浏览器兼容层（Chrome/Firefox/Edge）
+├── lib/                          # 核心库（222 个模块，~50K 行）
 │   ├── ai-client.js              # AI API 封装（Claude + OpenAI 双协议）
+│   ├── ai-client-stream.js       # 流式解析（SSE）
+│   ├── ai-client-request.js      # 请求构建与响应解析
 │   ├── skill-engine.js           # 技能引擎
 │   ├── page-sense.js             # 页面感知
 │   ├── memory.js                 # 记忆系统
 │   ├── evolution.js              # 自进化引擎
 │   ├── agent-loop.js             # Agent 规划执行
-│   ├── importer.js               # 多格式导入
 │   ├── knowledge-base.js         # IndexedDB 知识库
 │   ├── knowledge-graph.js        # 知识关联图谱
+│   ├── embedding-engine.js       # TF-IDF 语义引擎
 │   ├── spaced-repetition.js      # SM-2 间隔复习
-│   ├── prompt-templates.js       # Prompt 模板管理
 │   ├── conversation-store.js     # 对话历史持久化
 │   ├── highlight-store.js        # 页面高亮存储
 │   ├── learning-path.js          # 学习路径生成
 │   ├── custom-skills.js          # 自定义技能管理
-│   ├── stats.js                  # 使用统计
+│   ├── bookmark-collector.js     # 书签采集器
+│   ├── bookmark-graph.js         # 书签图谱引擎
+│   ├── bookmark-visualizer.js    # 图谱 Canvas 可视化
+│   ├── bookmark-search.js        # 书签搜索
+│   ├── bookmark-semantic-search.js # 语义搜索（TF-IDF）
+│   ├── bookmark-ai-recommender.js  # AI 智能推荐
+│   ├── bookmark-spaced-repetition.js # 书签间隔复习
+│   ├── bookmark-learning-coach.js  # 主动学习教练
+│   ├── bookmark-insight-engine.js  # AI 知识洞察
+│   ├── bookmark-predictive-engine.js # 学习预测引擎
+│   ├── bookmark-privacy-vault.js   # 隐私数据保险箱
+│   ├── bookmark-offline-cache.js   # 离线内容缓存
+│   ├── bookmark-reading-queue.js   # 智能阅读队列
+│   ├── bookmark-user-profile.js    # 用户画像引擎
+│   ├── bookmark-cross-domain-map.js # 跨域知识图
+│   ├── bookmark-learning-journey.js # 学习旅程可视化
+│   ├── browser-compat.js         # 浏览器兼容层（Chrome/Firefox/Edge）
+│   ├── sanitize.js               # 输入净化（XSS 防护）
+│   ├── cache-manager.js          # 统一缓存管理
 │   ├── error-handler.js          # 全局错误处理
-│   ├── onboarding.js             # 新手引导
-│   └── utils.js                  # 工具函数
+│   ├── utils.js                  # 工具函数
+│   └── ... (共 222 个模块，全部 ≤400 行)
 ├── skills/
 │   └── builtin-skills.js         # 内置技能集
 ├── icons/
@@ -294,7 +326,7 @@ pagewise/
 ├── _locales/
 │   ├── zh_CN/messages.json       # 中文语言包
 │   └── en/messages.json          # 英文语言包
-├── tests/                        # 测试套件（23 个测试文件）
+├── tests/                        # 测试套件（190 个测试文件，7088 用例）
 │   └── helpers/                  # 测试辅助工具
 ├── scripts/
 │   └── build.sh                  # 打包脚本
@@ -319,13 +351,14 @@ node --test tests/test-*.js
 node --test tests/test-utils.js
 ```
 
-**测试统计**（v1.0.0）：
-- 测试文件：23 个
-- 测试套件：122 个
-- 测试用例：537 个
+**测试统计**（v3.1.0）：
+- 测试文件：190 个
+- 测试套件：1484 个
+- 测试用例：7088 个
 - 通过率：100%
+- lib 模块：222 个
 
-覆盖模块：utils、page-sense、skill-engine、knowledge-base、ai-client、conversation-store、highlight-store、onboarding、error-handler、stats、token-estimation、conversation-branch、prompt-templates、multi-tab、code-sandbox、custom-skills、knowledge-graph、spaced-repetition、knowledge-correlation、semantic-search、learning-path、batch-operations、conversation-storage
+覆盖模块：ai-client、skill-engine、page-sense、knowledge-base、conversation-store、highlight-store、spaced-repetition、knowledge-graph、bookmark-graph、bookmark-collector、bookmark-indexer、bookmark-visualizer、bookmark-search、bookmark-clusterer、bookmark-learning-path、bookmark-tagger、bookmark-status、bookmark-dedup、bookmark-io、bookmark-semantic-search、bookmark-knowledge-link、bookmark-ai-recommender、bookmark-stats、bookmark-dark-theme、bookmark-keyboard-shortcuts、bookmark-knowledge-integration、bookmark-smart-collections、bookmark-sharing、bookmark-performance、bookmark-accessibility、bookmark-i18n、bookmark-onboarding、bookmark-migration、bookmark-error-handler、bookmark-spaced-repetition、bookmark-weekly-digest、bookmark-highlight-archive、bookmark-learning-goals、bookmark-annotations、bookmark-privacy-vault、bookmark-learning-coach、bookmark-predictive-engine、embedding-engine、error-handler、sanitize、cache-manager、browser-compat、utils 等
 
 ---
 
@@ -441,14 +474,26 @@ MIT License
 ## npm Scripts
 
 ```bash
-# 运行测试
+# 运行测试（全部）
 npm run test
 
-# 代码检查
+# CI 专用测试（排除 E2E）
+npm run test:ci
+
+# Smoke 测试（核心流程，<3s）
+npm run test:smoke
+
+# 代码检查（ESLint）
 npm run lint
 
-# 测试覆盖率
+# 测试覆盖率报告
 npm run test:coverage
+
+# 覆盖率门禁检查
+npm run coverage:gate
+
+# 打包构建
+bash scripts/build.sh
 ```
 
 ## 参与贡献

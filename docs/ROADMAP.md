@@ -1,7 +1,7 @@
 # ROADMAP — 智阅 PageWise
 
 > 项目路线图
-> 最后更新: 2026-05-03
+> 最后更新: 2026-05-20
 
 ---
 
@@ -9,159 +9,99 @@
 
 | 指标 | 数值 |
 |------|------|
-| 版本 | v1.5.1 |
-| 迭代轮次 | R42 |
-| 测试总数 | 2111 (pass 2111, fail 0) |
-| 测试文件 | 79 |
-| 核心代码 | ~16,704 行 (lib/) |
-| 测试代码 | ~24,051 行 (tests/) |
+| 版本 | v3.1.0 |
+| 迭代轮次 | R209 |
+| 测试总数 | 7088 (pass 7088, fail 0) |
+| 测试文件 | 190 |
+| lib 模块 | 222 |
+| 核心代码 | ~50,215 行 (lib/) |
+| Lint | 0 errors / 0 warnings |
 
 ---
 
 ## 🗺️ 路线图总览
 
 ```
-Phase A: BookmarkGraph MVP (R43-R52)       → 书签采集 + 图谱 + 可视化
-Phase B: BookmarkGraph V1.0 (R53-R62)      → 主题聚类 + 学习路径 + 标签
-Phase C: BookmarkGraph V2.0 (R63-R72)      → 语义搜索 + AI 推荐 + 知识关联
-Phase D: 集成与打磨 (R73-R82)              → PageWise 联动 + 性能 + i18n
-Phase E: 发布准备 (R83-R92)                → 安全 + 文档 + Chrome Web Store
+Phase A:  BookmarkGraph MVP (R43-R52)              → 书签采集 + 图谱 + 可视化          ✅
+Phase B:  BookmarkGraph V1.0 (R53-R62)             → 主题聚类 + 学习路径 + 标签         ✅
+Phase C:  BookmarkGraph V2.0 (R63-R72)             → 语义搜索 + AI 推荐 + 知识关联      ✅
+Phase D:  集成与打磨 (R73-R82)                     → PageWise 联动 + 性能 + i18n        ✅
+Phase E:  发布准备 (R83-R92)                       → 安全 + 文档 + Chrome Web Store     ✅
+Phase F:  最终发布 (R93-R102)                      → 性能优化 + 同步 + 批量 + 通知       ✅
+Phase G:  质量巩固 (R103-R107)                     → 测试基础设施 + 错误处理 + 审计      ✅
+Phase H:  基础设施加固 (R108-R112)                 → 覆盖率 + ESLint + 安全 + 技术债     ✅
+Phase I:  CI 修复与测试加固 (R113-R117)            → CI 绿灯 + 测试空白 + 模块拆分      ✅
+Phase J:  飞轮迭代 R15+ (R118-R122)               → Lint 清零 + 大模块拆分 + 文档      ✅
+Phase K:  质量修复与深度优化 (R123-R127)           → 测试修复 + 循环依赖 + 缓存统一      ✅
+Phase L:  质量回归与发布收尾 (R128-R132)           → 模块拆分 + 无障碍 + 引导向导        ✅
+Phase M:  持续质量优化 (R133-R137)                 → Lint 清零 + E2E + 覆盖率提升       ✅
+Phase N:  测试修复与覆盖率冲刺 (R138-R142)         → 红色区域补覆盖 + 模块拆分          ✅
+Phase O:  测试修复与函数覆盖率冲刺 (R143-R147)     → 函数覆盖率 ≥60% + 发布候选        ✅
+Phase P:  飞轮迭代 R148+ (R148-R152)              → EvolutionEngine + Lint + 覆盖率    ✅
+Phase Q:  质量巩固与架构瘦身 (R153-R157)           → sidebar.js 拆分 + 覆盖率修复       ✅
+Phase R:  sidebar.js 拆分落地与覆盖率治理 (R158-R162) → 拆分落地 + Lint 清零 + 覆盖率    ✅
+Phase S:  产品体验升级 (R163-R167)                 → 间隔复习 + 学习教练 + 弹窗优化      ✅
+Phase T:  知识沉淀与学习闭环 (R168-R171)           → 摘录归档 + 学习目标 + 批注笔记      ✅
+Phase U:  深度学习闭环与智能升级 (R172-R176)       → 离线缓存 + 阅读队列 + 用户画像      ✅
+Phase V:  智能洞察与学习体验深化 (R177-R181)       → AI 洞察 + 学习教练 + 知识地图       ✅
+Phase W:  隐私合规与平台扩展 (R182-R186)           → 隐私合规 + 架构监控 + 预测引擎      ✅
+Phase X:  质量修复与模块瘦身 (R190-R194)           → 测试修复 + 覆盖率 + 模块拆分       ✅
+Phase Y:  基础设施收尾与架构治理 (R195-R199)       → 覆盖率根因 + 版本统一 + E2E        ✅
+Phase Z:  质量收尾与发布 (R200-R204)               → 测试修复 + Lint + 模块拆分收尾      ✅
+Phase AA: 覆盖率治理与发布准备 (R205-R209)         → 覆盖率冲刺 + 模块合并 + 发布产物    ✅ (进行中)
 ```
+
+---
 
 ---
 
 ## ✅ 已完成里程碑
 
-### v2.0.0 — 核心功能完善 (2026-04-30)
-- [x] MessageRenderer / KnowledgePanel 模块拆分
-- [x] 倒排索引搜索优化 + 虚拟滚动 + 消息懒渲染
-- [x] 停止生成按钮 + 键盘快捷键
-- [x] 智能错误处理 + 代码语法高亮
-- [x] 对话历史面板 + 知识图谱增强
-- [x] 间隔重复 + 连续学习天数
-- [x] 截图提问 + 统计仪表盘 + 引导向导
-- [x] 性能监控 + 设置导入导出
-- [x] Chrome Web Store 准备
+### v1.0.0 — 初始发布 (2026-04-25)
+- [x] 页面内容提取 + AI 问答 + 知识库 + 数据导入导出
+- [x] 技能系统（7 个内置技能）+ 页面感知（6 种类型）
+- [x] 记忆系统 + 自进化 + 右键菜单
 
-### LLM Wiki 知识编译系统 (R19-R34)
-- [x] L1: 知识库导出为 Wiki 格式、实体提取、交叉引用、Git 集成
-- [x] L2: Q&A 自动分类、知识关联增强、矛盾检测、编译报告、增量编译
-- [x] L3: Wiki 浏览模式、图谱可视化增强、自动 Ingest、LLM 查询、Lint 工具、服务器同步
+### v2.0.0 — BookmarkGraph 与核心功能完善 (2026-04-30 ~ 2026-05-05)
+- [x] PDF 提取引擎 + 实体概念提取 + LLM Wiki 知识编译
+- [x] AI 响应缓存 + 页面高亮关联 + 对话分支
+- [x] BookmarkGraph 全部 Phase A-C (R43-R72): 书签采集→图谱→搜索→聚类→语义搜索→AI 推荐
 
-### v2.1.0 — 质量与可靠性 (R35-R42)
-- [x] R35: 统一错误处理集成 + _locales 国际化基础
-- [x] R36-R42: 核心模块 E2E 测试飞轮 (AI Client, AI Cache, Knowledge Base, Conversation Store, Page Sense, PDF Extractor, Skill Engine)
-- [x] 59 个测试回归修复
+### v3.0.0 — 正式发布 (2026-05-12)
+- [x] Phase D (R73-R82): 知识库联动→智能集合→分享→性能优化→无障碍→国际化→引导向导
+- [x] Phase E (R83-R92): 安全审计→性能基准→错误处理→数据迁移→备份恢复→UI 打磨
 
----
+### v3.1.0 — 深度功能迭代与质量治理 (R93-R208)
+- [x] Phase F (R93-R102): 性能优化→数据同步→批量操作→搜索历史→通知系统→高级标签→分析
+- [x] Phase G (R103-R107): 测试基础设施→AI 客户端增强→知识库索引优化→核心流程审计
+- [x] Phase H (R108-R112): 覆盖率度量(c8)→ESLint 设置→输入安全加固→技术债务清偿
+- [x] Phase I-J (R113-R122): CI 修复→测试空白填补→测试瘦身→大模块拆分→开发者文档
+- [x] Phase K-M (R123-R137): 批量测试修复→Lint 清零→模块拆分二期三期→E2E→覆盖率提升
+- [x] Phase N-P (R138-R152): 覆盖率冲刺→模块拆分四五期→函数覆盖率≥60%→sidebar.js 拆分
+- [x] Phase Q-R (R153-R162): sidebar.js 拆分落地→覆盖率回升→模块拆分七八期
+- [x] Phase S (R163-R167): 间隔复习→上下文感知 AI→学习周报→弹窗体验优化
+- [x] Phase T (R168-R171): 智能摘录归档→学习目标打卡→书签批注笔记
+- [x] Phase U (R172-R176): 离线缓存→智能阅读队列→学习效能分析→整页速存→用户画像
+- [x] Phase V (R177-R181): AI 知识洞察→主动学习教练→跨域知识图→学习旅程可视化
+- [x] Phase W (R182-R186): 隐私合规→架构监控→知识包分享→跨浏览器兼容→预测引擎
+- [x] Phase X-Z (R190-R204): 测试修复→覆盖率根因修复→版本号统一→模块拆分九至十一期→CHANGELOG 补全
+- [x] Phase AA (R205-R208): 覆盖率冲刺 50%→模块拆分十二期→重叠模块合并→发布产物构建
 
-## 🚧 Phase A: BookmarkGraph MVP (R43-R52)
+### 核心架构治理历程
 
-> 目标：让书签从"堆积"变成"可探索的知识网络"
+经过 12 轮模块拆分（Phase 1-12），所有 lib 文件均 ≤400 行，保持 API 向后兼容（re-export 模式）：
+- **sidebar.js**: 7705 行 → 编排层 ≤400 行 + 5 个子模块（chat/knowledge/bookmark/settings/utils）
+- **knowledge-base.js**: 1866 行 → core/crud/query/export 4 个子模块
+- **ai-client.js**: 609 行 → tokens/stream/request/prompts 4 个子模块
+- **bookmark-graph.js**: 1096 行 → graph-engine + graph-layout 等子模块
 
-- [ ] **R43: 书签采集器 BookmarkCollector** — `lib/bookmark-collector.js`
-  - 递归读取 Chrome 书签树，标准化数据
-  - 复杂度: Medium
+### 项目质量指标
 
-- [ ] **R44: 书签索引器 BookmarkIndexer** — `lib/bookmark-indexer.js`
-  - 倒排索引，支持中英文搜索
-  - 复杂度: Medium
-
-- [ ] **R45: 书签图谱引擎 BookmarkGraphEngine** — `lib/bookmark-graph.js`
-  - 关键词相似度构建关联网络
-  - 复杂度: Complex
-
-- [ ] **R46: 图谱可视化 BookmarkVisualizer** — `lib/bookmark-visualizer.js`
-  - Canvas 力导向图，缩放/拖拽/搜索
-  - 复杂度: Complex
-
-- [ ] **R47: 详情面板 BookmarkDetailPanel** — `lib/bookmark-detail-panel.js`
-  - 点击节点显示详情 + 相似推荐
-  - 复杂度: Medium
-
-- [ ] **R48: 相似推荐 BookmarkRecommender** — `lib/bookmark-recommender.js`
-  - Top-5 相似书签推荐
-  - 复杂度: Medium
-
-- [ ] **R49: 书签搜索 BookmarkSearch** — `lib/bookmark-search.js`
-  - 实时搜索 + 过滤
-  - 复杂度: Simple
-
-- [ ] **R50: 弹窗概览 BookmarkPopup** — `popup/bookmark-overview.js`
-  - 快速概览 + 搜索入口
-  - 复杂度: Medium
-
-- [ ] **R51: 选项页集成 BookmarkOptionsPage** — `options/bookmark-panel.js`
-  - 完整图谱视图
-  - 复杂度: Medium
-
-- [ ] **R52: MVP E2E 测试** — 全模块测试
-  - 复杂度: Medium
-
----
-
-## 📋 Phase B: BookmarkGraph V1.0 (R53-R62)
-
-> 目标：智能分类 + 学习路径 + 知识管理
-
-- [ ] **R53: 主题聚类 TopicClustering** — 自动识别技术领域
-- [ ] **R54: 学习路径 LearningPathFromBookmarks** — 基于主题依赖推荐
-- [ ] **R55: 标签自动生成 AutoTagGeneration** — 智能标签
-- [ ] **R56: 标签手动编辑 TagManualEditing** — 用户自定义
-- [ ] **R57: 知识盲区检测 KnowledgeGapDetection** — 发现薄弱领域
-- [ ] **R58: 状态标记 BookmarkStatusMarking** — 已读/待读/在读
-- [ ] **R59: 文件夹分析 FolderAnalysis** — 整理建议
-- [ ] **R60: 重复检测 DuplicateDetection** — 去重合并
-- [ ] **R61: 数据导入导出 BookmarkImportExport** — JSON/CSV
-- [ ] **R62: V1.0 E2E 测试**
-
----
-
-## 📋 Phase C: BookmarkGraph V2.0 (R63-R72)
-
-> 目标：AI 驱动 + 知识关联
-
-- [ ] **R63: 链接健康检查 LinkHealthCheck** — 失效检测
-- [ ] **R64: 书签内容预览 BookmarkContentPreview** — 页面摘要
-- [ ] **R65: 语义搜索 BookmarkSemanticSearch** — 嵌入引擎
-- [ ] **R66: 知识关联 BookmarkKnowledgeCorrelation** — 与 Q&A 联动
-- [ ] **R67: 学习进度追踪 BookmarkLearningProgress** — 进度管理
-- [ ] **R68: AI 推荐 BookmarkAIRecommendations** — 智能推荐
-- [ ] **R69: 统计仪表盘 BookmarkStatistics** — 数据可视化
-- [ ] **R70: 暗色主题 BookmarkDarkTheme** — 暗色模式
-- [ ] **R71: 快捷键 BookmarkKeyboardShortcuts** — 快捷操作
-- [ ] **R72: V2.0 E2E 测试**
-
----
-
-## 📋 Phase D: 集成与打磨 (R73-R82)
-
-> 目标：与 PageWise 核心深度融合
-
-- [ ] **R73: 书签-知识库联动** — 双向关联
-- [ ] **R74: 自动分类** — 新书签自动归类
-- [ ] **R75: 智能集合** — 规则驱动的动态集合
-- [ ] **R76: 书签分享** — 导出可分享集合
-- [ ] **R77: 高级分析** — 收藏模式分析
-- [ ] **R78: 性能优化** — 10000+ 书签支持
-- [ ] **R79: 无障碍** — 键盘导航 + 屏幕阅读器
-- [ ] **R80: 国际化** — 中英文界面
-- [ ] **R81: 引导向导** — 首次使用引导
-- [ ] **R82: Phase D 集成测试**
-
----
-
-## 📋 Phase E: 发布准备 (R83-R92)
-
-> 目标：Chrome Web Store 上架
-
-- [ ] **R83: Store 准备** — manifest + 截图
-- [ ] **R84: 安全审计** — XSS + 数据隔离
-- [ ] **R85: 性能基准** — 基准测试
-- [ ] **R86: 错误处理** — 全局错误捕获
-- [ ] **R87: 用户文档** — 使用指南
-- [ ] **R88: 数据迁移** — 版本升级兼容
-- [ ] **R89: 备份恢复** — 数据安全
-- [ ] **R90: UI 打磨** — 动画 + 交互细节
-- [ ] **R91: RC 测试** — 发布候选
-- [ ] **R92: v3.0.0 发布** — 正式版
+| 指标 | 值 |
+|------|-----|
+| 测试通过率 | 100% (7088 pass / 0 fail) |
+| Lint | 0 errors / 0 warnings |
+| lib 模块数 | 222 |
+| 核心代码行数 | ~50,215 行 |
+| 迭代轮次 | R1-R209 |
+| 已关闭技术债务 | TD001-TD004 全部关闭 |

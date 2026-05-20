@@ -2,6 +2,43 @@
 
 ---
 
+## 迭代 R209 — 项目文档全面更新 DocumentationOverhaul
+
+> 日期: 2026-05-20
+> 任务: R209 项目文档全面更新 — ROADMAP.md/README.md/CHANGELOG.md/architecture-metrics.md 与项目现状对齐
+
+### 问题
+
+| 文件 | 问题 | 修复 |
+|------|------|------|
+| ROADMAP.md | 过期（仍显示 v1.5.1/R42/2111 tests） | 更新至 v3.1.0/R209/7088 tests/222 lib modules |
+| README.md | 功能列表过时、测试统计过时 | 补充 18 项新功能、更新测试统计至 7088 用例/190 文件 |
+| CHANGELOG.md | 缺少 R200-R209 条目 | 补充 R200-R209 全部变更记录 |
+| architecture-metrics.md | 不存在 | 新建模块统计和增长趋势文档 |
+| ci.yml | 覆盖率门禁步骤名与实际阈值不一致 | 步骤名从 `>= 20%` 更新为 `>= 50%` |
+| test-r156-coverage-infra.js | 断言期望 `--lines 20` 但实际 `--lines 50` | 断言更新为 `--lines 50` |
+| test-coverage-infra.js | 间接因 ci.yml 步骤名不匹配而失败 | ci.yml 修复后自动通过 |
+
+### 修改文件
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `docs/ROADMAP.md` | 修改 | 全面重写：更新当前状态、路线图总览（Phase A-AA 27 个阶段）、里程碑列表、项目质量指标 |
+| `README.md` | 修改 | 功能列表新增 18 项功能、测试统计更新（7088/190/222）、文件结构更新、npm scripts 更新 |
+| `docs/CHANGELOG.md` | 修改 | 补充 R200-R209 共 10 个迭代的变更记录 |
+| `docs/architecture-metrics.md` | 新建 | 项目概况、模块增长趋势、模块分布、拆分历程、测试覆盖、代码质量基线 |
+| `.github/workflows/ci.yml` | 修改 | 覆盖率门禁步骤名 `>= 20%` → `>= 50%` |
+| `tests/test-r156-coverage-infra.js` | 修改 | 覆盖率门槛断言 `--lines 20` → `--lines 50` |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+| `docs/TODO.md` | 修改 | R209 标记完成 |
+
+### 测试结果
+
+- `npm run test:ci`: 7088 pass / 0 fail ✅
+- `npm run lint`: 0 errors / 0 warnings ✅
+
+---
+
 ## 迭代 R197 — 版本号统一与 CHANGELOG 补全 VersionSyncAndChangelog
 
 > 日期: 2026-05-20

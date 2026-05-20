@@ -67,7 +67,7 @@ jobs:
       - name: Generate coverage report
         run: npm run test:coverage
 
-      - name: Coverage gate (lines >= 20%)
+      - name: Coverage gate (lines >= 50%)
         run: npm run coverage:gate
 
   package-check:

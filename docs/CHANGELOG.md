@@ -36,6 +36,71 @@
   - manifest.json 版本号同步更新为 `3.1.0`
   - 补充本 [3.1.0] CHANGELOG 区段
 
+### 修复
+- **R200: 测试失败修复 TestFailureFixR200** — 修复 `npm run test:ci` 中 6 个失败用例
+  - BookmarkAIRecommendations analyzeProfile 性能断言超时
+  - BookmarkGraphEngine 1000 条书签图谱构建超时
+  - BookmarkLinkChecker 超时 URL dead 断言失败
+  - ESLint 0 warnings 验证断言（实测 4 warnings）
+  - package.json 脚本验证 test:coverage 预清理逻辑
+  - 语义搜索性能 1000 条数据 < 100ms 超时
+  - 结果: 6977 pass / 0 fail
+
+### 质量
+- **R201: Lint 警告清零 LintWarningFinalR200** — 修复 4 个 `no-unused-vars` 警告
+  - bookmark-notifier.js `MS_PER_DAY` 赋值未使用
+  - 逐文件审查删除或前缀 `_` 标记
+  - `eslint.config.js` max-warnings 收紧为 0
+  - 结果: 0 errors / 0 warnings
+
+### 性能
+- **R202: 测试执行效率优化三期 TestExecutionOpt3** — 当前 45.4s（6977 用例 / 1470 suites）
+  - 分析 Top-10 最慢测试文件
+  - 移除测试中残留的 `setTimeout`/`await sleep` 阻塞
+  - 建立 CI smoke test 子集（`npm run test:smoke` 核心流程 ≤60 用例）
+  - 按测试文件拆分为 4 组并行执行
+  - 结果: 全量 ≤25s
+
+### 架构
+- **R203: 超大模块拆分十一期 ModuleSplitPhase11** — 拆分 8 个 >460 行的 lib 文件至 ≤400 行
+  - bookmark-spaced-repetition.js(528)、architecture-health-monitor.js(498)、bookmark-notifier.js(493)、bookmark-duplicate-detector.js(474)
+  - bookmark-smart-collections.js(473)、page-summarizer.js(469)、bookmark-performance.js(464)、bookmark-link-checker.js(456)
+  - 保持 API 向后兼容（re-export 模式）
+  - 全量回归: 6993 pass / 0 fail ✅
+
+### 其他
+- **R204: CHANGELOG 补全与版本收尾 ChangelogFinalize** — 补充 R195-R199 变更记录
+  - 覆盖率基础设施根因修复、超大模块拆分十期、版本号统一、测试执行效率优化、E2E 学习闭环深化
+  - 验证 package.json / manifest.json 版本号一致
+  - 全量回归: 6993 pass / 0 fail + lint 0/0
+
+### 架构
+- **R205: 行覆盖率冲刺 50% CoverageSprint50** — 当前行覆盖率仅 23.72%
+  - 分析未覆盖行 Top-20 模块，为 Top-10 模块补充边界用例和异常路径测试
+  - `coverage:gate --lines` 从 20 收紧至 50
+
+- **R206: 超大模块拆分十二期 ModuleSplitPhase12** — 拆分 14 个 >400 行文件至 ≤400 行
+  - page-sense.js、utils.js、docmind-client.js、bookmark-documentation.js 等全部拆分
+  - 保持 API 向后兼容（re-export 模式）
+
+- **R207: 重叠模块合并与架构瘦身 ModuleConsolidation** — 合并功能重叠模块对
+  - bookmark-dedup.js vs bookmark-duplicate-detector.js 合并
+  - bookmark-io.js vs bookmark-import-export.js 合并
+  - 消除合并后的孤立导出和死代码
+
+### 新增
+- **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline**
+  - 完善 `scripts/build.sh` 生成 .zip 产物
+  - 新增 `scripts/publish-check.sh` 发布前自检
+  - 更新 RELEASE-NOTES-v3.1.md
+
+### 文档
+- **R209: 项目文档全面更新 DocumentationOverhaul** — ROADMAP.md 过期更新至 v3.1.0
+  - 更新 ROADMAP.md 至 v3.1.0/R209/7088 tests/222 lib modules
+  - 更新 README.md 功能特性列表、测试统计、文件结构
+  - 补充 CHANGELOG.md R200-R209 条目
+  - 创建 docs/architecture-metrics.md 模块统计和增长趋势
+
 ---
 
 ## [Unreleased]
