@@ -1,141 +1,119 @@
 # VERIFICATION.md — Iteration #52 Review
 
-> 审查任务: **R154: ESLint 警告清零 LintWarningZeroR53**
-> 审查日期: 2026-05-19
-> 审查人: Guard Agent
-
----
+> 审查任务: R210 Chrome Web Store 合规与提交 ChromeWebStoreSubmission  
+> 审查日期: 2026-05-20  
+> 审查人: Guard Agent  
 
 ## 审核总评
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | 任务目标「0 errors 0 warnings」未达成；仍剩 21 warnings |
-| 代码质量 | ⚠️ | 部分修复合理（删除未使用导入），但存在死代码未清理、`max-warnings` 未收紧 |
-| 测试覆盖 | ✅ | 6117 pass / 0 fail，全量回归无新增回归 |
-| 文档同步 | ❌ | CHANGELOG.md 无 R154 条目；TODO.md 未标记完成 |
-| 安全质量 | ✅ | 无硬编码密钥、无 XSS 风险 |
+| 功能完整性 | ❌ | R210 五项任务均未实现；本轮实际提交仅为 TODO.md 规划更新（R209 完成标记 + Phase AB R210-R214 规划） |
+| 代码质量 | ⚠️ | TODO.md 新增内容格式清晰、规划合理，但不构成 R210 的实现 |
+| 测试覆盖 | ❌ | 0 测试运行、0 测试通过、0 测试失败；无新增测试 |
+| 文档同步 | ⚠️ | TODO.md 已更新（R209 标记完成、新增 Phase AB 规划）；CHANGELOG.md 未新增 R210 条目 |
+| 安全质量 | ⚠️ | 未执行权限最小化审查；publish-check.sh 已存在但未运行验证 |
 
-**综合判定: ❌ 返工**
+**总体判定: ❌ ROLLBACK — 任务未执行，仅完成了规划登记**
 
 ---
 
-## 功能完整性分析
+## 详细分析
 
-### 任务声明 vs 实际结果
+### 1. 功能完整性 — ❌ 未实现
 
-| 指标 | 目标 | 实际 | 差距 |
-|------|------|------|------|
-| ESLint errors | 0 | 0 | ✅ 达成 |
-| ESLint warnings | 0 | **21** | ❌ 未达成 |
-| `max-warnings` 收紧为 0 | 是 | **仍为 10000** | ❌ 未执行 |
-| CHANGELOG 更新 | 是 | **未更新** | ❌ 未执行 |
+R210 任务定义了五项交付物，逐项核对：
 
-### 本次 diff 修复的警告（约 22 处）
+| # | 任务项 | 状态 | 说明 |
+|---|--------|------|------|
+| 1 | 编写 `docs/privacy-policy.html` | ❌ 未创建 | 文件不存在。需覆盖数据收集范围、AI API 调用说明、用户数据权利、GDPR 合规声明 |
+| 2 | Chrome Web Store Listing 资产（5 张截图 1280×800、宣传图 1400×560、中英文描述） | ❌ 未创建 | 无任何截图或描述文件 |
+| 3 | 权限最小化最终审查 | ❌ 未执行 | manifest.json 未修改；publish-check.sh 报告 `<all_urls>` 警告未解决 |
+| 4 | `scripts/publish-check.sh` 发布前自检 | ⚠️ 已存在未运行 | 脚本存在且可在 CI 运行，但未作为本次任务的一部分执行验证 |
+| 5 | Chrome Web Store Developer Dashboard 商品草稿 | ❌ 不适用 | 无法程序化完成，需人工操作，但应提供准备好的上传材料 |
 
-| 文件 | 修复方式 | 评价 |
-|------|----------|------|
-| `lib/evolution-signals.js` | `signal` → `_signal`（×2） | ✅ 合理，函数签名保留但参数未使用 |
-| `lib/evolution.js` | 移除 3 个未使用 import | ✅ 正确删除 |
-| `lib/git-repo.js` | 移除未使用变量 `headHandle` | ✅ 正确 |
-| `lib/importer.js` | `filename` → `_filename`，`i` → `_i` | ✅ 合理 |
-| `lib/knowledge-base-export.js` | `sort` → `_sort` | ⚠️ 见下方问题 1 |
-| `lib/knowledge-graph-layout.js` | `nodeMap` → `_nodeMap` | ✅ 合理 |
-| `lib/offline-answer-store.js` | `reject` → `_reject` | ⚠️ 见下方问题 2 |
-| `lib/page-sense.js` | `ctx` → `_ctx`（×2），`skillEngine` → `_skillEngine`，`ctx` → `_ctx` | ✅ 合理 |
-| `lib/plugin-system-utils.js` | 移除未使用 import，留注释 | ✅ 正确 |
-| `lib/skill-store-community.js` | 移除未使用 import + 常量；`manifest` → `_manifest` | ⚠️ 见下方问题 3 |
-| `lib/skill-store.js` | 移除未使用 `getAllSkills` import | ✅ 正确 |
+### 2. 实际提交内容分析
 
-### 未修复的 21 处警告（分布在 10 个文件）
+本次 git diff 仅修改 `docs/TODO.md`（+19 行），内容为：
+- ✅ 将 R209 标记为 `[x]` 完成状态（含更新后的统计数字：v3.1.0/R209/7088 tests/222 lib modules）
+- ✅ 新增 Phase AB 标题和现状概述
+- ✅ 新增 R210-R214 五条任务规划（均为 `[ ]` 未完成状态）
 
-| 文件 | 警告数 | 类型 |
-|------|--------|------|
-| `sidebar/sidebar.js` | 8 | `messageEl`×3, `knowledgeToolbar`, `swiping`, `listAttrs`, `itemAttrs`, `app` |
-| `options/options.js` | 2 | `aiGatewaySection`, `gateway` |
-| `lib/wiki-query-prompts.js` | 2 | `id`×2 |
-| `lib/bookmark-sharing.js` | 2 | `Buffer`（no-undef） |
-| `lib/skill-validator.js` | 1 | `inBlock` |
-| `lib/skill-zip.js` | 1 | `uncompressedSize` |
-| `lib/storage-adapter.js` | 1 | `result` |
-| `lib/utils.js` | 1 | `currentUrl` |
-| `popup/bookmark-overview.js` | 1 | `getStatusLabels` |
-| `scripts/test-shard.js` | 1 | `basename` |
+**这本质上是 R51 的回顾/规划步骤产出，而非 R210 的实现。**
+
+### 3. 测试覆盖 — ❌ 无测试
+
+- 测试通过: 0
+- 测试失败: 0
+- 无新增测试文件
+- R210 本身不涉及代码变更，但配套的验证步骤（如运行 publish-check.sh）未执行
+
+### 4. 文档同步 — ⚠️ 部分完成
+
+| 文档 | 状态 | 说明 |
+|------|------|------|
+| `docs/TODO.md` | ✅ 已更新 | R209 标记完成，Phase AB 规划已写入 |
+| `docs/CHANGELOG.md` | ❌ 未更新 | 未添加 R210 条目（虽然 R210 未实现，但 TODO 规划更新应有记录） |
+| `docs/reports/2026-05-20-R51.md` | ✅ 存在 | R51 迭代报告存在，记录 R209 实现过程 |
+
+### 5. 安全质量 — ⚠️ 需关注
+
+**publish-check.sh 输出的安全警告：**
+- ⚠️ `host_permissions 包含 <all_urls>` — 需人工确认是否为最小权限
+- ⚠️ `content_scripts 使用 <all_urls> 匹配` — 需确认是否必要
+
+这些警告自 R208 以来未被解决，R210 原本应完成权限最小化审查。
+
+**manifest.json 权限清单（当前）：**
+```
+permissions: storage, sidePanel, contextMenus, tabs, activeTab, bookmarks
+host_permissions: api.anthropic.com, api.openai.com, api.deepseek.com, localhost, 127.0.0.1
+```
+注意：`tabs` 权限可考虑降级为 `activeTab`（已同时声明），需 R210 权限审查确认。
 
 ---
 
 ## 发现的问题
 
-### ❌ 问题 1：死代码未删除 — `knowledge-base-export.js`
+### 问题 1 (Critical): R210 任务未实现
+- **描述**: 本次提交仅为 TODO.md 规划更新，未包含 R210 的任何实际交付物
+- **影响**: Chrome Web Store 提交准备停滞；隐私政策页面缺失会导致 Store 审核被拒
+- **建议**: 返工 R210，至少完成 privacy-policy.html 和权限审查
 
-```js
-// lib/knowledge-base-export.js:42
-const _sort = (obj) => Object.entries(obj).map(([k, c]) => ({ ... })).sort((a, b) => b.count - a.count);
-```
+### 问题 2 (Major): 权限审查未完成
+- **描述**: publish-check.sh 报告了 `<all_urls>` 警告，manifest.json 中 `tabs` 权限可能冗余（已有 `activeTab`）
+- **影响**: Chrome Web Store 审核可能因权限过大被拒
+- **建议**: 逐项验证每个 permission 的必要性，移除不必要的权限
 
-`_sort` 函数从未被调用。这是纯粹的死代码（dead code），应**直接删除**而非前缀 `_`。前缀 `_` 仅适用于「有意保留的未使用参数」（如回调签名），不适用于未使用的变量/函数定义。
+### 问题 3 (Medium): 隐私政策缺失
+- **描述**: `docs/privacy-policy.html` 未创建
+- **影响**: Chrome Web Store 强制要求提供隐私政策链接；GDPR 合规无法声明
+- **建议**: 复用 R182 PrivacyDataSovereignty 数据清单，编写完整隐私政策页面
 
-**返工建议**: 删除 `_sort` 及相关行。
-
-### ⚠️ 问题 2：Promise reject 回调标记为未使用 — `offline-answer-store.js`
-
-```js
-// lib/offline-answer-store.js:217
-return new Promise((resolve, _reject) => {
-```
-
-`_reject` 被标记为有意忽略，但 Promise 构造函数中不使用 `reject` 通常意味着错误不会被捕获——如果 `store.delete()` 或 `tx.oncomplete` 出错，Promise 可能永远 pending。这是潜在的 **bug**，而非简单的 lint 问题。
-
-**返工建议**: 检查是否需要添加 `tx.onerror` / `req.onerror` → `_reject(err)` 错误处理路径。
-
-### ⚠️ 问题 3：`_manifest` 解构丢弃 — `skill-store-community.js`
-
-```js
-// lib/skill-store-community.js:157
-const { files, manifest: _manifest } = await this.fetchFromGitHub(repo, options)
-```
-
-`fetchFromGitHub` 返回 `{ files, manifest }`，但 `installFromGitHub` 仅使用 `files` 做校验，完全忽略了 `manifest`。这可能是有意的（manifest 信息已在 files 中隐含），但也可能是 **遗漏校验**——应确认 manifest 是否需要独立验证。
-
-**返工建议**: 如确认不需要 manifest，应简化为 `const { files } = ...` 以表达意图。
-
-### ❌ 问题 4：`max-warnings` 未收紧
-
-任务明确要求「将 `eslint.config.js` 中 `max-warnings` 收紧为 0」。实际上：
-
-- `max-warnings` 设置在 `package.json` 的 `"lint"` script 中（`--max-warnings 10000`）
-- 本次变更**未修改** `package.json` 或 `eslint.config.js`
-
-即使修复了所有 21 处警告，`max-warnings` 仍为 10000，无法防止后续引入新警告。
-
-**返工建议**: 在修复全部警告后，将 `package.json` 中 `--max-warnings 10000` 改为 `--max-warnings 0`。
-
-### ❌ 问题 5：CHANGELOG.md 缺少 R154 条目
-
-CHANGELOG.md 的 `[Unreleased]` 部分仅有 R153 条目，未记录 R154 变更。
-
-### ❌ 问题 6：TODO.md 未更新
-
-TODO.md 未标记 R154 为完成状态。
+### 问题 4 (Minor): CHANGELOG 未同步
+- **描述**: 本轮 TODO 更新未在 CHANGELOG.md 中记录
+- **建议**: 补充 Phase AB 规划条目
 
 ---
 
 ## 返工任务清单
 
-| # | 优先级 | 任务 | 文件 |
-|---|--------|------|------|
-| 1 | P0 | 修复剩余 21 处 ESLint 警告（sidebar.js 8 处、options.js 2 处、wiki-query-prompts.js 2 处等） | 多文件 |
-| 2 | P0 | 删除 `knowledge-base-export.js` 中死函数 `_sort` | `lib/knowledge-base-export.js` |
-| 3 | P1 | 将 `package.json` 中 `--max-warnings 10000` 改为 `--max-warnings 0` | `package.json` |
-| 4 | P1 | 更新 CHANGELOG.md 添加 R154 条目 | `docs/CHANGELOG.md` |
-| 5 | P1 | 更新 TODO.md 标记 R154 完成 | `docs/TODO.md` |
-| 6 | P2 | 检查 `offline-answer-store.js` 中 Promise `reject` 是否为潜在 bug | `lib/offline-answer-store.js` |
-| 7 | P2 | 简化 `skill-store-community.js` 中 `manifest: _manifest` 为 `const { files }`（如确认不需要） | `lib/skill-store-community.js` |
-| 8 | P0 | 验证 `npm run lint` 输出 0 errors / 0 warnings | — |
+| 优先级 | 任务 | 说明 |
+|--------|------|------|
+| P0 | 重新执行 R210 | 当前提交不包含 R210 的任何实现，需在一个新的迭代中完整执行 |
+| P0 | 创建 `docs/privacy-policy.html` | 覆盖数据收集范围、AI API 调用说明、用户数据权利、GDPR 合规声明 |
+| P0 | 权限最小化审查 | 逐项验证 manifest.json permissions，解决 `<all_urls>` 警告，评估 `tabs` 是否可移除 |
+| P1 | 准备 Store Listing 资产 | 截图、宣传图、中英文描述文案 |
+| P1 | 运行 publish-check.sh 验证 | 确保自检全部通过 |
+| P2 | 更新 CHANGELOG.md | 记录 Phase AB 规划和 R210 实现 |
 
 ---
 
-## 附注：R153 变更（staged changes）
+## 结论
 
-本次 staged 区还包含 R153 的测试失败修复（regex `\b` 词边界修正），该部分变更测试已通过（6117 pass / 0 fail），代码逻辑正确。但 R153 和 R154 的变更混在同一批 staged 中，建议后续迭代注意隔离。
+**本轮 R210 未实现任何交付物。** 实际提交内容仅为 TODO.md 的规划更新（将 R209 标记完成 + 新增 R210-R214 规划），这属于飞轮迭代的"回顾/规划"阶段产出，而非"实现"阶段。建议在下一轮迭代中完整执行 R210 的五项任务。
 
+---
+
+*自动生成于 2026-05-20 by Guard Agent*  
+*遵循飞轮迭代验证流程 (flywheel-iteration verification)*

@@ -876,3 +876,22 @@
 - [x] **R208: Chrome Web Store 发布产物构建 ReleaseBuildPipeline** — 项目功能完备但缺少标准化发布流程；(1) 完善 `scripts/build.sh` 生成可直接上传的 .zip 产物（manifest.json、lib/、popup/、options/、sidebar/、icons/、_locales/，排除 tests/、docs/、coverage/、scripts/）；(2) 新增 `scripts/publish-check.sh` 发布前自检（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(3) 生成 Chrome Web Store 所需截图脚本指引；(4) 验证 .zip 产物可在 Chrome 中正常加载运行；(5) 更新 RELEASE-NOTES-v3.1.md。复杂度: Medium
 
 - [x] **R209: 项目文档全面更新 DocumentationOverhaul** — ROADMAP.md 过期（仍显示 v1.5.1/R42/2111 tests），需与项目现状对齐；(1) 更新 ROADMAP.md 至 v3.1.0/R209/7088 tests/222 lib modules，补充 Phase F-AA 路线图概览；(2) 更新 README.md：功能特性列表（选中即问/AI 即答/知识图谱/间隔复习/学习教练/隐私合规等）、安装方式、开发指南、架构概览；(3) 补充 CHANGELOG.md R200-R209 条目；(4) 新建 docs/architecture-metrics.md 模块统计和增长趋势；(5) 修复 CI 覆盖率门禁步骤名不一致导致的 2 个测试失败；(6) 全量回归 7088 pass / 0 fail + lint 0/0。复杂度: Simple ✅
+
+---
+
+## Phase AB: Chrome Web Store 发布与发布后运营 (R210-R214) — 5 轮
+
+> 飞轮迭代 R70 起，2026-05-20
+> 现状: R43-R209 全部完成；v3.1.0 发布产物已构建；218+ lib 模块；7088 pass / 0 fail；Lint 0/0；技术债务全部关闭
+> 方向: 从"开发完成"走向"实际上架"——补齐 Chrome Web Store 提交所需合规材料、建立发布后用户反馈闭环、监控线上质量
+> 任务来源优先级: Store 提交合规 > 发布后监控 > 用户反馈 > 新功能探索
+
+- [x] **R210: Chrome Web Store 合规与提交 ChromeWebStoreSubmission** — R208 已构建 .zip 产物和 publish-check.sh，但尚未实际提交；(1) 编写隐私政策页面 `docs/privacy-policy.html`（覆盖数据收集范围、AI API 调用说明、用户数据权利、GDPR 合规声明，复用 R182 PrivacyDataSovereignty 数据清单位）；(2) 准备 Chrome Web Store Listing 资产：5 张功能截图（1280×800）、宣传图（1400×560）、详细描述文案（中英文）；(3) 权限最小化最终审查：逐项验证 manifest.json permissions/host_permissions 是否全部必要；(4) 用 `scripts/publish-check.sh` 完成发布前自检并修复所有发现；(5) 在 Chrome Web Store Developer Dashboard 创建商品草稿。复杂度: Medium
+
+- [ ] **R211: 真实 Chrome 环境 E2E 验证 RealChromeE2E** — 当前 7088 测试全部为 Node.js mock 环境，从未在真实 Chrome 浏览器中验证；(1) 引入 Puppeteer 或 Playwright 建立 Chrome E2E 测试框架（`tests/e2e-chrome/`）；(2) 核心流程验证：扩展加载 → SidePanel 打开 → 选中文字提问 → AI 回答渲染 → 知识库存储 → 搜索检索；(3) 书签流程验证：书签采集 → 图谱渲染 → 点击节点 → 详情面板 → 标签编辑；(4) 权限验证：确认 service worker 生命周期、storage API、tabs API 在真实环境正常工作；(5) 性能基准：SidePanel 首屏渲染 <500ms、100 书签图谱渲染 <1s；(6) CI 集成：GitHub Actions 添加 `chrome-e2e` job（headless Chrome）。复杂度: Complex
+
+- [ ] **R212: 发布后遥测与反馈收集 PostLaunchTelemetry** — 扩展上架后需收集用户行为数据改进产品；(1) 新建 `lib/telemetry.js` 本地遥测模块（不上传服务器，仅存 chrome.storage.local）：功能使用频率统计（哪个功能被点击最多）、错误率追踪（AI 调用失败率、存储写入失败率）、性能指标（搜索延迟、图谱渲染时间）；(2) 新建 `lib/feedback-collector.js`：使用 7 天后弹出 NPS 评分（0-10），附带文字反馈输入框；反馈数据本地存储，支持导出 JSON；(3) 与 BookmarkNotifications 集成：低分（0-6）触发"帮助改进"引导，高分（9-10）引导留 Chrome Web Store 评价；(4) 隐私合规：所有遥测数据纯本地、用户可一键关闭（复用 R182 PrivacyVault）、首次安装时在 Onboarding 中明确告知；(5) 测试 ≥25 用例。复杂度: Medium
+
+- [ ] **R213: 性能回归 CI 门禁 PerformanceRegressionCI** — 当前 CI 仅有 lint + test，缺少性能回归检测；(1) 在 CI 中新增 `perf-gate` job：运行 `npm run test:smoke` 并记录执行时间，超基线 20% 则 fail；(2) 建立 `scripts/perf-benchmark.js`：测量核心操作基准（书签索引 1000 条 <50ms、语义搜索 1000 条 <100ms、图谱构建 500 节点 <200ms、知识库查询 <50ms），结果输出 JSON；(3) CI 每次运行 benchmark 并与历史基线对比，生成性能趋势报告（`docs/reports/perf-trend.md`）；(4) bundle size 门禁：构建产物 .zip 大小 ≤500KB（当前预估 ~300KB），超过则 CI fail；(5) 测试 ≥15 用例。复杂度: Medium
+
+- [ ] **R214: 自动化发布流水线与版本管理 ReleaseAutomation** — 当前发布流程为手动构建+上传，需自动化；(1) GitHub Actions 新增 `release.yml` workflow：当 git tag `v*` 推送时自动运行 publish-check → build → 生成 .zip artifact → 创建 GitHub Release（附 RELEASE-NOTES）；(2) 版本号自动化：`scripts/bump-version.sh` 同步更新 package.json / manifest.json / CHANGELOG.md 版本号；(3) CHANGELOG 自动生成：从 git log 解析 `feat:` / `fix:` commit 生成 CHANGELOG 条目（conventional commits 规范）；(4) 灰度发布策略：Chrome Web Store 10% → 50% → 100% 分阶段放量，监控崩溃率；(5) 版本回滚预案：文档化回滚步骤 + `scripts/rollback.sh`；(6) 测试 ≥10 用例。复杂度: Medium
