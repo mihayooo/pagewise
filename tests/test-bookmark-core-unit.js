@@ -398,3 +398,209 @@ describe('BookmarkContentPreview', () => {
     assert.ok(typeof label === 'string')
   })
 })
+
+// ==================== R187 补充测试 ====================
+
+describe('BookmarkIndexer (R187 补充)', () => {
+  let indexer
+  beforeEach(() => { indexer = new BookmarkIndexer() })
+
+  it('search 应支持中文逐字分词搜索', () => {
+    indexer.addBookmark({ id: '1', title: '前端开发教程', url: 'https://a.com' })
+    indexer.addBookmark({ id: '2', title: '后端架构设计', url: 'https://b.com' })
+    // 中文逐字分词: '前' 只匹配第一个
+    const results = indexer.search('前')
+    assert.ok(results.length >= 1)
+    assert.equal(results[0].id, '1')
+  })
+
+  it('search 应通过 URL hostname 匹配', () => {
+    indexer.addBookmark({ id: '1', title: 'Page A', url: 'https://react.dev/docs' })
+    indexer.addBookmark({ id: '2', title: 'Page B', url: 'https://vuejs.org/guide' })
+    const results = indexer.search('react')
+    assert.ok(results.length >= 1, '应通过 URL 中的 react 匹配')
+    assert.equal(results[0].id, '1')
+  })
+
+  it('search 应支持多标签 AND 过滤', () => {
+    indexer.addBookmark({ id: '1', title: 'Test', url: 'https://a.com', tags: ['react', 'frontend'] })
+    indexer.addBookmark({ id: '2', title: 'Test', url: 'https://b.com', tags: ['react', 'backend'] })
+    // 两个标签都必须匹配
+    const results = indexer.search('test', { tags: ['react', 'frontend'] })
+    assert.equal(results.length, 1)
+    assert.equal(results[0].id, '1')
+  })
+
+  it('search 应按匹配度排序 (标题匹配 > URL 匹配)', () => {
+    indexer.addBookmark({ id: '1', title: 'React Tutorial', url: 'https://example.com' })
+    indexer.addBookmark({ id: '2', title: 'Some Page', url: 'https://react.dev' })
+    const results = indexer.search('react')
+    assert.ok(results.length === 2)
+    // 标题含 react 的应排在前面
+    assert.equal(results[0].id, '1', '标题匹配应排第一')
+  })
+
+  it('addBookmark 应正确建立文件夹索引', () => {
+    indexer.addBookmark({ id: '1', title: 'A', url: 'https://a.com', folderPath: ['Work', 'Projects'] })
+    const size = indexer.getSize()
+    assert.ok(size.folders >= 1, '应建立文件夹索引')
+  })
+
+  it('removeBookmark 应清理文件夹索引', () => {
+    indexer.addBookmark({ id: '1', title: 'A', url: 'https://a.com', folderPath: ['Work'] })
+    indexer.removeBookmark('1')
+    const size = indexer.getSize()
+    assert.equal(size.bookmarks, 0)
+    assert.equal(size.folders, 0, '文件夹索引应被清理')
+  })
+
+  it('search 不存在的 token 应返回空', () => {
+    indexer.addBookmark({ id: '1', title: 'Hello World', url: 'https://a.com' })
+    assert.deepEqual(indexer.search('xyz'), [])
+  })
+
+  it('buildIndex 批量构建后应可搜索', () => {
+    const bookmarks = [
+      { id: '1', title: 'Alpha', url: 'https://a.com' },
+      { id: '2', title: 'Beta', url: 'https://b.com' },
+      { id: '3', title: 'Gamma', url: 'https://c.com' },
+    ]
+    indexer.buildIndex(bookmarks)
+    assert.ok(indexer.search('alpha').length >= 1)
+    assert.ok(indexer.search('beta').length >= 1)
+    assert.ok(indexer.search('gamma').length >= 1)
+    assert.equal(indexer.getSize().bookmarks, 3)
+  })
+})
+
+describe('BookmarkCollector (R187 补充)', () => {
+  let collector
+  beforeEach(() => { collector = new BookmarkCollector() })
+
+  it('_walk 应处理深层嵌套文件夹', () => {
+    const node = {
+      title: 'L1', children: [{
+        title: 'L2', children: [{
+          title: 'L3', children: [
+            { id: '1', title: 'Deep Link', url: 'https://deep.com', dateAdded: 0 },
+          ]
+        }]
+      }]
+    }
+    collector._walk(node, [])
+    assert.equal(collector.bookmarks.length, 1)
+    assert.deepEqual(collector.bookmarks[0].folderPath, ['L1', 'L2', 'L3'])
+  })
+
+  it('_walk 应处理无标题的文件夹节点', () => {
+    const node = {
+      children: [
+        { id: '1', title: 'Link', url: 'https://a.com', dateAdded: 0 },
+      ]
+    }
+    collector._walk(node, [])
+    assert.equal(collector.bookmarks.length, 1)
+    // 无标题文件夹不应添加到路径
+    assert.deepEqual(collector.bookmarks[0].folderPath, [])
+  })
+
+  it('_walk 应忽略没有 url 的非文件夹节点', () => {
+    const node = {
+      children: [
+        { id: '1' }, // 无 url 无 children
+        { id: '2', title: 'Valid', url: 'https://a.com', dateAdded: 0 },
+      ]
+    }
+    collector._walk(node, [])
+    assert.equal(collector.bookmarks.length, 1)
+    assert.equal(collector.bookmarks[0].id, '2')
+  })
+
+  it('getStats 应正确处理 www 子域名去除', () => {
+    collector.bookmarks = [
+      { id: '1', title: 'A', url: 'https://www.example.com', folderPath: [], dateAdded: 0, dateAddedISO: '' },
+      { id: '2', title: 'B', url: 'https://example.com', folderPath: [], dateAdded: 0, dateAddedISO: '' },
+    ]
+    const stats = collector.getStats()
+    // www.example.com 和 example.com 应合并为同一域名
+    assert.equal(stats.domainDistribution['example.com'], 2)
+  })
+
+  it('normalize 应正确处理 dateAdded 为 0', () => {
+    const node = { id: '1', title: 'T', url: 'https://x.com', dateAdded: 0 }
+    const result = collector.normalize(node)
+    assert.equal(result.dateAdded, 0)
+    assert.equal(result.dateAddedISO, '')
+  })
+})
+
+describe('BookmarkStatusManager (R187 补充)', () => {
+  it('getRecentlyRead 无已读项应返回空', () => {
+    const mgr = new BookmarkStatusManager([{ id: '1', title: 'A' }, { id: '2', title: 'B' }])
+    const recent = mgr.getRecentlyRead(10)
+    assert.deepEqual(recent, [])
+  })
+
+  it('setStatus 应支持从 reading 回到 unread', () => {
+    const mgr = new BookmarkStatusManager([{ id: '1', title: 'A' }])
+    mgr.setStatus('1', 'reading')
+    assert.equal(mgr.getStatus('1'), 'reading')
+    mgr.setStatus('1', 'unread')
+    assert.equal(mgr.getStatus('1'), 'unread')
+  })
+
+  it('getStatusCounts 应返回三个状态的计数', () => {
+    const mgr = new BookmarkStatusManager([
+      { id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' },
+    ])
+    mgr.setStatus('1', 'read')
+    mgr.setStatus('2', 'read')
+    mgr.setStatus('3', 'reading')
+    const counts = mgr.getStatusCounts()
+    assert.equal(counts.read, 2)
+    assert.equal(counts.reading, 1)
+    assert.equal(counts.unread, 2)
+  })
+
+  it('constructor 应忽略 null 元素', () => {
+    const mgr = new BookmarkStatusManager([null, { id: '1', title: 'A' }, undefined])
+    assert.equal(mgr.getStatus('1'), 'unread')
+    assert.equal(mgr.getStatus(null), null)
+  })
+
+  it('batchSetStatus 空数组应返回 0', () => {
+    const mgr = new BookmarkStatusManager([{ id: '1' }])
+    assert.equal(mgr.batchSetStatus([], 'read'), 0)
+  })
+})
+
+describe('BookmarkContentPreview (R187 补充)', () => {
+  it('generateTextPreview 仅含 URL 时应显示域名', () => {
+    const bm = { url: 'https://example.com/page' }
+    const text = BookmarkContentPreview.generateTextPreview(bm)
+    assert.ok(text.includes('example.com'))
+  })
+
+  it('generateTextPreview 空书签应返回空字符串', () => {
+    assert.equal(BookmarkContentPreview.generateTextPreview({}), '')
+    assert.equal(BookmarkContentPreview.generateTextPreview(''), '')
+  })
+
+  it('generateHtmlPreview 空标签数组不应显示 tag 区域', () => {
+    const bm = { title: 'Test', url: 'https://e.com', tags: [] }
+    const html = BookmarkContentPreview.generateHtmlPreview(bm)
+    assert.ok(!html.includes('preview-tag'))
+  })
+
+  it('generateSnapshotPreview 无 snapshotContent 时应只含文本预览', () => {
+    const bm = { title: 'Test', url: 'https://e.com' }
+    const preview = BookmarkContentPreview.generateSnapshotPreview(bm, null)
+    assert.ok(preview.includes('Test'))
+    assert.ok(!preview.includes('---'))
+  })
+
+  it('_truncate 应在 maxLen=Infinity 时不截断', () => {
+    const text = 'hello world'
+    assert.equal(BookmarkContentPreview._truncate(text, Infinity), text)
+  })
+})

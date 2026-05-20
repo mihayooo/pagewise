@@ -1,9 +1,9 @@
 # VERIFICATION.md — Iteration #30 Review
 
-> 审查日期: 2026-05-19
-> 审查任务: R133: Lint 警告清零 LintWarningFinal
-> 飞轮迭代: R30
-> Guard Agent: Claude
+> **任务**: R187: 核心模块测试补全 — bookmark 系列  
+> **迭代**: 30  
+> **审查日期**: 2026-05-20  
+> **变更文件**: `tests/test-bookmark-core-unit.js`, `tests/test-bookmark-graph-engine-unit.js`, `tests/test-bookmark-search-core.js` (untracked)
 
 ---
 
@@ -11,119 +11,130 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | **核心目标完全未达成**：115 个 lint 警告仍全部存在，`no-unused-vars` 规则未从 `warn` 收紧为 `error`，`max-warnings` 仍为 10000。本次变更仅更新了 TODO.md 路线图，无任何源码修改。 |
-| 代码质量 | ❌ | 无源码变更。40 个文件中的 115 个 `no-unused-vars` 警告原封不动（含 `sidebar/sidebar.js` 的 57 个警告）。3 个 `no-undef` 警告（`Buffer` 引用）也未修复。 |
-| 测试覆盖 | ⚠️ | 测试本身通过（5077 pass / 0 fail），但这是因为没有任何代码被修改。R133 的验收标准（AC-5: 清理后测试全部通过）无法验证，因为清理工作本身没有执行。缺少 `npm run lint` 零警告的验证。 |
-| 文档同步 | ⚠️ | `REQUIREMENTS-ITER30.md` 已创建（需求文档质量尚可），`TODO.md` 已添加 R133-R137 路线图。但 **CHANGELOG.md 未更新**，R30 迭代报告缺失（仅有 R29 报告），R133 在 TODO.md 中仍标记为 `- [ ]`（未完成）。 |
+| 功能完整性 | ⚠️ | 三个模块均达到 ≥15 用例目标，但 10/41 新用例执行失败 |
+| 代码质量 | ⚠️ | 存在作用域错误和对源码行为的误判 |
+| 测试覆盖 | ⚠️ | 用例数达标 (23 + 18 + 30)，但通过率仅 75.6% (31/41) |
+| 文档同步 | ❌ | CHANGELOG.md 未更新 R187 条目；TODO.md R187 仍标记 `[ ]` |
+| 安全质量 | ✅ | 无硬编码密钥、无 XSS 风险 |
 
 ---
 
-## 详细审查
+## 测试执行详情
 
-### 1. 任务交付物核对
-
-R133 的验收标准（AC）与实际交付的对比：
-
-| AC | 描述 | 状态 | 说明 |
-|----|------|------|------|
-| AC-1 | `npm run lint` 零警告零错误 | ❌ **未通过** | 当前输出: `0 errors, 115 warnings`（与迭代前完全一致） |
-| AC-2 | `no-unused-vars` 规则升级为 `error`，`max-warnings` 改为 0 | ❌ **未通过** | `eslint.config.js` 中仍为 `'no-unused-vars': ['warn', {...}]`；`package.json` 中仍为 `--max-warnings 10000` |
-| AC-3 | 40 个文件逐个清理完毕 | ❌ **未通过** | 零个文件被修改。所有 115 个警告原封不动 |
-| AC-4 | `no-undef` 警告消除（3 处 `Buffer` 引用） | ❌ **未通过** | 未处理 |
-| AC-5 | `npm test` 全部用例通过 | ⚠️ **不可验证** | 测试通过（5077/5077），但因无代码变更，无法确认"清理操作未引入新的失败" |
-
-**总结: 5 个验收标准中 0 个通过，4 个失败，1 个不可验证。**
-
-### 2. 实际交付内容
-
-本次迭代实际交付的文件变更：
-
-| 文件 | 变更类型 | 内容 |
-|------|----------|------|
-| `docs/TODO.md` | 修改 | 添加 R133-R137 Phase M 路线图（+18 行），将 R132 标记为 `[x]` |
-| `docs/REQUIREMENTS-ITER30.md` | 新增 | R133 需求文档（153 行），含基线数据、验收标准、技术约束 |
-| `docs/reports/2026-05-19-R29.md` | 新增 | R29 迭代报告（对应 R132，非 R30） |
-
-**评估**: 本次交付仅完成了"计划"阶段——编写需求文档和更新路线图，但**完全没有进入"实现"阶段**。R133 的核心工作（逐文件清理 lint 警告 + 收紧规则）全部缺失。
-
-### 3. 代码基线验证
-
-```bash
-# 验证命令: npm run lint
-# 结果: 0 errors, 115 warnings （与 R29 迭代前完全一致）
-
-# 验证命令: cat eslint.config.js | grep no-unused-vars
-# 结果: 'no-unused-vars': ['warn', {...}] （未收紧为 error）
-
-# 验证命令: cat package.json | grep max-warnings
-# 结果: --max-warnings 10000 （未收紧为 0）
-
-# 验证命令: npm test
-# 结果: 5077 pass / 0 fail （正常，但无变化）
-```
-
-### 4. 跨文件一致性
-
-| 检查项 | 结果 |
-|--------|------|
-| `eslint.config.js` 规则与需求文档一致？ | ❌ 文档要求改为 `error` + `max-warnings 0`，配置未变 |
-| `package.json` lint 脚本与需求文档一致？ | ❌ 文档要求 `max-warnings 0`，脚本未变 |
-| TODO.md R133 标记状态 | `- [ ]`（未完成）— 与实际状态一致 |
-| R29 报告 vs R30 任务 | ⚠️ 报告文件名为 `2026-05-19-R29.md`，对应 R132（R29）而非 R133（R30） |
-
-### 5. 安全与质量
-
-| 检查项 | 结果 |
-|--------|------|
-| 硬编码密钥 | ✅ 未引入（无源码变更） |
-| XSS 风险 | ✅ 未引入（无源码变更） |
-| 未使用变量仍存在 | ❌ 115 个 `no-unused-vars` 警告全部存在 |
+| 测试文件 | 总用例 | 新增用例 | 通过 | 失败 |
+|----------|--------|----------|------|------|
+| `test-bookmark-core-unit.js` | 78 | 23 | 22 | **1** |
+| `test-bookmark-graph-engine-unit.js` | 45 | 18 | 9 | **9** |
+| `test-bookmark-search-core.js` | 30 | 30 | 30 | 0 |
+| **合计** | 153 | 71 | 61 | **10** |
 
 ---
 
 ## 发现的问题
 
-### 问题 #1: 严重 — 任务未执行（Blocker）
-- **描述**: R133 的核心目标是清理 115 个 lint 警告并收紧 `no-unused-vars` 规则。本次迭代仅生成了需求文档和路线图，未修改任何源码文件。
-- **影响**: 所有 5 个验收标准（AC-1 至 AC-5）均未达成。技术债原封不动。
-- **根因**: 实现 Agent 似乎只执行了"计划"阶段（生成需求文档 + 更新 TODO），未进入"实现"阶段。
+### 🔴 P0 — 严重: `sampleBookmarks` 作用域不可达 (9 个用例失败)
 
-### 问题 #2: 中等 — `eslint.config.js` 未更新
-- **描述**: `no-unused-vars` 规则仍为 `'warn'`，`package.json` 中 `--max-warnings` 仍为 `10000`。
-- **影响**: 即使完成了代码清理，也无法验证"零警告零错误"目标是否真正达成。
+**文件**: `test-bookmark-graph-engine-unit.js`  
+**位置**: R187 补充测试区 (L202–L381)  
+**影响用例**: 9 个用例
 
-### 问题 #3: 中等 — R30 迭代报告缺失
-- **描述**: 当前仅有 `2026-05-19-R29.md`（对应 R132/R29 迭代），R30 迭代报告未生成。
-- **影响**: 迭代追溯链断裂。
+`sampleBookmarks` 定义在第一个 `describe('BookmarkGraphEngine')` 内部 (L7, `const`), 是块级作用域变量。R187 补充测试位于一个**独立的顶层** `describe('BookmarkGraphEngine (R187 补充)')` 块中，**无法访问**该变量。
 
-### 问题 #4: 低 — CHANGELOG.md 未更新
-- **描述**: CHANGELOG.md 最后一次更新仍为 v3.0.0（2026-05-16），后续迭代（R27-R30）均未记录。
-- **影响**: 版本发布时需大量补录。
+**失败用例清单**:
+1. `similarity 两个完全相同的书签应有高分` — `ReferenceError: sampleBookmarks is not defined`
+2. `similarity 应支持对象和 ID 混合调用` — 同上
+3. `buildGraph edge 权重应 >= 阈值` — 同上
+4. `buildGraph 应建立邻接表 (双向)` — 同上
+5. `buildGraph node.size 应反映连接数` — 同上
+6. `getSimilar 结果应按分数降序` — 同上
+7. `getSimilar 结果应包含 bookmark 字段` — 同上
+8. `getClusters 应按域名正确分组` — 同上
+9. `getClusters 应按文件夹正确分组` — 同上
+
+**修复方案**: 将 `sampleBookmarks` 的定义提升到文件顶层 (在所有 `describe` 块之前)，或在 R187 `describe` 块内部重新定义。
+
+---
+
+### 🔴 P0 — 严重: `_truncate(text, Infinity)` 断言与源码实现不一致 (1 个用例失败)
+
+**文件**: `test-bookmark-core-unit.js`, L602–605  
+**失败用例**: `_truncate 应在 maxLen=Infinity 时不截断`
+
+**断言**:
+```js
+assert.equal(BookmarkContentPreview._truncate(text, Infinity), text)
+// 期望返回 'hello world'
+```
+
+**实际行为**: `_truncate` 源码 (bookmark-core.js L279):
+```js
+static _truncate(text, maxLen) {
+    if (typeof text !== 'string' || !Number.isFinite(maxLen) || maxLen <= 0) return '';
+    ...
+}
+```
+`Number.isFinite(Infinity)` 返回 `false`，因此函数直接返回 `''`。
+
+**根因**: 测试对源码行为做了错误假设。`_truncate` 设计上**拒绝** `Infinity` 等非有限数值。
+
+**修复方案** (二选一):
+- **改测试**: 删除此用例或改为 `assert.equal(BookmarkContentPreview._truncate(text, Infinity), '')`
+- **改源码**: 如果希望支持 `Infinity`，将条件改为 `!Number.isFinite(maxLen) && maxLen !== Infinity`
+
+---
+
+### 🟡 P1 — 中等: `test-bookmark-search-core.js` 未纳入 Git 跟踪
+
+该文件为全新创建 (476 行, 30 个用例)，但处于 `??` (untracked) 状态，未出现在 diff 中。任务描述中要求为 `bookmark-search-core.js` 补充测试，该文件应纳入本次提交。
+
+---
+
+### 🟡 P1 — 文档未同步
+
+- **CHANGELOG.md**: 无 R187 条目
+- **TODO.md**: R187 仍标记 `[ ]` (未勾选)
 
 ---
 
 ## 返工任务清单
 
-| # | 优先级 | 任务 | 负责 | 说明 |
+| # | 优先级 | 任务 | 文件 | 行为 |
 |---|--------|------|------|------|
-| 1 | **P0** | 执行 R133 源码清理 | 实现 Agent | 按 REQUIREMENTS-ITER30.md 批次策略，逐文件清理 40 个文件中的 115 个 `no-unused-vars` 警告 |
-| 2 | **P0** | 收紧 eslint 规则 | 实现 Agent | `eslint.config.js`: `no-unused-vars` 改为 `'error'`；`package.json`: `--max-warnings 0` |
-| 3 | **P0** | 验证 AC-1 | Guard Agent | `npm run lint` 输出必须为 `0 errors, 0 warnings` |
-| 4 | **P1** | 验证 AC-5 | Guard Agent | `npm test` 全部通过（5077+ pass / 0 fail） |
-| 5 | **P1** | 生成 R30 迭代报告 | Plan Agent | `docs/reports/2026-05-19-R30.md` |
-| 6 | **P2** | 补录 CHANGELOG | Plan Agent | 记录 R27-R30 的变更 |
+| 1 | 🔴 P0 | 修复 `sampleBookmarks` 作用域问题 | `test-bookmark-graph-engine-unit.js` | 将 `sampleBookmarks` 提升到文件顶层，或在 R187 describe 内重新定义 |
+| 2 | 🔴 P0 | 修复 `_truncate(Infinity)` 断言 | `test-bookmark-core-unit.js` L602–605 | 改为断言返回 `''`，或修改 `_truncate` 源码支持 Infinity |
+| 3 | 🟡 P1 | 将 `test-bookmark-search-core.js` 加入 Git 跟踪 | `test-bookmark-search-core.js` | `git add tests/test-bookmark-search-core.js` |
+| 4 | 🟡 P1 | 更新 CHANGELOG.md 添加 R187 条目 | `docs/CHANGELOG.md` | 添加 R187 变更记录 |
+| 5 | 🟡 P1 | 更新 TODO.md 标记 R187 完成 | `docs/TODO.md` | `- [x] **R187** ...` |
 
 ---
 
-## 结论
+## 附录: 用例覆盖分析
 
-**❌ 本轮审查不通过 — 需要返工**
+### bookmark-core.js — R187 新增 23 用例 ✅ (目标 ≥15)
 
-R133 (Lint 警告清零) 的实现完全缺失。当前交付仅包含计划文档（需求规格 + 路线图），而核心代码清理工作（修改 40 个源文件、收紧 ESLint 规则）均未执行。所有 115 个 lint 警告保持不变，5 个验收标准中 0 个通过。
+| 类 | 新增用例 | 关键场景 |
+|----|----------|----------|
+| BookmarkIndexer | 8 | 中文分词、URL hostname 匹配、多标签 AND、评分排序、文件夹索引 |
+| BookmarkCollector | 5 | 深层嵌套、无标题节点、忽略无效节点、www 子域名去除、dateAdded=0 |
+| BookmarkStatusManager | 5 | 空已读列表、状态回退、计数、null 容忍、空批量操作 |
+| BookmarkContentPreview | 5 | 仅 URL 预览、空书签、空标签数组、无 snapshot、_truncate 边界 |
 
-建议：**将 R133 重新排入下一轮飞轮迭代，确保实现 Agent 执行完整的代码清理流程。**
+### bookmark-graph-engine.js — R187 新增 18 用例 ✅ (目标 ≥15)
 
----
+| 类 | 新增用例 | 关键场景 |
+|----|----------|----------|
+| similarity | 4 | 自相似、零相似、对象/ID 混合调用、同域名加分 |
+| buildGraph | 6 | null 跳过、无标题 label、无 URL label、边权重阈值、邻接表双向、node.size |
+| getSimilar | 3 | 降序排序、无邻居 fallback、结果字段完整性 |
+| getClusters | 3 | 域名分组、文件夹分组、无 URL 书签排除 |
+| _tokenizeTitle | 3 | 大小写、数字分割、非字符串输入 |
 
-*审查人: Guard Agent (Claude)*
-*审查时间: 2026-05-19*
+### bookmark-search-core.js — 新增 30 用例 ✅ (目标 ≥15)
+
+| 类 | 新增用例 | 关键场景 |
+|----|----------|----------|
+| search | 10 | 空查询、单关键词、多关键词 AND、folder/tags/status 过滤、limit、highlights、降序排序 |
+| searchByFilter | 7 | 空过滤器、folder/domain/status/tags 过滤、limit、sortBy=title |
+| _mergeResults | 5 | 空合并、非重叠合并、重叠加分、高分保留、纯图谱扩展 |
+| _sortResults | 4 | relevance/date/title/默认排序 |
+| _expandWithGraph | 4 | 空扩展、去重、分数衰减 (0.5x)、topN 限制 |
