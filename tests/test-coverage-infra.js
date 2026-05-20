@@ -1,12 +1,14 @@
 /**
  * R192: CoverageInfraFixR190 — 覆盖率基础设施修复测试
+ * R195: CoverageInfraRootFix — 根因修复（clean-coverage.js 替代 rm -rf）
  * 验证覆盖率配置、脚本、门禁阈值的正确性
  */
 
-import { describe, it } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { safeRmdir, findTmpDirs, cleanCoverage } from '../scripts/clean-coverage.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 
@@ -15,17 +17,10 @@ describe('R192: CoverageInfraFixR190', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
     const testCoverage = pkg.scripts['test:coverage']
 
-    it('test:coverage 清理 coverage/tmp', () => {
+    it('test:coverage 使用 clean-coverage.js 脚本清理', () => {
       assert.ok(
-        testCoverage.includes('coverage/tmp'),
-        `test:coverage 应包含 'coverage/tmp' 清理路径, 实际: ${testCoverage}`
-      )
-    })
-
-    it('test:coverage 清理 coverage/_tmp_* glob 残留', () => {
-      assert.ok(
-        testCoverage.includes('coverage/_tmp_*'),
-        `test:coverage 应包含 'coverage/_tmp_*' glob 清理路径, 实际: ${testCoverage}`
+        testCoverage.includes('clean-coverage.js'),
+        `test:coverage 应使用 clean-coverage.js, 实际: ${testCoverage}`
       )
     })
 
@@ -137,6 +132,14 @@ describe('R192: CoverageInfraFixR190', () => {
       )
     })
 
+    it('.gitignore 包含 coverage/_tmp_* 规则（R195）', () => {
+      const lines = gitignore.split('\n').map(l => l.trim())
+      assert.ok(
+        lines.some(l => l.includes('coverage/_tmp_')),
+        `.gitignore 应包含 'coverage/_tmp_*' 规则, 实际: ${lines.join(', ')}`
+      )
+    })
+
     it('.gitignore coverage/ 规则有说明注释', () => {
       const lines = gitignore.split('\n')
       const coverageIdx = lines.findIndex(l => l.trim() === 'coverage/')
@@ -230,6 +233,181 @@ describe('R192: CoverageInfraFixR190', () => {
     it('lcov-report/index.html 存在（HTML 报告）', () => {
       const indexPath = path.join(ROOT, 'coverage/lcov-report/index.html')
       assert.ok(fs.existsSync(indexPath), 'lcov-report/index.html 应存在')
+    })
+  })
+})
+
+describe('R195: CoverageInfraRootFix — clean-coverage.js', () => {
+  describe('scripts/clean-coverage.js 存在性与结构', () => {
+    const scriptPath = path.join(ROOT, 'scripts/clean-coverage.js')
+
+    it('scripts/clean-coverage.js 文件存在', () => {
+      assert.ok(fs.existsSync(scriptPath), 'scripts/clean-coverage.js 应存在')
+    })
+
+    it('scripts/clean-coverage.js 是 ES 模块', () => {
+      const content = fs.readFileSync(scriptPath, 'utf8')
+      assert.ok(
+        content.includes('import ') || content.includes('export '),
+        'scripts/clean-coverage.js 应使用 ES 模块语法'
+      )
+    })
+
+    it('scripts/clean-coverage.js 导出 safeRmdir', () => {
+      assert.equal(typeof safeRmdir, 'function', 'safeRmdir 应为函数')
+    })
+
+    it('scripts/clean-coverage.js 导出 findTmpDirs', () => {
+      assert.equal(typeof findTmpDirs, 'function', 'findTmpDirs 应为函数')
+    })
+
+    it('scripts/clean-coverage.js 导出 cleanCoverage', () => {
+      assert.equal(typeof cleanCoverage, 'function', 'cleanCoverage 应为函数')
+    })
+  })
+
+  describe('safeRmdir 函数', () => {
+    const tmpBase = path.join(ROOT, 'coverage', '_tmp_test_r195_safe')
+
+    afterEach(() => {
+      // 清理测试目录
+      try { fs.rmSync(tmpBase, { recursive: true, force: true }) } catch {}
+    })
+
+    it('safeRmdir 成功删除存在的目录', () => {
+      fs.mkdirSync(tmpBase, { recursive: true })
+      fs.writeFileSync(path.join(tmpBase, 'test.json'), '{}')
+      assert.ok(fs.existsSync(tmpBase), '测试目录应存在')
+      const result = safeRmdir(tmpBase)
+      assert.equal(result.success, true, '应成功删除')
+      assert.ok(!fs.existsSync(tmpBase), '目录应已被删除')
+    })
+
+    it('safeRmdir 对不存在的目录不报错', () => {
+      const nonExistent = path.join(ROOT, 'coverage', '_tmp_nonexistent_12345')
+      const result = safeRmdir(nonExistent)
+      assert.equal(result.success, true, '对不存在的目录应返回 success=true (force: true)')
+    })
+
+    it('safeRmdir 返回结构包含 success 字段', () => {
+      fs.mkdirSync(tmpBase, { recursive: true })
+      const result = safeRmdir(tmpBase)
+      assert.ok('success' in result, '结果应包含 success 字段')
+    })
+
+    it('safeRmdir 处理嵌套目录', () => {
+      const nested = path.join(tmpBase, 'a', 'b', 'c')
+      fs.mkdirSync(nested, { recursive: true })
+      fs.writeFileSync(path.join(nested, 'data.json'), '{}')
+      const result = safeRmdir(tmpBase)
+      assert.equal(result.success, true, '应成功删除嵌套目录')
+      assert.ok(!fs.existsSync(tmpBase), '嵌套目录应已被删除')
+    })
+  })
+
+  describe('findTmpDirs 函数', () => {
+    const testDir = path.join(ROOT, 'coverage', '_tmp_test_r195_find')
+
+    afterEach(() => {
+      try { fs.rmSync(testDir, { recursive: true, force: true }) } catch {}
+    })
+
+    it('findTmpDirs 返回数组', () => {
+      const result = findTmpDirs(path.join(ROOT, 'coverage'))
+      assert.ok(Array.isArray(result), '应返回数组')
+    })
+
+    it('findTmpDirs 识别 _tmp_ 前缀目录', () => {
+      // 在 coverage 目录下创建测试 _tmp_ 目录
+      const tmpDir = path.join(ROOT, 'coverage', '_tmp_r195_testmarker')
+      fs.mkdirSync(tmpDir, { recursive: true })
+      try {
+        const result = findTmpDirs(path.join(ROOT, 'coverage'))
+        assert.ok(
+          result.some(d => d.includes('_tmp_r195_testmarker')),
+          `应找到 _tmp_r195_testmarker 目录, 实际: ${result.join(', ')}`
+        )
+      } finally {
+        try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
+      }
+    })
+
+    it('findTmpDirs 不包含非 _tmp_ 前缀目录', () => {
+      const result = findTmpDirs(path.join(ROOT, 'coverage'))
+      for (const dir of result) {
+        const basename = path.basename(dir)
+        assert.ok(
+          basename.startsWith('_tmp_'),
+          `所有结果应以 _tmp_ 开头, 实际: ${basename}`
+        )
+      }
+    })
+
+    it('findTmpDirs 对不存在的目录返回空数组', () => {
+      const result = findTmpDirs('/nonexistent/path/12345')
+      assert.deepEqual(result, [], '不存在的目录应返回空数组')
+    })
+  })
+
+  describe('cleanCoverage 函数', () => {
+    it('cleanCoverage 返回包含 cleaned 和 skipped 的对象', () => {
+      const result = cleanCoverage()
+      assert.ok('cleaned' in result, '结果应包含 cleaned')
+      assert.ok('skipped' in result, '结果应包含 skipped')
+      assert.ok(Array.isArray(result.cleaned), 'cleaned 应为数组')
+      assert.ok(Array.isArray(result.skipped), 'skipped 应为数组')
+    })
+
+    it('cleanCoverage 不抛出异常', () => {
+      assert.doesNotThrow(() => {
+        cleanCoverage()
+      }, 'cleanCoverage 不应抛出异常')
+    })
+  })
+
+  describe('package.json — test:coverage 脚本（R195 更新）', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
+    const testCoverage = pkg.scripts['test:coverage']
+
+    it('test:coverage 不直接使用 rm -rf（改用 clean-coverage.js）', () => {
+      assert.ok(
+        !testCoverage.includes('rm -rf'),
+        `test:coverage 不应直接使用 rm -rf, 实际: ${testCoverage}`
+      )
+    })
+
+    it('test:coverage 使用 node scripts/clean-coverage.js', () => {
+      assert.ok(
+        testCoverage.includes('node scripts/clean-coverage.js'),
+        `test:coverage 应使用 node scripts/clean-coverage.js, 实际: ${testCoverage}`
+      )
+    })
+
+    it('test:coverage 清理步骤与 c8 之间使用 && 连接', () => {
+      assert.ok(
+        testCoverage.includes('&&'),
+        `test:coverage 清理与 c8 之间应使用 && 连接, 实际: ${testCoverage}`
+      )
+    })
+  })
+
+  describe('.gitignore — R195 _tmp_* 排除规则', () => {
+    const gitignore = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8')
+
+    it('.gitignore 包含 coverage/_tmp_* 排除规则', () => {
+      assert.ok(
+        gitignore.includes('coverage/_tmp_'),
+        `.gitignore 应包含 coverage/_tmp_* 排除规则`
+      )
+    })
+
+    it('.gitignore _tmp_* 规则有 R195 注释说明', () => {
+      const lines = gitignore.split('\n')
+      const tmpRuleIdx = lines.findIndex(l => l.includes('coverage/_tmp_'))
+      assert.ok(tmpRuleIdx >= 0, '应找到 _tmp_ 规则')
+      // 检查上方有注释
+      const hasComment = tmpRuleIdx > 0 && lines[tmpRuleIdx - 1].includes('#')
+      assert.ok(hasComment, '_tmp_* 规则上方应有注释说明')
     })
   })
 })
