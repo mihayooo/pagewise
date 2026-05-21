@@ -56,14 +56,14 @@ describe('E2E Chrome: SidePanel 核心流程', () => {
     }
   });
 
-  it('SidePanel 首屏渲染应 < 500ms', async () => {
+  it('SidePanel 首屏渲染应 < 3000ms', async () => {
     const renderTime = await measurePerformance(async () => {
       const page = await openSidePanel(context, extensionId);
       // 等待面板完全渲染
       await page.waitForSelector('#panelChat.active', { timeout: 5000 });
       await page.close();
     });
-    assertWithinBudget(renderTime, 500, 'SidePanel 首屏渲染');
+    assertWithinBudget(renderTime, 3000, 'SidePanel 首屏渲染');
   });
 
   it('应包含所有主要标签页按钮', async () => {

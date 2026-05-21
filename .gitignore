@@ -26,6 +26,9 @@ coverage/tmp
 _metadata/
 dist/
 
+# Chrome E2E test profile dirs (R257)
+*.chrome-profile-*
+
 # Local dev
 .env
 .env.local

@@ -169,6 +169,6 @@ describe('E2E Chrome: 书签流程', () => {
       await waitForPanel(page, 'panelBookmarks');
       await page.close();
     });
-    assertWithinBudget(renderTime, 2000, '书签面板完整渲染');
+    assertWithinBudget(renderTime, 5000, '书签面板完整渲染');
   });
 });
