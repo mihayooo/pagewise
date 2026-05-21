@@ -25,9 +25,9 @@ describe('R197: VersionSyncAndChangelog', () => {
 
   // ── AC-1: package.json 版本号更新为 3.1.0 ──
   describe('AC-1: package.json version', () => {
-    it('package.json version should be "3.1.0"', () => {
+    it('package.json version should be "3.2.0"', () => {
       const pkg = readJson('package.json');
-      assert.equal(pkg.version, '3.1.0');
+      assert.equal(pkg.version, '3.2.0');
     });
 
     it('package.json version should follow SemVer MAJOR.MINOR.PATCH', () => {
