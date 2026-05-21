@@ -1067,3 +1067,22 @@
 - [x] **R258: 行覆盖率务实提升至 33% CoverageSprint33v2** — 当前行覆盖率 ~28%（门禁刚好过线），历史 R205-R251 九次冲刺均未达 50%，根因始终：~37,000 行零覆盖模块在测试中从未被 import；本轮目标 33%（需新增覆盖 ~2,600 行）：(1) 修复 R256 覆盖率基础设施后，运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序）；(2) 为 Top-15 零覆盖纯逻辑/工具函数模块编写测试（每模块 ≥5 用例，必须通过 `import` 加载目标模块确保 c8 可插桩）；(3) 重点覆盖学习闭环模块群（bookmark-spaced-repetition/reading-queue/learning-coach/predictive-engine 等 R163-R186 产物，大量零覆盖）；(4) 将 `coverage:gate --lines` 从 28 收紧至 32；(5) 目标: 行覆盖率 ≥33%、函数覆盖率 ≥55%；(6) 新增 ≥50 用例。复杂度: Medium
 
 - [x] **R259: 全量回归与 v3.2.3 发布收尾 ReleaseV323** — R255-R258 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7750 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥32%、functions ≥55%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.3（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.3] - 2026-05-21` 区段，涵盖 R255-R258 变更；(7) 更新 `docs/reports/coverage-baseline.md`；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+
+---
+
+## Phase AL: Coverage Infra Final Fix + Test Cleanup (R260-R264)
+
+> Flywheel round 2, 2026-05-21
+> Current state (measured): 7633 pass / **3 fail** / 62.2s; Lint 0/0; coverage:gate broken (coverage/tmp ENOENT, R256 fix ineffective); line coverage unknown; 244 lib modules; VERSION 3.2.2 (R259 v3.2.3 release never landed); CHANGELOG only up to [3.2.0]
+> Goal: Fix 3 failing tests, fix coverage infra, release v3.2.3, test execution optimization
+> Priority: Fix failing tests > coverage infra > release > performance
+
+- [ ] **R260: 3 Test Failures Fix TestFailureFixR260** — 3 failing tests: (1) test:coverage should use clean-coverage.js not rm -rf — assertion/script mismatch; (2) E2E Helpers assertWithinBudget — timeout should throw but doesn't; (3) bookmark-learning-coach.js _MS_PER_DAY unused variable audit fails; (1) Check scripts/clean-coverage.js exists and is called by test:coverage script, fix assertion or script; (2) Fix assertWithinBudget helper to correctly throw on timeout; (3) Fix lib/bookmark-learning-coach.js _MS_PER_DAY unused variable (add usage or remove declaration); (4) Target: node --test tests/test-*.js 7636 pass / 0 fail. Complexity: Simple
+
+- [ ] **R261: Coverage Infra Final Fix CoverageInfraFinalFix** — R256 claimed to fix coverage/tmp ENOENT but still fails: (1) Check package.json test:coverage script includes mkdir -p coverage/tmp or calls clean-coverage.js; (2) Check .gitignore correctly excludes coverage/tmp; (3) Run npm run test:coverage to verify coverage data generates; (4) Run npm run coverage:gate to verify gate runs without ENOENT; (5) Record real coverage baseline to docs/reports/coverage-baseline.md. Complexity: Simple
+
+- [ ] **R262: Full Regression + v3.2.3 Release ReleaseV323v2** — R259 marked complete but version still 3.2.2, CHANGELOG has no [3.2.3] section: (1) npm run test:ci 0 fail (target >=7636 pass); (2) npm run lint 0 errors 0 warnings; (3) coverage:gate runs without error; (4) Version bump to 3.2.3 (package.json + manifest.json); (5) CHANGELOG.md add [3.2.3] - 2026-05-21 section covering R255-R261; (6) Update docs/reports/coverage-baseline.md; (7) Run scripts/publish-check.sh. Complexity: Simple
+
+- [ ] **R263: Test Execution Optimization 11 TestExecutionOpt11** — 7633 tests in 62.2s, target <=35s (gap 27.2s/78%), 10 prior optimizations failed; (1) Use --test-reporter=json --test-concurrency=1 to find Top-10 slowest files (>3s); (2) Fix Top-3 slow files root cause (mock object construction / sync I/O / loop assertions); (3) Exclude coverage-boost/ tests from test:ci; (4) Build test:smoke subset <=80 tests <5s; (5) Target: npm run test:ci <=45s. Complexity: Medium
+
+- [ ] **R264: Coverage Real Sprint CoverageSprintReal** — First real coverage sprint after infra fix: (1) Run npm run test:coverage to get real line/function/branch coverage; (2) Identify Top-20 zero-coverage modules by uncovered lines; (3) Write tests for Top-10 zero-coverage pure logic modules (>=3 cases each); (4) Target: line coverage >=30%, function coverage >=52%; (5) Add >=30 test cases. Complexity: Medium

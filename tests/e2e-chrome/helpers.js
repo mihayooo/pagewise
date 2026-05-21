@@ -185,7 +185,7 @@ export async function measurePerformance(fn) {
  */
 export function assertWithinBudget(actual, budget, label) {
   const msg = `${label}: ${actual.toFixed(1)}ms (预算: ${budget}ms)`;
-  if (actual > budget * 4) {
+  if (actual >= budget * 4) {
     throw new Error(`严重超预算 — ${msg}`);
   }
   if (actual > budget) {

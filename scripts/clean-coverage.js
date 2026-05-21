@@ -94,6 +94,9 @@ export function cleanCoverage() {
     }
   }
 
+  // 3. 重建 coverage/tmp 目录（c8 运行时需要）
+  fs.mkdirSync(path.join(COVERAGE_DIR, 'tmp'), { recursive: true })
+
   return results
 }
 

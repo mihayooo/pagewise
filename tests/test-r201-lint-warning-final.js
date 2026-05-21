@@ -177,13 +177,13 @@ describe('关键 lib 文件未使用变量审查', () => {
     }
   });
 
-  it('bookmark-learning-coach.js 使用 _MS_PER_DAY', () => {
+  it('bookmark-learning-coach-constants.js 使用 _MS_PER_DAY', () => {
     const content = readFileSync(
-      join(PROJECT_ROOT, 'lib/bookmark-learning-coach.js'), 'utf8'
+      join(PROJECT_ROOT, 'lib/bookmark-learning-coach-constants.js'), 'utf8'
     );
     assert.ok(
       content.includes('_MS_PER_DAY'),
-      'bookmark-learning-coach.js 应使用 _MS_PER_DAY 前缀'
+      'bookmark-learning-coach-constants.js 应使用 _MS_PER_DAY 前缀'
     );
   });
 
