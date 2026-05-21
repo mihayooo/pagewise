@@ -990,3 +990,22 @@
 - [x] **R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt** — R81 onboarding + R212 telemetry 已实现但从未在真实用户场景验证；(1) 审查 onboarding 4 步流程在 manifest.json 中的触发时机（service worker install 事件 → chrome.storage 检查 completed flag）；(2) 验证 telemetry.js 数据采集点覆盖核心动作（选中即问/AI 回答/书签操作/知识库查询/搜索），确保无遗漏；(3) 验证 feedback-collector.js NPS 弹窗在第 7 天触发的计时逻辑正确（基于 chrome.storage.local 安装时间戳）；(4) 优化 onboarding 引导中的功能截图和文案（当前为英文，补充中文 locale）；(5) 补充 ≥15 个集成测试覆盖 onboarding → telemetry → feedback 全链路。复杂度: Medium
 
 - [x] **R239: Chrome Web Store 提交最终就绪检查 CWSFinalReadiness** — v3.2.0 功能完备但提交前需完成最终检查：(1) 运行 `scripts/publish-check.sh` 并修复所有发现（manifest 版本一致性、权限最小化、必需图标存在、_locales 完整）；(2) 验证 build.sh 产物 .zip 可在 Chrome 中正常加载运行；(3) 更新 `docs/privacy-policy.html` 确保覆盖 v3.2.0 新增数据处理（onboarding 首选项、telemetry 遥测数据、feedback NPS 评分）；(4) 更新 `docs/RELEASE-NOTES-v3.2.md` 包含 R235-R238 变更；(5) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0；(6) 输出 **v3.2.0** 为正式发布版本号。复杂度: Simple
+
+---
+
+## Phase AH: 测试红灯修复与覆盖率真实治理 (R240-R244) — 5 轮
+
+> 飞轮迭代 R67 起，2026-05-21
+> 现状 (实测): 7549 pass / **2 fail** / 38.5s；Lint 0/0；行覆盖率 **24.89%**（12737/51171，coverage:gate 仅 23%）；函数覆盖率 49.79%；全部 lib 文件 ≤400 行；VERSION 3.2.0；R236 声称覆盖率 ≥35% 但实测未落地（七次冲刺均失败）
+> 目标: 修复 2 个失败测试、行覆盖率真实突破 30%（务实目标）、测试执行 ≤35s、覆盖率门禁与实测对齐、发布 v3.2.1
+> 任务来源优先级: 修复失败测试 > 覆盖率治理 > 性能优化 > 发布收尾
+
+- [x] **R240: 版本同步断言修复 VersionSyncFix** — `npm run test:ci` 中 2 个失败用例集中在 `test-r197-version-sync.js`：(1) `AC-3: manifest.json version consistency` 断言 manifest.json 版本应为 `3.1.0` 但实测为 `3.2.0`；(2) `AC-5: no functional regression` 断言三文件版本不一致；根因：R231 将 package.json/manifest.json 更新至 3.2.0 但测试断言未同步更新；(1) 更新 test-r197-version-sync.js 中版本断言从 3.1.0 → 3.2.0；(2) 审查所有测试文件中硬编码版本号断言（grep "3.1.0" tests/），批量更新；(3) 验证 `npm run test:ci` 7551 pass / 0 fail。复杂度: Simple
+
+- [ ] **R241: 行覆盖率务实突破 30% CoverageRealBreak30** — 当前行覆盖率 24.89%（12737/51171），历史 R205/R216/R222/R225/R230/R236 六次冲刺均未达标（目标从 50% 降至 35% 仍未落地），根因始终相同：~38000 行零覆盖模块在测试中从未被 import；本轮务实目标 30%（需新增覆盖 ~2600 行）：(1) 运行 `c8 report --reporter=text` 分析零覆盖模块 Top-20（按未覆盖行数排序），识别纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-15 零覆盖纯逻辑模块补测试，每模块 ≥3 用例（目标覆盖 3000+ 行）；(3) 对 sidebar-chat/sidebar-bookmark/sidebar-settings/sidebar-knowledge/sidebar-utils 等 Chrome API 依赖模块，编写 mock-aware 测试覆盖入口函数和主路径；(4) 将 `coverage:gate --lines` 从 23 收紧至 28；(5) 目标: 行覆盖率 ≥30%、函数覆盖率 ≥52%；(6) 测试新增 ≥60 用例。复杂度: Complex
+
+- [ ] **R242: 测试执行效率优化八期 TestExecutionOpt8** — 当前 7551 用例执行 38.5s，目标 ≤30s（差距 8.5s/22%），历史 R135/R152/R198/R202/R227/R232/R237 七次优化均未达标；本轮采用新策略——拆分测试套件为并行分片：(1) 用 `--test-reporter=json` 分析 Top-10 最慢测试文件（按 duration_ms 排序），定位 >1s 的慢文件；(2) 将 R241 新增的 60+ 测试文件独立为 `tests/test-r241-*.js`，避免与历史慢文件混合执行；(3) 将 >2s 的测试文件按模块域拆分为独立文件（如 bookmark 系列 / knowledge 系列 / ai 系列），减少单文件内用例数；(4) `--test-concurrency=16` 并行执行；(5) 目标: 全量 ≤35s。复杂度: Medium
+
+- [ ] **R243: 覆盖率门禁与实测对齐 CoverageGateAlign** — 当前 `coverage:gate --lines 23` 与 R236 声称的 ≥35% 门禁不一致，实际行覆盖率 24.89% 刚好过线，门禁形同虚设；(1) 将 `coverage:gate --lines` 收紧至 R241 达成的实际基线值（28 或 30）；(2) 同步将 `--functions` 从 48 收紧至 50、`--branches` 从 75 维持不变；(3) 在 CI workflow 中验证门禁硬性阻断（手动测试覆盖率低于阈值时 pipeline 是否 fail）；(4) 更新 `docs/reports/coverage-baseline.md` 记录当前真实基线数据（行 24.89%/目标 30%、函数 49.79%/目标 52%、分支 75.83%）；(5) 在 `scripts/architecture-guard.sh` 中新增覆盖率回归检测（与基线对比，退化 >2pp 则 CI fail）；(6) 新增 ≥10 个验收测试验证门禁逻辑。复杂度: Simple
+
+- [ ] **R244: 全量回归与 v3.2.1 发布收尾 ReleaseV321** — R240-R243 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7611 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥30%（实测验证，非声称）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.1] - 2026-05-21` 区段，涵盖 R240-R243 变更（版本断言修复、覆盖率突破 30%、测试效率优化、门禁硬化）；(7) 更新 RELEASE-NOTES-v3.2.1.md；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple

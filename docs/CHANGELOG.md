@@ -6,6 +6,13 @@
      6|
 ## [3.2.0] - 2026-05-21
 
+### 测试
+- **R240: 版本同步断言修复 VersionSyncFix** — `test-r197-version-sync.js` 中 AC-3 和 AC-5 断言硬编码 `3.1.0` 与实际版本 `3.2.0` 不一致
+  - 更新 AC-3 manifest.json 版本断言 `3.1.0` → `3.2.0`
+  - 更新 AC-5 三文件一致性断言（pkg/manifest/changelog）`3.1.0` → `3.2.0`
+  - 审查并确认其余测试文件中 `3.1.0` 引用均为 CHANGELOG 历史区段或 RELEASE-NOTES 文档引用（合法，无需修改）
+  - 验证 `npm run test:ci` 7551 pass / 0 fail ✅
+
 ### 体验
 - **R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt** — R81 onboarding + R212 telemetry 首次真实场景验证
   - 修复 `pagewise_install_date` 从未写入的关键缺陷（service-worker `onInstalled` 现在记录安装时间戳）

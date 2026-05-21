@@ -1667,3 +1667,39 @@ R212 新增 `lib/feedback-collector.js` 时定义了 `const MS_PER_DAY = 24 * 60
 - `npm run lint`: 0 errors / 0 warnings ✅
 - `test-r201-lint-warning-final.js`: 17 pass / 0 fail ✅
 - `npm run test:ci`: 7139 pass（E2E Chrome 测试因缺少浏览器环境 12 fail，为预期内的已知问题）
+
+---
+
+## R240: 版本同步断言修复 VersionSyncFix
+
+### 问题描述
+
+`npm run test:ci` 中 2 个失败用例集中在 `test-r197-version-sync.js`：
+1. `AC-3: manifest.json version consistency` 断言 manifest.json 版本应为 `3.1.0` 但实测为 `3.2.0`
+2. `AC-5: no functional regression` 断言三文件版本不一致
+
+根因：R231 将 package.json/manifest.json 更新至 3.2.0 但测试断言未同步更新。
+
+### 修改内容
+
+1. **`tests/test-r197-version-sync.js`**:
+   - AC-3: manifest.json 版本断言 `3.1.0` → `3.2.0`
+   - AC-5: pkg.version / manifest.version 断言 `3.1.0` → `3.2.0`，changelog 断言 `[3.1.0]` → `[3.2.0]`
+
+### 审查结果
+
+- `grep "3.1.0" tests/` 扫描出的其余引用均属于合法上下文：
+  - `test-r218-changelog-v310.js`: CHANGELOG `[3.1.0]` 历史区段存在性验证
+  - `test-r208-release-build.js`: `RELEASE-NOTES-v3.1.md` 文档中 `3.1.0` 版本引用
+  - `test-r197-version-sync.js` AC-2: `[3.1.0]` CHANGELOG 区段内容验证
+- 无需批量修改
+
+### 变更统计
+
+- 修改文件: 1 (`tests/test-r197-version-sync.js`)
+- 变更行数: 4 行（3 个断言值 + 1 个注释）
+
+### 验证结果
+
+- `node --test tests/test-r197-version-sync.js`: 23 pass / 0 fail ✅
+- `npm run test:ci`: 7551 pass / 0 fail ✅
