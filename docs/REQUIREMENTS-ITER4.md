@@ -1,245 +1,180 @@
-# REQUIREMENTS — R168: SmartHighlightArchive 智能摘录归档
+# 需求文档 — 迭代四: R232 测试执行效率终极优化
 
-> 迭代: R168
-> 日期: 2026-05-20
-> 复杂度: Medium (新模块)
-> 阶段: Phase T — 知识沉淀与学习闭环 (第 1/4 轮)
-> 模块文件: `lib/bookmark-highlight-archive.js`
-> 测试文件: `tests/test-bookmark-highlight-archive.js`
+> 文档编号: REQUIREMENTS-ITER4
+> 日期: 2026-05-21
+> 作者: Plan Agent
+> 关联迭代: Phase AF (R230-R234)
+> 前置依赖: R231 (CHANGELOG 补全与 v3.2.0 版本发布) ✅
 
 ---
 
 ## 1. 用户故事
 
-作为技术学习者，我在浏览技术文档时经常选中关键段落、代码片段或概念解释，但目前这些摘录仅作为页面高亮存在，无法沉淀为可检索的知识条目。我希望**选中文字后一键归档**，自动生成摘要和标签并存入知识库，打通"浏览→选中→沉淀"的最短路径，让每一次阅读都成为知识积累的触点。
-
-**核心痛点**：
-- 当前流程：选中文字 → 提问 AI → 手动保存回答 → 手动打标签（4 步）
-- 目标流程：选中文字 → 一键归档（1 步），AI 自动摘要 + 标签 + 关联书签
+**作为** PageWise 的开发者和 CI 运维者，  
+**我希望** 全量 7484 个测试用例在 30 秒内执行完毕，并且拥有一套 ≤3 秒的 smoke 测试作为日常开发的快速反馈门禁，  
+**以便** 缩短开发-验证循环、降低 CI 资源消耗、提高飞轮迭代吞吐率。
 
 ---
 
-## 2. 验收标准
+## 2. 背景与现状
 
-### AC1: 页面上下文自动提取
-- `extractContext(highlightId)` 方法从 `highlight-store.js` 读取高亮条目（URL、text、xpath、offset）
-- 自动补充页面上下文：
-  - `pageUrl`: 高亮所在页面 URL
-  - `pageTitle`: 页面标题（从当前 tab 或缓存获取）
-  - `surroundingText`: 选中文字前后的上下文（各取 100 字，总计最多 200 字）
-  - `highlightText`: 选中文字原文
-- 上下文提取失败时降级为仅使用高亮文字原文，不抛异常
+### 2.1 历史五次优化均未达标
 
-### AC2: AI 智能摘要与自动标签
-- `generateSummaryAndTags(context)` 方法调用 AIClient 生成：
-  - `summary`: 一句话摘要（≤ 50 字），准确概括选中文字的核心信息
-  - `tags`: 3-5 个自动标签，复用 `bookmark-tagger.js` 的标签体系
-- Prompt 模板硬编码在模块中（防 prompt 注入），输入 ≤ 500 tokens
-- AI 不可用时（无 API key、网络错误、JSON 解析失败）降级处理：
-  - `summary` 降级为选中文字前 50 字 + "..."
-  - `tags` 降级为 `bookmark-tagger.js` 的 `generateTags()` 规则生成
-- 不抛出异常，始终返回结构化结果
+| 迭代 | 目标 | 声称结果 | 实测结果 | 失败原因 |
+|------|------|---------|---------|---------|
+| R135 | ≤20s | ✅ | ~29.5s | 仅提升 concurrency，未排查慢文件 |
+| R152 | ≤25s | ✅ | ~36s | 粒度过粗，未深入用例级别 |
+| R198 | ≤30s | ✅ | 42.9s | 声称达标但实测未落地 |
+| R202 | ≤30s | ✅ | 45.4s | 声称 ≤25s 但实测持续恶化 |
+| R227 | ≤30s | ✅ | 44.5s | 第五次声称但未改变实测基线 |
 
-### AC3: 一键归档入库
-- `archiveHighlight(highlightId)` 方法完成完整归档流程：
-  1. 调用 AC1 提取上下文
-  2. 调用 AC2 生成摘要 + 标签
-  3. 调用 `knowledge-base-crud.js` 的 `saveEntry()` 写入知识库
-  4. 调用 `bookmark-knowledge-link.js` 的 `addEntry()` 关联当前页面书签
-  5. 返回归档结果对象 `{ entry, summary, tags, highlightId }`
-- 写入知识库的 entry 结构与 `saveEntry()` 一致：
-  ```javascript
-  {
-    title: '摘录: ' + highlightText前30字,
-    content: highlightText,
-    summary: aiSummary,
-    sourceUrl: pageUrl,
-    sourceTitle: pageTitle,
-    tags: autoTags,
-    category: 'highlight',
-    question: '',
-    answer: '',
-    language: detectLanguage(highlightText)
-  }
-  ```
-- `saveEntry()` 返回 `{ duplicate: true, existing }` 时，归档结果标记 `isDuplicate: true`，不重复写入
+**核心问题**: 历史优化仅停留在"声称达标"层面，缺乏**可量化的实测验证**，且从未用 `--test-reporter=json` 获取精确的 per-file duration 数据来指导优化。
 
-### AC4: Toast 确认与撤销
-- 归档成功后触发 Toast 通知回调 `onArchive(result)`：
-  - Toast 内容："✅ 已归档摘录" + 一句话摘要
-  - 撤销按钮：5 秒内可点击撤销
-  - 撤销操作：从知识库删除该条目 + 从关联引擎移除 + 触发 `onUndo(entryId)`
-- `undoArchive(entryId)` 方法执行撤销：
-  - 调用 `knowledge-base-crud.js` 的 `deleteEntry(entryId)`
-  - 调用 `bookmark-knowledge-link.js` 的 `removeEntry(entryId)`
-  - 超过 5 秒后撤销入口失效（由调用方 UI 控制超时，模块层不做计时）
+### 2.2 当前测试基础设施
 
-### AC5: 批量归档
-- `archiveHighlights(highlightIds[])` 方法支持对同一页面多个高亮一次性归档：
-  - 逐条执行 AC1-AC3 流程
-  - 共享同一次 AI 调用（合并多个高亮为一个 prompt，生成批量摘要 + 标签）
-  - 返回结果数组 `[{ entry, summary, tags, highlightId, isDuplicate? }, ...]`
-  - 单条失败不影响其余条目（catch per item，标记 `error` 字段）
-- 批量撤销：`undoArchiveBatch(entryIds[])` 逐条撤销，返回成功/失败计数
-
-### AC6: 完整测试覆盖
-- 单元测试覆盖所有公共 API 方法（≥ 25 个测试用例）
-- 使用 `node:test` + `node:assert/strict`
-- 覆盖场景：
-  - 正常归档流程（单条 + 批量）
-  - AI 可用 vs AI 不可用降级
-  - 重复条目检测（`isDuplicate: true`）
-  - 撤销操作（单条 + 批量 + 超时后失败）
-  - 上下文提取边界（无高亮、空文本、无 URL）
-  - 批量归档中单条失败不影响其余
+| 指标 | 值 |
+|------|-----|
+| 测试用例数 | 7,484 |
+| 测试文件数 | 195+ (非 E2E) |
+| 测试通过率 | 100% (7484/7484) |
+| 执行时间 | ~44.5s (`npm run test:ci`) |
+| 并行度 | `--test-concurrency=8` |
+| Smoke 测试 | 已存在 (`npm run test:smoke`，~11 文件) |
+| 测试框架 | Node.js 内置 `node --test` |
+| 覆盖率工具 | c8 (V8 native) |
 
 ---
 
-## 3. 技术约束
+## 3. 验收标准
+
+### AC-1: 全量测试执行时间 ≤30 秒
+
+- **度量方式**: `time npm run test:ci` 在 CI 环境（2 vCPU / 4GB RAM）和本地环境下均 ≤30s
+- **回退保护**: 新增 CI 门禁脚本 `scripts/perf-gate-test.sh`，测试执行 >32s 则 CI fail
+- **不允许**: 通过减少用例数或跳过来达成时间目标（零用例删减）
+
+### AC-2: Top-20 慢速文件分析报告可追溯
+
+- 生成 `docs/reports/test-perf-analysis.md`，列出按 `duration_ms` 降序排列的 Top-20 文件
+- 每个 >2s 的文件需标注根因（`setTimeout`、`await sleep`、同步循环构造、大数据规模、大量 import 链等）
+- 报告包含优化前后的 duration 对比
+
+### AC-3: 所有 >500ms 用例完成改造
+
+- 排查所有 >500ms 的单个测试用例（可通过 `--test-reporter=json` 逐用例粒度获取）
+- 对识别出的慢用例采取以下改造策略之一：
+  - 降低测试数据规模（如 1000 书签 → 200 书签，保留核心逻辑覆盖）
+  - 移除 `setTimeout` / `await sleep` / `await new Promise(r => setTimeout(r, ...))` 阻塞
+  - 将同步大数据构造改为惰性构造或共享 fixture
+  - 简化不必要的 import 链（减少模块加载开销）
+
+### AC-4: `--test-concurrency=16` 并行度验证通过
+
+- 将 `--test-concurrency` 从 8 提升至 16
+- 验证在并发 16 下无竞态失败（全量测试通过率仍 100%）
+- 若并发 16 导致内存问题或 flaky test，则回退至最高稳定并发数并记录
+
+### AC-5: Smoke 测试子集 ≤3 秒且纳入 CI 快速门禁
+
+- `npm run test:smoke` 执行时间 ≤3s（含模块加载开销）
+- Smoke 测试覆盖核心流程（书签索引、图谱引擎、搜索、聚类、推荐、AI 客户端、存储适配器、安全净化），用例数 60-80
+- 在 CI workflow 中 smoke 作为独立 job，失败则阻断后续步骤（硬性门禁）
+- Smoke 测试用例清单在 `docs/REQUIREMENTS-ITER4.md` 附录中记录
+
+---
+
+## 4. 技术约束
 
 | 约束 | 说明 |
 |------|------|
-| 纯 ES Module | `export class BookmarkHighlightArchive` 模式，与项目所有 lib 模块一致 |
-| 零外部依赖 | 不引入任何第三方 npm 包，复用项目内已有模块 |
-| 不直接依赖 Chrome API | 业务逻辑层，通过构造函数注入依赖（highlight-store、knowledge-base-crud、ai-client、bookmark-knowledge-link），保持可测试性 |
-| 复用 highlight-store.js | 作为高亮数据源，只读调用 `getHighlightsByUrl()` 和 `getAllHighlightsFlat()` |
-| 复用 knowledge-base-crud.js | 作为知识库写入层，调用 `saveEntry()` / `deleteEntry()` |
-| 复用 bookmark-knowledge-link.js | 作为知识关联层，调用 `addEntry()` / `removeEntry()` |
-| 复用 bookmark-tagger.js | AI 不可用时的降级标签生成 |
-| 复用 ai-client.js | 通过 `chat(messages, opts)` 非流式接口生成摘要 + 标签 |
-| AI 调用频率控制 | 同一高亮 5 分钟内不重复调用 AI（内存 Map 缓存，highlightId → {summary, tags, timestamp}） |
-| Prompt 安全 | prompt 模板硬编码在模块中，高亮文字作为数据字段传入，防止 prompt 注入 |
-| 性能预算 | `archiveHighlight()` 含 AI 调用，缓存命中 < 10ms；无缓存 < 3s（取决于 LLM 响应）；`undoArchive()` < 50ms |
-| 内存预算 | 撤销缓冲区最多保留 20 条记录（LRU 淘汰），单条 < 5KB |
-| 模块文件大小 | `bookmark-highlight-archive.js` ≤ 400 行 |
-| 语言检测 | 复用已有 `detectLanguage()` 工具函数（从 ai-client 或 utils 中注入），无需新建 |
+| **零用例删减** | 7484 个用例全部保留，不允许通过删除用例来降低执行时间 |
+| **零断言弱化** | 不允许移除或放宽任何现有断言 |
+| **框架限制** | 使用 Node.js 内置 `node --test`，不允许迁移至 Jest/Vitest/Mocha 等第三方框架 |
+| **并发安全** | 所有测试必须无共享可变状态，高并发下不出现 flaky |
+| **CI 环境限制** | GitHub Actions ubuntu-latest (2 vCPU / 4GB RAM)，并发 16 需验证不超过内存限制 |
+| **向后兼容** | `npm run test` / `npm run test:ci` / `npm run test:smoke` 脚本签名不变 |
+| **覆盖率不退化** | 优化后行覆盖率 ≥23.68%（R230 基线），函数覆盖率 ≥48.85% |
+| **Lint 保持** | `npm run lint` 0 errors / 0 warnings |
 
 ---
 
-## 4. 依赖关系
+## 5. 技术方案概要
 
-### 上游依赖（输入）
+> 以下为建议方向，非强制实现细节。
 
-| 模块 | 文件 | 状态 | 依赖方式 |
-|------|------|------|----------|
-| HighlightStore | `lib/highlight-store.js` | ✅ 已实现 | 构造函数注入；读取高亮数据 `getHighlightsByUrl()` / `getAllHighlightsFlat()` |
-| AIClient (迭代 #2) | `lib/ai-client.js` | ✅ 已实现 | 构造函数注入；调用 `chat(messages, opts)` 非流式接口生成摘要 + 标签 |
-| BookmarkTagger (R55) | `lib/bookmark-tagger.js` | ✅ 已实现 | 构造函数注入；AI 不可用时作为降级标签生成器 |
-| KnowledgeBaseCRUD (R116) | `lib/knowledge-base-crud.js` | ✅ 已实现 | 构造函数注入；调用 `saveEntry()` / `deleteEntry()` 写入/删除知识条目 |
-| BookmarkKnowledgeCorrelation (R66) | `lib/bookmark-knowledge-link.js` | ✅ 已实现 | 构造函数注入；调用 `addEntry()` / `removeEntry()` 维护知识-书签关联索引 |
+### 5.1 慢文件精确定位
 
-### 下游消费者（输出）
+```bash
+# 生成 JSON 报告
+node --test --test-reporter=json --test-concurrency=8 'tests/*.js' > /tmp/test-report.json 2>/dev/null
 
-| 模块 | 使用方式 |
-|------|----------|
-| Sidebar (sidebar.js) | 高亮工具栏增加"归档"按钮，调用 `archiveHighlight(highlightId)` |
-| BookmarkOverview (R50) | 概览区展示"今日摘录"计数 |
-| WeeklyDigest (R165) | 周报中统计摘录归档数量（新增 `highlightArchived` 统计项） |
-| SpacedRepetition (R163) | 归档的知识条目自动进入复习队列（通过知识库 entry 写入触发） |
-
-### 隐式依赖
-
-| 依赖 | 说明 |
-|------|------|
-| AIClient 配置 | 需要用户在设置中配置有效的 API key 和模型（降级时不需要） |
-| 网络连接 | AI 摘要/标签生成需网络访问 LLM API（降级时不需要） |
-| 系统时间 | `Date.now()` 用于缓存 TTL 判断、撤销缓冲区过期 |
-| 页面 DOM | 调用方（content script）负责获取页面标题和周围文字上下文，传入模块 |
-
----
-
-## 5. 数据模型
-
-```javascript
-// ===================== 输入 =====================
-
-// 高亮条目（来自 HighlightStore 标准格式）
-{
-  id: string,           // 高亮唯一 ID（Date.now().toString(36) + random）
-  url: string,          // 页面 URL
-  text: string,         // 选中文字原文
-  xpath: string,        // 选区 XPath 路径
-  offset: number,       // 选区偏移量
-  createdAt: string     // ISO 8601 时间戳
-}
-
-// 页面上下文（调用方注入或模块提取）
-{
-  pageUrl: string,      // 页面 URL
-  pageTitle: string,    // 页面标题
-  surroundingText: {
-    before: string,     // 选中文字前 100 字
-    after: string       // 选中文字后 100 字
-  }
-}
-
-// ===================== 输出 =====================
-
-// 归档结果 — archiveHighlight() 返回值
-{
-  entry: Object,          // 写入知识库的完整条目（含 id）
-  summary: string,        // AI 生成的一句话摘要（≤ 50 字）
-  tags: string[],         // 自动标签（3-5 个）
-  highlightId: string,    // 关联的高亮 ID
-  isDuplicate: boolean,   // 是否为重复条目（true 时不写入新条目）
-  archivedAt: string      // 归档时间 ISO 8601
-}
-
-// 批量归档结果 — archiveHighlights() 返回值
-[ArchiveResult, ...]      // 与单条结构一致，额外包含 error? 字段
-
-// 撤销操作 — undoArchive() 返回值
-{
-  entryId: number | string, // 被删除的知识条目 ID
-  success: boolean,
-  error?: string
-}
+# 解析 Top-20 最慢文件
+node -e "
+const r = JSON.parse(require('fs').readFileSync('/tmp/test-report.json','utf8'));
+const files = {};
+// 遍历 suite/test 树，按文件聚合 duration_ms
+// 输出 Top-20
+"
 ```
 
+### 5.2 常见慢模式与改造策略
+
+| 模式 | 检测方式 | 改造策略 |
+|------|---------|---------|
+| `setTimeout(fn, 1000)` | grep `setTimeout` | 改为 `setImmediate` / `process.nextTick` 或直接移除 |
+| `await sleep(N)` | grep `sleep` | 移除 sleep，改用事件驱动或直接断言 |
+| 大对象循环构造 | 单用例 >500ms 且含 `for` + `new` | 降低 N（1000→100），或构造一次复用 |
+| 深层 import 链 | 文件首个用例慢、后续快 | 预加载 `--import` 或合并 import |
+| 同步文件 I/O | `readFileSync` / `writeFileSync` | 改用 `fs/promises` 异步 |
+
+### 5.3 Smoke 测试策略
+
+- 复用已有 `tests/test-smoke.js`（R121 创建），扩充至 60-80 用例
+- 覆盖模块: bookmark-indexer, bookmark-graph, bookmark-search, bookmark-clusterer, bookmark-recommender, ai-client, storage-adapter, sanitize, cost-estimator, bookmark-core, bookmark-collector, page-sense, skill-engine, conversation-store
+- 禁用 coverage（`c8` 插桩有 ~30% 开销）
+
 ---
 
-## 6. 非功能需求
+## 6. 依赖关系
 
-| 项目 | 要求 |
-|------|------|
-| AI 调用频率 | 同一高亮 5 分钟内不重复调用 LLM（内存缓存） |
-| Token 消耗 | 单次归档 prompt 输入 ≤ 500 tokens；批量归档合并 prompt ≤ 1000 tokens |
-| 降级延迟 | AI 不可用时降级到规则摘要 + 标签，总耗时 < 100ms |
-| 撤销缓冲区 | 内存 Map，最多 20 条，LRU 淘汰，单条 < 5KB |
-| 空数据兼容 | 无高亮 / 空文本时返回 `{ error: 'empty_highlight' }`，不抛异常 |
-| 批量上限 | 单次批量归档 ≤ 20 个高亮（超过时截断并返回警告） |
-| 重复检测 | 同一 URL + 相同选中文字不重复写入（复用 KnowledgeBaseCRUD.findDuplicate） |
-| 隐私安全 | prompt 只含选中文字和上下文片段，不包含用户个人信息；上下文前后文各取 100 字，防止 prompt 过长 |
-
----
-
-## 7. 输出文件清单
-
-| 文件 | 操作 | 说明 |
+| 依赖 | 类型 | 说明 |
 |------|------|------|
-| `lib/bookmark-highlight-archive.js` | **新建** | 核心模块：BookmarkHighlightArchive 类（≤ 400 行） |
-| `tests/test-bookmark-highlight-archive.js` | **新建** | 单元测试（≥ 25 用例，node:test） |
-| `docs/CHANGELOG.md` | **修改** | 新增 R168 条目 |
-| `docs/TODO.md` | **修改** | 标记 R168 状态为 ✅ |
+| R231 | **前置** | CHANGELOG 补全与 v3.2.0 版本发布已完成，为本迭代提供稳定基线 |
+| R230 | **前置** | 行覆盖率真实突破 50%，确保覆盖率基线数据可信 |
+| R226 | **间接** | CI 门禁脚本 `scripts/architecture-guard.sh`，可复用其框架添加测试性能门禁 |
+| R233 | **后续** | 覆盖率 CI 门禁硬化，本迭代确保覆盖率不退化后 R233 可放心收紧门禁 |
+| R234 | **后续** | 全量回归与发布收尾，依赖本迭代的 ≤30s 性能基线 |
 
 ---
 
-## 8. 与现有功能的关系
+## 7. 风险与缓解
 
-| 现有功能 | R168 关系 |
-|----------|-----------|
-| HighlightStore (现有) | **数据源**：R168 从 HighlightStore 读取高亮条目，不修改其存储结构 |
-| KnowledgeBaseCRUD (R116) | **存储层**：R168 通过 saveEntry/deleteEntry 读写知识库 |
-| BookmarkKnowledgeCorrelation (R66) | **关联层**：归档后自动调用 addEntry 建立书签-条目关联 |
-| BookmarkTagger (R55) | **降级标签**：AI 不可用时复用规则标签生成 |
-| AIClient Context (R164) | **参考但不直接依赖**：R168 的 AI 调用独立于 R164 的 RAG 增强问答，但 prompt 设计风格保持一致 |
-| SpacedRepetition (R163) | **下游集成**：归档的条目自动进入复习队列（通过知识库写入间接触发） |
-| WeeklyDigest (R165) | **下游集成**：归档数据可被周报统计（highlightArchived 计数） |
+| 风险 | 概率 | 影响 | 缓解措施 |
+|------|------|------|---------|
+| 并发 16 导致内存 OOM (CI 2vCPU/4GB) | 中 | 高 | 逐步提升 (8→12→16)，CI 环境实测验证；OOM 则回退至最高稳定值 |
+| 慢用例改造引入测试逻辑变更 | 中 | 中 | 每个改造保留等价性注释，改造前后 `npm run test:ci` 0 fail 对比 |
+| `node --test` 的 JSON reporter 不支持逐用例粒度 | 低 | 中 | 降级使用文件粒度聚合 + 手动 `console.time` 定位慢用例 |
+| 历史声称达标但实测未落地的"通病" | 高 | 高 | 本迭代强制要求: 每个步骤的**最后一环**必须是 `time npm run test:ci` 实测验证 |
 
 ---
 
-## 需求变更记录
+## 8. 验收检查清单
 
-| 日期 | 需求 | 变更内容 |
-|------|------|----------|
-| 2026-05-20 | R168 | 初始创建 — SmartHighlightArchive 需求文档 |
+- [ ] `time npm run test:ci` ≤30s（CI 环境实测）
+- [ ] `npm run test:ci` 7484/7484 pass / 0 fail
+- [ ] `npm run lint` 0 errors / 0 warnings
+- [ ] `npm run test:smoke` ≤3s
+- [ ] `docs/reports/test-perf-analysis.md` Top-20 慢文件报告已生成
+- [ ] 所有 >500ms 用例已完成改造（报告中列出）
+- [ ] `--test-concurrency=16` 全量通过（或记录最高稳定并发数）
+- [ ] `scripts/perf-gate-test.sh` CI 门禁脚本已创建
+- [ ] 覆盖率未退化: 行覆盖率 ≥23.68%, 函数覆盖率 ≥48.85%
+- [ ] CHANGELOG.md 已更新 R232 条目
+
+---
+
+## 9. 变更记录
+
+| 日期 | 变更 | 作者 |
+|------|------|------|
+| 2026-05-21 | 初始版本 | Plan Agent |

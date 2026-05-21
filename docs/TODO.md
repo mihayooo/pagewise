@@ -1,8 +1,8 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R209
-> 最后更新: 2026-05-20
+> 迭代轮次: R43 - R231
+> 最后更新: 2026-05-21
 
 ---
 
@@ -964,7 +964,7 @@
 
 - [x] **R230: 行覆盖率真实突破 50% CoverageRealBreak50** — 当前行覆盖率仅 23.68%（12048/50869），历史 R205/R216/R222/R225 四次冲刺均声称 ≥50% 但实测从未落地；(1) 排查根因：`c8` 只插桩被 `import` 加载的模块，大量 lib 模块（~38000 行未覆盖）在测试中从未被 import（如 sidebar-chat.js/sidebar-bookmark.js/sidebar-settings.js/sidebar-knowledge.js/sidebar-utils.js 等 R158 拆分产物、R163-R186 新增的学习闭环模块）；(2) 识别"零覆盖"模块 Top-30（行数从大到小），为其中纯逻辑/工具函数（无 Chrome API 依赖）补测试，每模块 ≥5 用例；(3) 对 Chrome API 依赖模块（sidebar/popup/background 入口），编写 mock-aware 测试覆盖主路径；(4) 目标: 行覆盖率 ≥50%（需新增覆盖 ~13400 行）、函数覆盖率 ≥60%；(5) 测试新增 ≥80 用例。复杂度: Complex
 
-- [ ] **R231: CHANGELOG 补全与 v3.2.0 版本发布 ChangelogV320Finalize** — CHANGELOG.md 缺少 R225-R228 变更记录，版本号停留在 3.1.0；(1) 补充 `[3.2.0] - 2026-05-21` 区段，涵盖 R225-R229 变更（超大模块拆分收尾、CI 门禁、测试执行优化、E2E 框架验证、覆盖率冲刺）；(2) 同步更新 package.json + manifest.json 版本至 `3.2.0`；(3) 更新 RELEASE-NOTES-v3.2.md；(4) 更新 docs/architecture-metrics.md 模块统计（当前 235 个 lib 模块全部 ≤400 行）；(5) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple
+- [x] **R231: CHANGELOG 补全与 v3.2.0 版本发布 ChangelogV320Finalize** — CHANGELOG.md 缺少 R225-R228 变更记录，版本号停留在 3.1.0；(1) 补充 `[3.2.0] - 2026-05-21` 区段，涵盖 R225-R229 变更（超大模块拆分收尾、CI 门禁、测试执行优化、E2E 框架验证、覆盖率冲刺）；(2) 同步更新 package.json + manifest.json 版本至 `3.2.0`；(3) 更新 RELEASE-NOTES-v3.2.md；(4) 更新 docs/architecture-metrics.md 模块统计（当前 239 个 lib 模块全部 ≤400 行）；(5) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple ✅ 2026-05-21
 
 - [ ] **R232: 测试执行效率终极优化 TestExecutionFinalOpt** — 当前 7484 用例执行 44.5s，历史 R135/R152/R198/R202/R227 五次优化均未达标（目标 ≤30s）；(1) 分析 Top-20 最慢测试文件（按 `--test-reporter=json` duration_ms 排序），定位 >2s 的慢速文件；(2) 对慢速文件内的单个用例逐一排查同步阻塞（`setTimeout`/`await sleep`/循环赋值/大量对象构造）；(3) 将>500ms 的用例改造为异步驱动或降低数据规模；(4) `--test-concurrency=16` 再次提升并行度；(5) 建立 `npm run test:smoke` 子集（核心流程 ≤80 用例，<3s）并作为 CI 快速门禁；(6) 目标: 全量 ≤30s。复杂度: Medium
 

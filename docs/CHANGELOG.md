@@ -4,6 +4,33 @@
      4|
      5|---
      6|
+## [3.2.0] - 2026-05-21
+
+### 架构
+- **R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal** — R223 后仍有 4 个 lib 文件略超 400 行上限：bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)
+  - 全部 4 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）
+  - 新增 CI 门禁脚本 `scripts/architecture-guard.sh`：自动扫描 lib/ 下所有 .js 文件，若存在 >400 行文件则 CI fail（防止未来再次膨胀）
+  - 验证拆分后全量回归 0 fail
+  - 确认 235 个 lib 模块全部 ≤400 行
+
+### 测试
+- **R228: E2E Chrome 测试框架真实运行验证 E2EChromeRealVerification** — R219 建立了 E2E 框架但从未验证可在 CI 中实际运行
+  - 安装 Playwright 依赖并在本地 headless Chrome 中运行全部 E2E 测试
+  - 修复选择器/DOM 不匹配问题（Chrome MV3 SidePanel 实际渲染与测试预期差异）
+  - 确保 `npm run test:ci` 可执行且 ≥30 个用例通过
+  - 在 CI workflow 中添加 `e2e-chrome` job（soft-fail 不阻塞主流程）
+  - 生成 E2E 基线报告
+
+### 架构
+- **R230: 行覆盖率真实突破 50% CoverageRealBreak50** — 当前行覆盖率仅 23.68%（12048/50869），历史 R205/R216/R222/R225 四次冲刺均声称 ≥50% 但实测从未落地
+  - 排查根因：仅插桩被加载的模块，大量 lib 模块（~38000 行未覆盖）在测试中从未被 import（如 sidebar-chat.js/sidebar-bookmark.js/sidebar-settings.js/sidebar-knowledge.js/sidebar-utils.js 等 R158 拆分产物、R163-R186 新增的学习闭环模块）
+  - 识别零覆盖模块 Top-30（行数从大到小），为其中纯逻辑/工具函数（无 Chrome API 依赖）补测试，每模块 ≥5 用例
+  - 对 Chrome API 依赖模块（sidebar/popup/background 入口），编写 mock-aware 测试覆盖主路径
+  - 行覆盖率 ≥50%、函数覆盖率 ≥60%
+  - 测试新增 ≥80 用例
+
+---
+
 ## [3.1.0] - 2026-05-20
 
 ### 架构

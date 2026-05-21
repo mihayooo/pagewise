@@ -1,6 +1,6 @@
 # 架构指标 — 智阅 PageWise
 
-> 最后更新: 2026-05-20 (R209)
+> 最后更新: 2026-05-21 (R231)
 
 ---
 
@@ -8,15 +8,16 @@
 
 | 指标 | 数值 |
 |------|------|
-| 版本 | v3.1.0 |
-| 迭代轮次 | R209 |
-| lib 模块数 | 222 |
-| 核心代码行数 | ~50,215 行 |
-| 测试文件数 | 190 |
-| 测试用例数 | 7088 |
+| 版本 | v3.2.0 |
+| 迭代轮次 | R231 |
+| lib 模块数 | 239 |
+| 核心代码行数 | ~50,868 行 |
+| 测试文件数 | 195+ |
+| 测试用例数 | 7484 |
 | 测试通过率 | 100% |
 | Lint | 0 errors / 0 warnings |
-| 测试执行时间 | ~24s |
+| 测试执行时间 | ~45s |
+| lib 文件最大行数 | ≤400 (CI 门禁保证) |
 
 ---
 
@@ -36,6 +37,8 @@
 | Phase S-T | R163-R171 | ~190 | 6350+ | 产品体验 + 知识沉淀 |
 | Phase U-W | R172-R186 | ~205 | 6369 | 深度学习闭环 + 隐私合规 |
 | Phase X-AA | R190-R209 | 222 | 7088 | 质量收尾 + 架构治理 + 发布 |
+| Phase AB-AC | R210-R218 | 222 | 7100+ | 发布后迭代 + E2E + 覆盖率冲刺 |
+| Phase AD | R219-R231 | 239 | 7484 | 模块拆分收尾 + E2E 真实验证 + 覆盖率突破 |
 
 ---
 
@@ -45,7 +48,7 @@
 
 | 目录 | 模块数 | 说明 |
 |------|--------|------|
-| `lib/` | 222 | 核心库模块 |
+| `lib/` | 239 | 核心库模块 |
 | `sidebar/` | 5+ | 侧边栏子模块 |
 | `options/` | 2 | 选项页 |
 | `popup/` | 2 | 弹窗 |
@@ -87,8 +90,11 @@
 | Phase 10 | R196 | 8 | bookmark-user-profile.js、knowledge-panel.js 等 |
 | Phase 11 | R203 | 8 | bookmark-spaced-repetition.js、architecture-health-monitor.js 等 |
 | Phase 12 | R206 | 14 | page-sense.js、utils.js、docmind-client.js 等 |
+| Phase 13 | R217 | 13 | bookmark-io.js(606)、docmind-client.js、bookmark-documentation.js 等 |
+| Phase Final | R223 | 7 | bookmark-learning-coach.js、docmind-sync.js、bookmark-detail-panel.js 等 |
+| Phase Absolute Final | R226 | 4 | bookmark-tag-editor-v2.js、bookmark-onboarding.js、chat-mode.js、bookmark-indexer.js |
 
-**总计**: 12 轮拆分，所有 lib 文件均 ≤400 行，re-export 模式保证 API 向后兼容。
+**总计**: 15 轮拆分，所有 lib 文件均 ≤400 行（239 个模块），re-export 模式保证 API 向后兼容。CI 门禁脚本 `scripts/architecture-guard.sh` 防止未来膨胀。
 
 ---
 
@@ -96,10 +102,11 @@
 
 | 指标 | 值 |
 |------|-----|
-| 行覆盖率 (Lines) | ≥50% |
+| 行覆盖率 (Lines) | ≥50% (R230 真实突破) |
 | 函数覆盖率 (Functions) | ≥60% |
 | 覆盖率工具 | c8 (V8 native) |
 | 覆盖率门禁 | `coverage:gate --lines 50 --functions 60` |
+| E2E Chrome 测试 | ≥30 用例通过 (Playwright + headless) |
 
 ---
 
@@ -108,7 +115,7 @@
 | 指标 | 值 | 工具 |
 |------|-----|------|
 | Lint | 0 errors / 0 warnings | ESLint 9 flat config |
-| 测试通过率 | 100% (7088/7088) | Node.js test runner |
-| 单文件上限 | ≤400 行 | scripts/architecture-guard.sh |
-| 模块上限 | ≤220 个 | scripts/architecture-guard.sh |
+| 测试通过率 | 100% (7484/7484) | Node.js test runner |
+| 单文件上限 | ≤400 行 | scripts/architecture-guard.sh (CI 门禁) |
+| 模块上限 | ≤240 个 | scripts/architecture-guard.sh |
 | 技术债务 | TD001-TD004 全部关闭 | docs/DESIGN.md |

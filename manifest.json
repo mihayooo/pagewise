@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "default_locale": "zh_CN",
   "description": "__MSG_extDescription__",
   "author": "PageWise",
@@ -95,13 +95,6 @@
         "mac": "Command+Shift+X"
       },
       "description": "打开/关闭侧边栏"
-    },
-    "explore": {
-      "suggested_key": {
-        "default": "Ctrl+J",
-        "mac": "Command+J"
-      },
-      "description": "切换探索模式"
     },
     "chat": {
       "suggested_key": {

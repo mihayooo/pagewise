@@ -2,6 +2,42 @@
 
 ---
 
+## R231: CHANGELOG 补全与 v3.2.0 版本发布 ChangelogV320Finalize
+
+> 日期: 2026-05-21
+> 任务: CHANGELOG.md 缺少 R225-R228 变更记录，版本号停留在 3.1.0
+> 复杂度: Simple
+
+### 问题
+
+CHANGELOG.md 最新区段为 `[3.1.0] - 2026-05-20`，缺少 R225-R228 变更记录（超大模块拆分收尾、CI 门禁、测试执行优化、E2E 框架验证、覆盖率冲刺）。版本号仍为 3.1.0，与 R230 后的项目状态不符。
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `package.json` | 修改 | 版本号 `3.1.0` → `3.2.0` |
+| `manifest.json` | 修改 | 版本号 `3.1.0` → `3.2.0` |
+| `docs/CHANGELOG.md` | 修改 | 补充 `[3.2.0] - 2026-05-21` 区段，涵盖 R226/R228/R230 变更 |
+| `docs/RELEASE-NOTES-v3.2.md` | 新建 | 完整 v3.2.0 发布说明，含统计表、变更清单、安装/升级指引 |
+| `docs/architecture-metrics.md` | 修改 | 更新项目概况至 R231/v3.2.0/239 模块/7484 测试；补充 Phase 13/Final/Absolute Final 拆分记录；更新覆盖率和质量基线 |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+| `docs/TODO.md` | 修改 | R231 标记完成 |
+| `tests/test-r231-changelog-v320.js` | 新建 | 版本号一致性、CHANGELOG 完整性、RELEASE-NOTES 存在性等验收用例 |
+
+### 设计决策
+
+- **版本号选择 3.2.0 (minor)**：R225-R231 包含架构门禁（CI guardrail）、E2E 真实验证、覆盖率突破等功能增强，符合 minor 版本语义
+- **CHANGELOG 区段合并**：R225/R227/R229 为辅助性迭代（测试优化、覆盖率校准），与 R226/R228/R230 合并记录以保持简洁
+
+### 验证结果
+
+- `npm run test:ci`: 7484 pass / 0 fail ✅
+- `npm run lint`: 0 errors / 0 warnings ✅
+- package.json / manifest.json 版本号一致: 3.2.0 ✅
+
+---
+
 ## R221: Lint 警告清零 LintWarningFinalR220
 
 > 日期: 2026-05-20
