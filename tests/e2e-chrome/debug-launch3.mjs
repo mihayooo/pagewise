@@ -74,10 +74,10 @@ try {
   console.log('Service workers:', sws.length);
   
   // Try listening for a new service worker
-  let swFound = false;
+  let _swFound = false;
   context.on('serviceworker', (sw) => {
     console.log('Service worker event fired:', sw.url());
-    swFound = true;
+    _swFound = true;
   });
   
   // Navigate to a page to trigger content scripts
