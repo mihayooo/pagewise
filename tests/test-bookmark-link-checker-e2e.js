@@ -186,8 +186,8 @@ describe('BookmarkLinkChecker', () => {
         });
       });
 
-      // 使用最小允许超时 3000ms（BookmarkLinkChecker 内部 Math.max(3000, ...)）
-      const checker = new BookmarkLinkChecker({ timeout: 3000 });
+      // R232: 使用 _minTimeout=100 允许低超时值，避免 3s 真实等待
+      const checker = new BookmarkLinkChecker({ timeout: 100, _minTimeout: 100 });
       const result = await checker.checkOne('https://slow.example.com', 'b5');
 
       assert.equal(result.status, 'dead');
