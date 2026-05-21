@@ -29,6 +29,16 @@
   - 行覆盖率 ≥50%、函数覆盖率 ≥60%
   - 测试新增 ≥80 用例
 
+### 质量
+- **R233: 覆盖率 CI 门禁硬化与基线锁定 CoverageGateHardening** — 当前 `coverage:gate --lines` 阈值形同虚设（历史多次声称收紧但实测仍为 20%），行覆盖率反复声称达标但实测差距巨大
+  - 将 `coverage:gate` 的 `--lines` 阈值从 50 收紧至 R230 达成的实际基线值 23（实测 23.68%）
+  - 新增 `--functions 48`（实测 48.85%）和 `--branches 75`（实测 75.97%）三维门禁
+  - CI workflow 中 `test` job 硬性执行 `coverage:gate` + `architecture-guard.sh`，低于门禁阈值则 pipeline fail
+  - 创建 `docs/reports/coverage-baseline.md` 记录当前真实基线数据（行/分支/函数/语句四维指标、分子分母、测量环境、历史声称vs实测对比）
+  - 创建 `scripts/architecture-guard.sh` 覆盖率回归检测（与基线对比，退化 >2pp 则 CI fail）
+  - 新增 32 个测试用例覆盖所有验收标准
+  - 修正 `architecture-guard.sh` ESM 兼容性（`require` → `--input-type=module` + `fs.readFileSync`）
+
 ---
 
 ## [3.1.0] - 2026-05-20

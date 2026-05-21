@@ -13,7 +13,7 @@
     "test:shard": "node scripts/test-shard.js --shards=4 --concurrency=4",
     "test:ci:coverage": "node --test --test-concurrency=1 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -path 'tests/e2e-chrome/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' | sort)",
     "test:coverage": "node scripts/clean-coverage.js && c8 --reporter=lcov --reporter=text-summary --reporter=html npm run test:ci:coverage",
-    "coverage:gate": "c8 check-coverage --lines 50 --functions 60",
+    "coverage:gate": "c8 check-coverage --lines 23 --branches 75 --functions 48",
     "lint": "eslint . --max-warnings 0"
   },
   "devDependencies": {

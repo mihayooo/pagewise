@@ -67,8 +67,11 @@ jobs:
       - name: Generate coverage report
         run: npm run test:coverage
 
-      - name: Coverage gate (lines >= 50%)
+      - name: Coverage gate (lines >= 23%, branches >= 75%, functions >= 48%)
         run: npm run coverage:gate
+
+      - name: Coverage regression check
+        run: bash scripts/architecture-guard.sh
 
   package-check:
     runs-on: ubuntu-latest

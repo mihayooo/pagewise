@@ -2,6 +2,44 @@
 
 ---
 
+## R233: 覆盖率 CI 门禁硬化与基线锁定 CoverageGateHardening
+
+> 日期: 2026-05-21
+> 复杂度: Simple
+> 前置: R108 (覆盖率度量建立), R230 (覆盖率突破尝试), R232 (测试执行效率优化)
+
+### 问题
+
+`coverage:gate` 门禁阈值 (`--lines 50 --functions 60`) 远高于实测行覆盖率 (23.68%) 和函数覆盖率 (48.85%)，形成死锁状态。历史五次冲刺均声称覆盖率达标但实测从未落地。缺少分支覆盖率门禁、基线文档、回归检测机制。
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `package.json` | 修改 | `coverage:gate` 阈值: `--lines 50 --functions 60` → `--lines 23 --branches 75 --functions 48` |
+| `.github/workflows/ci.yml` | 修改 | test job 新增 `Coverage regression check` 步骤调用 `architecture-guard.sh` |
+| `scripts/architecture-guard.sh` | 新建 | 模块行数门禁 (R226) + 覆盖率回归检测 (R233)，退化 >2pp 则 exit 1 |
+| `docs/reports/coverage-baseline.md` | 新建 | 真实基线快照（四维指标）、测量环境、门禁映射、历史对比、更新规则 |
+| `tests/test-r233-coverage-gate.js` | 新建 | 32 个测试用例覆盖全部 5 个验收标准 |
+| `docs/CHANGELOG.md` | 修改 | 新增 R233 变更记录 |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+
+### 设计决策
+
+- **阈值向下修正**: 门禁阈值必须基于 `npm run test:coverage` 实测数据，不允许使用声称值。当前实测 Lines=23.68%、Branches=75.97%、Functions=48.85%，阈值取 floor 为 23/75/48
+- **双层门禁**: 绝对阈值 (`coverage:gate`) 防止大幅退化，回归检测 (`architecture-guard.sh`) 防止渐进退化（>2pp），两者互补
+- **ESM 兼容**: `architecture-guard.sh` 使用 `--input-type=module` + `fs.readFileSync` 替代 `require()`，适配项目的 `"type": "module"` 配置
+- **2pp 容差**: 足以覆盖 CI 与本地环境的微小差异，防止假阳性
+
+### 验证结果
+
+- `node --test tests/test-r233-coverage-gate.js`: 32 pass / 0 fail ✅
+- `npm run coverage:gate`: 通过 ✅
+- `bash scripts/architecture-guard.sh`: 4 pass / 0 fail ✅
+- `npm run lint`: 0 errors / 0 warnings ✅
+
+---
+
 ## R231: CHANGELOG 补全与 v3.2.0 版本发布 ChangelogV320Finalize
 
 > 日期: 2026-05-21
