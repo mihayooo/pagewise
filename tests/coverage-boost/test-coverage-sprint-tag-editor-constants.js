@@ -7,7 +7,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 const { TECH_KEYWORDS, DOMAIN_TAG_MAP, _extractDomainTag, _extractPathTags, _escapeRegex } =
-  await import('../lib/tag-editor-constants.js');
+  await import('../../lib/tag-editor-constants.js');
 
 // ==================== TECH_KEYWORDS ====================
 

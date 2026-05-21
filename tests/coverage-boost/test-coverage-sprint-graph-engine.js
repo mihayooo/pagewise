@@ -6,7 +6,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { BookmarkGraphEngine } = await import('../lib/bookmark-graph-engine.js');
+const { BookmarkGraphEngine } = await import('../../lib/bookmark-graph-engine.js');
 
 const sampleBookmarks = [
   { id: 'bm1', title: 'React Tutorial Guide', url: 'https://github.com/react-guide', folderPath: ['Frontend', 'React'] },

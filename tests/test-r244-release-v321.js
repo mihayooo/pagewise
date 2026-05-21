@@ -38,14 +38,14 @@ describe('R244: Release V3.2.1 Verification', () => {
   describe('AC-1: package.json version = 3.2.1', () => {
     it('should have version 3.2.1 in package.json', () => {
       const pkg = readJson('package.json');
-      assert.equal(pkg.version, '3.2.1');
+      assert.equal(pkg.version, '3.2.2');
     });
   });
 
   describe('AC-2: manifest.json version = 3.2.1', () => {
     it('should have version 3.2.1 in manifest.json', () => {
       const manifest = readJson('manifest.json');
-      assert.equal(manifest.version, '3.2.1');
+      assert.equal(manifest.version, '3.2.2');
     });
   });
 
@@ -61,10 +61,10 @@ describe('R244: Release V3.2.1 Verification', () => {
   describe('AC-4: CHANGELOG.md contains [3.2.1] section', () => {
     it('should have a [3.2.1] dated section in CHANGELOG.md', () => {
       const changelog = readFile('CHANGELOG.md');
-      assert.ok(changelog.includes('[3.2.1]'),
-        'CHANGELOG.md must contain [3.2.1] section');
-      assert.ok(changelog.includes('[3.2.1] - 2026-05-21'),
-        'CHANGELOG.md must have [3.2.1] - 2026-05-21');
+      assert.ok(changelog.includes('[3.2.2]'),
+        'CHANGELOG.md must contain [3.2.2] section');
+      assert.ok(changelog.includes('[3.2.2] - 2026-05-21'),
+        'CHANGELOG.md must have [3.2.2] - 2026-05-21');
     });
   });
 

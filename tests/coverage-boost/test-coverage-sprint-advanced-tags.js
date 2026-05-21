@@ -6,7 +6,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { AdvancedTagManager } = await import('../lib/bookmark-advanced-tags.js');
+const { AdvancedTagManager } = await import('../../lib/bookmark-advanced-tags.js');
 
 const sampleBookmarks = [
   { id: 'bm1', title: 'React Tutorial', url: 'https://github.com/user/react-guide', tags: ['react', 'javascript', 'tutorial'] },

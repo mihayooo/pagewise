@@ -3,6 +3,17 @@
      3|> 所有重要变更都会记录在此文件。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
      4|
      5|---
+
+## [Unreleased] - 2026-05-21
+
+### 架构
+- **R250: settings-manager.js 模块拆分 SettingsManagerSplit** — R248 新建的 `lib/settings-manager.js` 575 行，违反 ≤400 行限制
+  - 按职责拆分为 4 个模块：`settings-registry.js`（注册/校验/分类）、`settings-storage.js`（读写/导入导出/重置/并发安全）、`settings-events.js`（变更事件/订阅/取消订阅）、`settings-manager.js`（薄编排层 107 行）
+  - 所有公开 API 签名不变确保向后兼容（`createSettingsManager()` 返回接口完全相同）
+  - 子模块可独立使用：`createSettingsRegistry()`、`createSettingsStorage(storage, registry, events)`、`createSettingsEvents()`
+  - 新增 46 个单元测试（3 个测试文件覆盖 registry/events/storage），R248 原有 37 个测试全部通过
+  - 83 个 settings 相关测试全部通过，全量回归 7707 pass（4 个 pre-existing CHANGELOG 失败非本次引入）
+  - `npm run lint` 0 errors / 0 warnings ✅
      6|
 ## [3.2.0] - 2026-05-21
 

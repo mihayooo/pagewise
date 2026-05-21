@@ -11,7 +11,7 @@ const {
   CORRELATION_THRESHOLD, SUGGESTION_THRESHOLD,
   normalizeUrl, normalizeTag, computeUrlMatch, computeTitleSimilarity,
   computeTagOverlap, computeCorrelation,
-} = await import('../lib/bookmark-knowledge-link-scorer.js');
+} = await import('../../lib/bookmark-knowledge-link-scorer.js');
 
 // ==================== Constants ====================
 

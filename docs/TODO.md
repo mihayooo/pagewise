@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R249
+> 迭代轮次: R43 - R254
 > 最后更新: 2026-05-21
 
 ---
@@ -437,7 +437,8 @@
 | E: 发布 | R83-R92 | 4 个 | 60+ |
 | N: 测试冲刺 | R138-R142 | 0 个 | 200+ |
 | O: 测试修复与覆盖率冲刺 | R143-R147 | 0 个 | 100+ |
-| **总计** | **60 轮** | **34 个** | **660+** |
+| AJ: 架构修复与质量深水区 | R250-R254 | 3 个 | 60+ |
+| **总计** | **65 轮** | **37 个** | **720+** |
 
 ---
 
@@ -1027,4 +1028,23 @@
 
 - [x] **R248: 用户设置统一面板 UnifiedSettingsPanel** — 当前设置分散在多个模块（theme/i18n/privacy/onboarding/telemetry/coach-preferences 等），用户难以找到和管理；新建 `lib/settings-manager.js` 统一设置层：(1) 设置聚合：从 15+ 个模块收集所有可配置项（主题、语言、AI 模型选择、自动采集开关、复习提醒频率、教练严格程度、遥测开关、数据生命周期等），统一注册到 SettingsRegistry；(2) 设置分组：按类别（外观/AI/书签/学习/隐私/高级）组织，生成 settings schema 供 UI 消费；(3) 设置导入导出：`exportSettings()` / `importSettings()` JSON 格式，支持跨设备迁移（复用 bookmark-io.js 框架）；(4) 设置变更事件：`onSettingChange(key, callback)` 事件驱动，其他模块可监听设置变化并实时响应；(5) 设置校验：每个设置项附带 validator（类型/范围/枚举），非法值拒绝写入；(6) 设置重置：`resetToDefaults(scope?)` 按类别或全部重置为出厂值；(7) 与 options/options.html 设置页集成：生成设置项配置驱动 UI 渲染；(8) 测试 ≥25 用例。复杂度: Medium
 
-- [ ] **R249: 全量回归与 v3.2.2 发布收尾 ReleaseV322** — R245-R248 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7600 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.2（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.2] - 2026-05-21` 区段，涵盖 R245-R248 变更（覆盖率门禁达标、测试效率优化、知识库智能检索、统一设置面板）；(7) 更新 `docs/reports/coverage-baseline.md`；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+- [x] **R249: 全量回归与 v3.2.2 发布收尾 ReleaseV322** — R245-R248 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7600 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.2（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.2] - 2026-05-21` 区段，涵盖 R245-R248 变更（覆盖率门禁达标、测试效率优化、知识库智能检索、统一设置面板）；(7) 更新 `docs/reports/coverage-baseline.md`；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+
+---
+
+## Phase AJ: 架构修复与质量深水区 (R250-R254) — 5 轮
+
+> 飞轮迭代 R69 起，2026-05-21
+> 现状: 7551+ pass / 0 fail；Lint 0/0；行覆盖率 ~28%（门禁刚好过线）；函数覆盖率 ~50%；settings-manager.js 575 行违反 ≤400 行限制；241 个 lib 模块；E2E Chrome 测试从未在 CI 通过；测试执行 ~38.5s（目标 ≤30s 历经 8 次优化未达标）
+> 目标: 修复 R248 引入的模块尺寸违规、覆盖率真实提升至 ≥33%、E2E Chrome 测试 CI 可运行、测试执行优化至 ≤32s、240+ 模块死代码清理
+> 任务来源优先级: 架构治理 > 覆盖率治理 > E2E 加固 > 性能优化 > 代码质量
+
+- [x] **R250: settings-manager.js 模块拆分 SettingsManagerSplit** — R248 新建的 `lib/settings-manager.js` 当前 575 行，违反历经 12 期模块拆分（R116-R226）建立的 ≤400 行限制；按职责拆分为：(1) `settings-registry.js`（设置注册/校验/分类，~150 行）；(2) `settings-storage.js`（读写/导入导出/重置/并发安全，~120 行）；(3) `settings-events.js`（变更事件/订阅/取消订阅，~50 行）；(4) `settings-manager.js` 保持为薄编排层（re-export + getSchema/getSchemaByCategory，≤150 行）；(5) 保持所有公开 API 签名不变确保向后兼容；(6) 更新 R248 的 37 个测试确保全部通过；(7) 验证 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Medium ✅ (2026-05-21)
+
+- [ ] **R251: 行覆盖率务实提升 33% CoverageSprint33** — 当前行覆盖率 ~28%（~14500/51745），门禁刚好过线；历史 R205-R245 八次冲刺均未达 50%，根因：~37000 行零覆盖模块从未被 import；本轮务实目标 33%（需新增覆盖 ~2600 行）：(1) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-15 零覆盖纯逻辑模块编写测试文件（每模块 ≥5 用例，确保 c8 可插桩——必须通过 `import` 加载目标模块而非仅 mock）；(3) 重点覆盖 R163-R186 学习闭环模块（bookmark-spaced-repetition.js 528 行、bookmark-reading-queue.js、bookmark-learning-coach.js 等大量零覆盖）；(4) 将 `coverage:gate --lines` 从 28 收紧至 30；(5) 目标: 行覆盖率 ≥33%、函数覆盖率 ≥53%；(6) 新增 ≥60 用例。复杂度: Medium
+
+- [ ] **R252: E2E Chrome 测试 CI 可运行 E2EChromeCI** — R211/R219/R220/R228 四次尝试建立 E2E Chrome 测试框架但从未在 CI 中成功运行；`tests/e2e-chrome/` 下 6 个测试文件 + 7 个 debug-launch*.mjs 文件表明调试困难；(1) 清理 7 个 `debug-launch*.mjs` 调试残留文件；(2) 以 `test-sidebar-core.js` 为试点，确保 Playwright + headless Chrome + MV3 扩展加载链路通畅；(3) 将 6 个 E2E 测试文件中的选择器/DOM 断言与实际 SidePanel 渲染对齐；(4) 将不稳定用例标记 `test.skip()` 并记录原因；(5) 确保 `npm run test:e2e` 命令可执行且 ≥20 个用例通过；(6) 在 CI workflow 中添加 `chrome-e2e` job（soft-fail 不阻塞主流程）；(7) 生成 `docs/reports/e2e-baseline.md` 基线报告。复杂度: Complex
+
+- [ ] **R253: 测试执行效率十期 TestExecutionOpt10** — 当前 ~38.5s（7551 用例），目标 ≤32s（差距 6.5s/17%），历史 R135/R152/R198/R202/R227/R232/R237/R242 八次优化均未达标；本轮采用根因隔离策略：(1) 用 `--test-reporter=json --test-concurrency=1` 串行执行识别 Top-10 最慢单文件（>2s）及其具体慢用例；(2) 对慢用例排查同步阻塞根因（循环赋值/大量对象构造/同步 I/O mock），改造为 lazy fixture 或降低数据规模；(3) 将 `tests/coverage-boost/` 子目录下的覆盖率冲刺测试（R245/R251 新增）从 `test:ci` 排除，通过 `test:ci:coverage` 单独执行（避免 import 大量零覆盖模块拖慢主测试流）；(4) `--test-concurrency=16` 维持高并行度；(5) 建立 `test:smoke` 子集 ≤80 用例 <3s 作为 CI 快速门禁；(6) 目标: `npm run test:ci` ≤32s。复杂度: Medium
+
+- [ ] **R254: 241 模块死代码清理与架构瘦身 DeadCodeCleanup** — 当前 241 个 lib 模块（51745 行），多期迭代积累后存在功能重叠和死代码：(1) 利用 R107/R183 健康检查框架，扫描所有 lib 模块导出函数，识别从未被其他模块 import 的"孤立导出"；(2) 基于 R183 识别的重叠模块对（bookmark-dedup vs bookmark-duplicate-detector、bookmark-io vs bookmark-import-export 等），评估 R207 合并是否彻底，标记仍存在的冗余；(3) 对 241 个模块按引用计数排序，输出 Bottom-20 最低引用模块清单，判断是否可安全移除或合并；(4) 执行 Top-5 重叠/冗余模块的实际合并（re-export wrapper → 直接 re-export 被合并模块），减少模块总数 ≥5 个；(5) 新增 CI 门禁脚本：模块总数上限 245、孤立导出警告；(6) 更新 `docs/architecture-metrics.md`；(7) 验证 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Medium

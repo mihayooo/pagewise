@@ -1,225 +1,159 @@
-# 需求文档 — Iteration 22: 交叉引用自动生成
+# 需求文档 — 飞轮迭代 R22
 
-> 需求编号: R032
-> 优先级: P1
-> 迭代: R22
-> 飞轮阶段: L1.3 (Level 1 — 交叉引用 `[[wikilinks]]`)
-> 日期: 2026-04-30
-> 负责: Plan Agent
+> 日期: 2026-05-21
+> 迭代: R250
+> 作者: Plan Agent
+> 任务: **R250: settings-manager.js 模块拆分 SettingsManagerSplit**
 
 ---
 
-## 一、背景与动机
+## R250: settings-manager.js 模块拆分 SettingsManagerSplit
 
-### 战略定位
+### 1. 用户故事
 
-本需求是 LLM Wiki 知识编译系统 Level 1 的第三步。L1.1 实现了将 Q&A 条目导出为结构化 Markdown 文件，L1.2 实现了实体/概念自动提取。在此基础上，L1.3 将孤立的页面编织成**知识网络**——通过 `[[wikilinks]]` 语法在页面间建立交叉引用，使导出的 Wiki 从"文件集合"进化为"可导航的知识图谱"。
-
-`[[wikilinks]]` 是 Obsidian、Logseq、TiddlyWiki 等知识管理工具的核心原语。在 Karpathy 的 LLM Wiki 模式中，交叉引用同样是让知识"活起来"的关键——它让 LLM 能沿链接路径推理，而非仅在单个页面上做 RAG 检索。
-
-### 问题陈述
-
-| 问题 | 影响 | 用户场景 |
-|------|------|----------|
-| L1.1 导出的条目页面之间无任何关联 | 200 个 .md 文件平铺在目录中，缺乏导航路径 | "我浏览 Docker 页面时，想知道哪些条目也提到了 Docker" |
-| L1.2 生成的实体页只有相对路径指向 entries/，没有 `[[wikilinks]]` | 实体页无法被 Obsidian 等工具识别为双向链接 | "我用 Obsidian 打开导出目录，图谱视图里全是孤立节点" |
-| 同标签的条目之间无法快速跳转 | 用户只能通过 index.md 按标签线性浏览 | "我想从一个 React 条目直接跳到其他 React 相关条目" |
-| 存在孤立页面（没有任何出站链接） | 知识网络不完整，LLM 推理链断裂 | "Claude Code 读取 Wiki 时，某些页面像死胡同" |
-
-### 与已有功能的关系
-
-| 功能 | L1.3 如何利用 |
-|------|---------------|
-| L1.1 导出的 `.md` 文件 | 作为交叉引用的注入目标 |
-| L1.1 的 `index.md` | L1.3 不修改 index.md 结构，但会在其中新增交叉引用统计 |
-| L1.2 实体提取结果 | 实体是建立跨页面链接的**核心数据源**——两个条目提及同一实体即建立链接 |
-| L1.2 概念提取结果 | 同上，概念也作为链接依据 |
-| L1.2 的 `entities/` 和 `concepts/` 目录 | 实体/概念页面同样注入 `[[wikilinks]]`，形成双向导航 |
-| `KnowledgeBase` 标签索引 | 同标签关联的备用链接源 |
+作为 **PageWise 扩展的开发者**，我希望将 R248 新建的 `settings-manager.js`（575 行）按职责拆分为多个 ≤400 行的小模块，使代码符合历经 12 期迭代（R116-R226）建立的模块尺寸约束，同时保持所有公开 API 签名不变，确保下游消费者零感知。
 
 ---
 
-## 二、用户故事
+### 2. 现状分析
 
-### US-1: 开发者浏览导出的 Wiki 时可通过链接导航
+#### 2.1 违规现状
 
-> 作为一名技术开发者，我希望导出的 Wiki 中每个页面都包含 `[[wikilinks]]`，这样我在 Obsidian 打开时可以看到页面之间的关系图，也能通过链接从一个知识点跳转到相关知识点。
+| 文件 | 行数 | 限制 | 差距 | 状态 |
+|------|------|------|------|------|
+| `lib/settings-manager.js` | **575** | ≤ 400 | +175 | ❌ 违规 |
+| `lib/page-sense.js`（次大） | 400 | ≤ 400 | 0 | ✅ 刚好合规 |
 
-### US-2: LLM 沿链接路径进行深度推理
+`settings-manager.js` 是当前 `lib/` 目录中**唯一**超过 400 行限制的文件。
 
-> 作为一名使用 Claude Code 读取 Wiki 的开发者，我希望页面之间的交叉引用能让 LLM 沿链接路径推理（如：React Hooks → React Fiber → Virtual DOM），而不只是孤立地回答单个页面的问题。
+#### 2.2 当前模块结构（575 行内部分区）
 
----
+| 区域 | 行范围 | 行数（约） | 职责 | 拆分目标 |
+|------|--------|-----------|------|---------|
+| 常量 + 类型定义 | 23-49 | ~27 | `STORAGE_KEY`、`SETTING_TYPES`、`SETTING_CATEGORIES`、`SENSITIVE_KEYS` | `settings-registry.js` |
+| 内置设置定义 `BUILTIN_SETTINGS` | 53-273 | ~220 | 15+ 内置设置项声明（含 validator、options、default） | `settings-registry.js` |
+| 工厂函数：内部方法 | 275-361 | ~87 | `_load`/`_save`/`_enqueue`/`_getDefaults`/`_validate`/`_emit` | 按职责分配到 storage/events/registry |
+| 工厂函数：API | 364-559 | ~195 | `get`/`set`/`getAll`/`getSchema`/`getSchemaByCategory`/`onSettingChange`/`exportSettings`/`importSettings`/`resetToDefaults`/`registerSetting`/`getRegisteredKeys` | 各模块内部实现，manager re-export |
+| JSDoc `@typedef` | 562-575 | ~14 | `SettingsManagerAPI` 类型定义 | `settings-manager.js`（编排层） |
 
-## 三、验收标准
+#### 2.3 下游消费情况
 
-### AC-1: 基于实体匹配的跨条目链接
-
-- [ ] 如果两个 Q&A 条目（entries/）的 L1.2 实体提取结果中有相同实体，在两个条目的 Markdown 文件中互相插入 `[[实体名]]` 链接
-- [ ] 链接插入位置：在正文末尾、YAML frontmatter 之前新增 `## 相关主题` 章节，格式为：
-  ```markdown
-  ## 相关主题
-
-  - [[Docker]] — 容器化平台
-  - [[Kubernetes]] — 容器编排
-  ```
-- [ ] 链接指向实体页文件（Obsidian 会自动解析 `[[实体名]]` 为同名文件）
-- [ ] 如果条目已有关联实体（来自 L1.2 的 `relatedEntryIds`），直接使用该关联关系，不重复计算
-- [ ] 条目之间通过共享实体的关联关系自动建立双向链接：条目 A 和条目 B 都关联实体 X → 条目 A 的 "相关主题" 中包含 `[[条目B标题]]`，反之亦然
-
-### AC-2: 基于标签关联的辅助链接
-
-- [ ] 如果两个条目共享至少 1 个标签，且通过 AC-1 尚未建立链接，则在两个条目中互相添加基于标签的链接
-- [ ] 标签链接格式与实体链接相同，插入到 `## 相关主题` 章节
-- [ ] 标签链接最多引用 3 个同标签条目（按 `updatedAt` 倒序取最近的 3 个），避免页面被过多标签链接淹没
-- [ ] 条目通过标签关联的链接总数（含 AC-1 实体链接）不超过 10 个
-
-### AC-3: 实体/概念页面的交叉引用
-
-- [ ] `entities/*.md` 页面的 "相关问答" 章节使用 `[[条目标题]]` 格式而非相对路径
-- [ ] `entities/*.md` 页面的 "关联实体" 章节使用 `[[实体名]]` 格式（L1.2 已部分实现，L1.3 需确保一致性）
-- [ ] `concepts/*.md` 页面的 "相关问答" 章节同样使用 `[[条目标题]]` 格式
-- [ ] 实体页之间：如果两个实体同时出现在 ≥ 2 个条目中，在两个实体页面中互相添加 `[[关联实体名]]` 链接
-
-### AC-4: 孤立页面自动补链
-
-- [ ] 导出完成后，检查每个条目页面的 `## 相关主题` 章节中的链接数量
-- [ ] 出站链接（`[[...]]` 数量）< 2 的条目定义为"孤立页面"
-- [ ] 孤立页面自动补链策略（按优先级递减）：
-  1. 从同一分类（category）中随机选择 1-2 个条目添加链接
-  2. 若同分类无其他条目，从全局最近条目中选择
-- [ ] 补链的条目标记 `related: auto` YAML 字段，区分于 AI 提取的关联
-- [ ] 补链后所有条目页面至少有 2 个出站 `[[wikilinks]]`
-
-### AC-5: 集成到导出流程
-
-- [ ] 交叉引用作为 wiki 导出流程的**最后一步**执行：先完成 L1.1 文件写出和 L1.2 实体提取，再运行交叉引用生成
-- [ ] 交叉引用结果回写到已写出的 `.md` 文件中（读取文件 → 注入链接 → 重新写入）
-- [ ] 导出进度条中新增"正在建立交叉引用…"阶段，显示当前进度
-- [ ] `index.md` 末尾新增交叉引用统计信息：
-  ```
-  > 交叉引用: X 条双向链接 | Y 个孤立页面已补链
-  ```
-- [ ] 现有的 L1.1 和 L1.2 导出功能不受影响
+- `lib/` 内部：**无其他模块** import `settings-manager.js`（R248 新建，尚未被广泛引用）
+- `tests/test-settings-manager.js`：**114 条断言**，import 路径 `../lib/settings-manager.js`
+- `options/` 页面：暂未发现直接 import（通过 `createSettingsManager` 工厂注入）
 
 ---
 
-## 四、技术约束
+### 3. 验收标准
 
-### TC-1: 纯算法实现，不引入 AI 调用
-
-- 交叉引用完全基于 L1.2 已提取的实体/概念数据和标签数据，通过确定性算法完成
-- **不**需要额外的 AI API 调用（与 L1.2 不同）
-- 匹配算法基于：实体名称精确匹配（大小写不敏感）+ 标签交集计算
-- 不引入 NLP/语义相似度计算库
-
-### TC-2: 不引入外部依赖
-
-- 所有逻辑使用纯 JavaScript 实现
-- `[[wikilinks]]` 格式是纯文本约定，不需要 Markdown AST 解析器
-- 文件读写复用 L1.1 的 File System Access API (`FileSystemDirectoryHandle`)
-
-### TC-3: 内存与性能
-
-- 交叉引用需要在内存中维护全局实体→条目倒排索引（Map<entityNameLower, Set<entryId>>）
-- 每个条目的元数据（标题、标签、实体列表）约 500 bytes，1000 条 ≈ 500KB，可接受
-- 链接注入采用"收集→计算→回写"三阶段流水线，避免多次文件 I/O
-- 1000 条知识库的交叉引用计算目标 < 3 秒
-- 文件回写耗时包含在 L1.1 的整体导出时间内
-
-### TC-4: `[[wikilinks]]` 格式规范
-
-- 链接语法：`[[页面标题]]`（Obsidian 标准 wikilink 语法）
-- 如果页面标题包含 `|` 或 `#`，使用 `[[文件名|显示标题]]` 语法
-- 链接目标为条目标题（而非文件名），因为 Obsidian 会自动将 `[[标题]]` 解析为同名 `.md` 文件
-- **关键约束**：L1.1 导出的文件名是标题的清理版本，但 `[[wikilinks]]` 使用原始标题——Obsidian 的链接解析基于文件标题（frontmatter 中的 title 字段），这要求 frontmatter 中的 title 与 `[[wikilinks]]` 中的名称一致
-
-### TC-5: 数据依赖
-
-交叉引用计算依赖以下数据（全部来自 L1.1 + L1.2 已产出的数据）：
-
-| 数据 | 来源 | 用途 |
-|------|------|------|
-| 条目 ID → 标题映射 | L1.1 导出时收集 | `[[wikilinks]]` 中的链接目标 |
-| 条目 ID → 标签映射 | L1.1 导出时收集 | 标签关联计算 |
-| 条目 ID → 分类映射 | L1.1 导出时收集 | 孤立页面补链 |
-| 条目 ID → 实体列表 | L1.2 提取结果 | 实体匹配计算 |
-| 实体名 → 关联条目 ID 列表 | L1.2 提取结果 | 反向索引 |
-| 概念名 → 关联条目 ID 列表 | L1.2 提取结果 | 概念页面链接 |
-
-### TC-6: 文件回写策略
-
-- 读取已写出的 `.md` 文件 → 在正文末尾追加 `## 相关主题` 章节 → 重新写入文件
-- 如果文件已存在 `## 相关主题` 章节（如增量导出时），替换该章节内容而非追加
-- 回写使用 `FileSystemWritableFileStream`，`{ mode: 'truncate' }` 模式覆盖整个文件
-- 实体/概念页面的回写：将相对路径替换为 `[[wikilinks]]` 格式
+| # | 验收条件 | 验证方式 | 优先级 |
+|---|---------|---------|--------|
+| **AC-1** | 新模块 `lib/settings-registry.js` 行数 **≤ 200**，`lib/settings-storage.js` 行数 **≤ 150**，`lib/settings-events.js` 行数 **≤ 80** | `wc -l lib/settings-*.js` | P0 |
+| **AC-2** | `lib/settings-manager.js` 行数 **≤ 150**（薄编排层 + re-export） | `wc -l lib/settings-manager.js` | P0 |
+| **AC-3** | `lib/` 目录下**所有**文件 ≤ 400 行（Module Size Guard 无违规） | CI 中的 Module Size Guard 检查 pass | P0 |
+| **AC-4** | `npm run test:ci` 输出 **0 fail**，R248 的 37 个测试用例**全部通过**，pass 数量不减少 | 命令行运行，exit code 0 | P0 |
+| **AC-5** | 所有公开 API 签名**完全不变**：`createSettingsManager(storage)` 返回的对象包含 `get`/`set`/`getAll`/`getSchema`/`getSchemaByCategory`/`onSettingChange`/`exportSettings`/`importSettings`/`resetToDefaults`/`registerSetting`/`getRegisteredKeys` — 参数类型、返回值类型、行为语义均不变 | 现有测试全部通过 + 手动 API diff 审查 | P0 |
+| **AC-6** | `npm run lint` 输出 **0 errors, 0 warnings** | 命令行运行，exit code 0 | P0 |
+| **AC-7** | `npm run coverage:gate` 三项门禁通过（lines ≥28% / functions ≥50% / branches ≥75%），拆分不得导致覆盖率下降 | 命令行运行 | P1 |
 
 ---
 
-## 五、依赖关系
+### 4. 技术约束
 
-| 依赖 | 类型 | 说明 |
-|------|------|------|
-| L1.1 (R030) Wiki 导出 | **强依赖** | 交叉引用作用于 L1.1 导出的 `.md` 文件上，依赖其文件结构（frontmatter + 正文） |
-| L1.2 (R031) 实体提取 | **强依赖** | 交叉引用的核心数据来源——实体和概念的提取结果 |
-| `lib/entity-extractor.js` | 代码依赖 | 复用 `sanitizeFilename()`、`ENTITY_TYPES` 等工具函数 |
-| File System Access API | 运行时依赖 | 文件读写（与 L1.1 共用） |
-| `KnowledgeBase.getAggregations()` | 数据依赖 | 获取标签/分类统计，用于标签关联和孤立页面补链 |
-| `KnowledgeBase.getAllEntries()` | 数据依赖 | 读取全部条目，构建交叉引用索引 |
+| 约束 | 说明 |
+|------|------|
+| **≤ 400 行硬限** | 每个 `lib/` 模块 ≤ 400 行（含注释和空行），这是 R116-R226 共 12 期迭代确立的架构约束 |
+| **纯 ES Module** | 新拆分模块保持 `export` / `import` 语法，不引入 CommonJS |
+| **零外部依赖** | `settings-registry.js`、`settings-storage.js`、`settings-events.js` 仅依赖 Node.js 原生 API，不引入第三方包 |
+| **依赖注入** | `storage` 接口继续通过工厂参数注入，不直接引用 `chrome.storage` |
+| **内部模块不对外暴露** | `settings-storage.js` 和 `settings-events.js` 由 `settings-manager.js` 内部 import，外部消费者只通过 `settings-manager.js` 的 `createSettingsManager()` 入口使用 |
+| **常量统一出口** | `SETTING_TYPES` 和 `SETTING_CATEGORIES` 从 `settings-registry.js` 定义、`settings-manager.js` re-export，确保 `import { SETTING_TYPES } from '../lib/settings-manager.js'` 继续可用 |
+| **测试 import 路径不变** | 测试文件仍然 `import('../lib/settings-manager.js')`，无需修改 import 路径 |
+| **JSDoc 完整** | 每个新模块头部保留功能说明 + 设计约束注释 |
 
-### 依赖链
+---
+
+### 5. 拆分方案
+
+#### 5.1 模块职责划分
 
 ```
-L1.1 文件导出 → L1.2 实体/概念提取 → L1.3 交叉引用注入 (本需求)
+settings-registry.js    ← 设置注册/校验/分类/内置定义（~180 行）
+  ├─ SETTING_TYPES, SETTING_CATEGORIES, SENSITIVE_KEYS, SUPPORTED_LOCALES
+  ├─ BUILTIN_SETTINGS[]
+  ├─ createRegistry() → { register(), get(), getAll(), validate(), getDefaults() }
+  └─ 内置定义自动注册
+
+settings-storage.js     ← 存储读写/导入导出/重置/并发安全（~130 行）
+  ├─ STORAGE_KEY
+  ├─ createStorageAdapter(storage, registry, emit) → { load(), save(), enqueue(), exportSettings(), importSettings(), resetToDefaults() }
+  └─ 串行化写队列 (_writeQueue)
+
+settings-events.js      ← 变更事件/订阅/取消订阅（~50 行）
+  ├─ createEventBus() → { emit(), on(), off() }
+  └─ Map<string, Set<Function>> 监听器管理
+
+settings-manager.js     ← 薄编排层（~130 行）
+  ├─ re-export: SETTING_TYPES, SETTING_CATEGORIES, createSettingsManager
+  ├─ createSettingsManager(storage) 内部组合 registry + storage + events
+  ├─ getSchema() / getSchemaByCategory()
+  └─ SettingsManagerAPI @typedef
 ```
 
-L1.3 必须在 L1.1 和 L1.2 完成之后执行，属于导出流程的最后一步。
+#### 5.2 依赖关系图
+
+```
+settings-manager.js (编排层, 入口)
+  ├── import settings-registry.js  (注册/校验/定义)
+  ├── import settings-storage.js   (持久化/IO)
+  └── import settings-events.js    (事件总线)
+```
+
+三叶子模块之间**无交叉依赖**，仅通过编排层 `settings-manager.js` 组合。
 
 ---
 
-## 六、不在范围内 (Out of Scope)
+### 6. 依赖关系
 
-| 项目 | 原因 | 归属 |
+| 依赖 | 方向 | 说明 |
 |------|------|------|
-| L1.4 Git 集成 | 与交叉引用无关，独立迭代 | L1.4 |
-| L2.2 知识关联增强（实体共现、概念层次） | 需要 IndexedDB schema 扩展，复杂度高 | L2.2 |
-| L3.1 Wiki 浏览模式（侧边栏中 `[[wikilinks]]` 点击跳转） | 需要 UI 层支持，属于 Level 3 | L3.1 |
-| L3.2 知识图谱可视化增强（节点类型区分） | 属于图谱增强，不属于导出层 | L3.2 |
-| 语义相似度链接（基于 embedding 余弦相似度） | 引入 AI/ML 复杂度，当前用精确匹配即可覆盖 | 后续迭代可选 |
-| 导入时验证 `[[wikilinks]]` 有效性 | Lint 工具范畴 | L3.5 |
-| 双向链接的双向性验证 | Obsidian 原生支持，不需要额外验证 | 无需 |
-| Markdown AST 解析（正则不够精确的极端情况） | 当前内容结构可控（L1.1 生成），不存在嵌套/转义问题 | 后续按需 |
+| **R248** UnifiedSettingsPanel | **前置（必须已完成）** | 提供原始 `settings-manager.js` 代码 + 37 个测试用例，本任务在此基础上拆分 |
+| **R116-R226** 模块拆分系列 | **架构约束来源** | 建立了 ≤400 行的 Module Size Guard 规则和 CI 门禁 |
+| **R243** CoverageGateAlign | **间接依赖** | 覆盖率门禁阈值定义（lines ≥28% / functions ≥50% / branches ≥75%），拆分不得导致覆盖率下降 |
+| **Module Size Guard** CI 检查 | **已存在** | CI 中自动校验 `lib/` 下所有文件 ≤ 400 行，本任务拆分后需通过此检查 |
+| `tests/test-settings-manager.js` | **需验证** | R248 的 37 个测试用例必须原样通过（或仅修改 import 路径），验证拆分后行为不变 |
 
 ---
 
-## 七、风险与缓解
+### 7. 风险与缓解
 
-| 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|----------|
-| 文件回写时 File System Access API 流权限丢失 | 低 | 高 | 重新获取 `getFileHandle()` + `createWritable()`；与 L1.1 使用相同的权限获取逻辑 |
-| 条目标题含特殊字符导致 `[[wikilinks]]` 无法被 Obsidian 解析 | 低 | 中 | 标题中的 `[` `]` `#` `|` 在 wikilink 中进行转义；或使用 `[[文件名\|显示标题]]` 语法 |
-| 增量导出时新条目的实体尚未被 L1.2 提取 | 低 | 中 | L1.3 仅处理 L1.2 已提取实体的条目；未提取的条目降级为仅标签关联 |
-| 大量条目（1000+）的交叉引用回写导致导出时间显著增加 | 中 | 中 | 批量回写（每次处理 50 个文件后 yield 让出主线程）；进度条显示阶段 |
-| 同标签条目过多导致 `## 相关主题` 过长 | 低 | 低 | AC-2 中限制标签链接 ≤ 3 个，总链接 ≤ 10 个 |
-| Obsidian 和 Logseq 对 `[[wikilinks]]` 解析行为差异 | 低 | 低 | 使用最基础的 `[[标题]]` 语法，两者均支持；避免使用 Obsidian 特有的别名语法 |
+| 风险 | 可能性 | 影响 | 缓解措施 |
+|------|--------|------|---------|
+| 拆分后闭包状态共享出错 | 中 | AC-5 行为不一致 | `_registry`/`_listeners`/`_cache`/`_writeQueue` 的生命周期由编排层 `createSettingsManager()` 统一管理，通过参数注入子模块，不使用模块级全局变量 |
+| 测试 import 路径断裂 | 低 | AC-4 测试失败 | 保持 `settings-manager.js` re-export 所有公开符号，测试文件无需修改 import |
+| 覆盖率下降（新增模块行数未被测试覆盖） | 低 | AC-7 门禁失败 | 新模块仅为拆分重组，不新增逻辑分支；现有 37 个测试已覆盖全部 API |
+| `BUILTIN_SETTINGS` 拆入 registry 后循环引用 | 低 | 运行时错误 | 确保 `settings-events.js` 不 import `settings-registry.js`，三叶子模块之间无交叉依赖 |
 
 ---
 
-## 八、成功指标
+### 8. 成功指标
 
-| 指标 | 目标 | 衡量方式 |
-|------|------|----------|
-| 链接覆盖率 | 100% 条目页面至少有 2 个出站 `[[wikilinks]]` | 自动化测试：导出 → 遍历所有 .md 文件 → 统计 `[[` 出现次数 |
-| 链接正确性 | 100% `[[wikilinks]]` 指向实际存在的页面标题 | 自动化测试：收集所有 `[[...]]` → 验证目标标题在 frontmatter 中存在 |
-| 双向链接一致性 | A 页面链接到 B → B 页面也链接到 A | 自动化测试：构建链接图 → 检查对称性 |
-| 性能 | 1000 条知识库的交叉引用计算 < 3 秒，文件回写 < 5 秒 | 性能测试 |
-| 向后兼容 | L1.1/L1.2 导出功能零回归 | 回归测试 |
-| Obsidian 兼容性 | 导出的 Wiki 在 Obsidian 打开后，图谱视图正确显示链接关系 | 手动验证 |
+| 指标 | 目标值 | 验证命令 |
+|------|--------|---------|
+| `settings-registry.js` 行数 | **≤ 200** | `wc -l lib/settings-registry.js` |
+| `settings-storage.js` 行数 | **≤ 150** | `wc -l lib/settings-storage.js` |
+| `settings-events.js` 行数 | **≤ 80** | `wc -l lib/settings-events.js` |
+| `settings-manager.js` 行数 | **≤ 150** | `wc -l lib/settings-manager.js` |
+| lib/ 最大文件行数 | **≤ 400** | `wc -l lib/*.js \| sort -rn \| head -5` |
+| 测试通过数 | **≥ 现有值**（不减少） | `npm run test:ci 2>&1 \| grep "# pass"` |
+| 测试失败数 | **0** | `npm run test:ci 2>&1 \| grep "# fail"` |
+| Lint 结果 | **0 errors / 0 warnings** | `npm run lint` |
+| 覆盖率门禁 | **三项通过** | `npm run coverage:gate` |
 
 ---
 
-## 变更记录
+### 变更记录
 
-| 日期 | 变更内容 |
-|------|----------|
-| 2026-04-30 | 初始化 L1.3 需求文档 |
+| 日期 | 变更 |
+|------|------|
+| 2026-05-21 | 初始版本，基于 R248 完成后的 settings-manager.js 575 行违规拆分需求 |

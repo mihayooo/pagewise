@@ -6,7 +6,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-const mod = await import('../lib/bookmark-search-history.js');
+const mod = await import('../../lib/bookmark-search-history.js');
 const { recordSearch, getSearchHistory, getPopularSearches, getSuggestions, clearHistory } = mod;
 
 beforeEach(() => { clearHistory(); });
