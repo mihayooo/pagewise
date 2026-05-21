@@ -6,6 +6,15 @@
      6|
 ## [3.2.0] - 2026-05-21
 
+### 体验
+- **R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt** — R81 onboarding + R212 telemetry 首次真实场景验证
+  - 修复 `pagewise_install_date` 从未写入的关键缺陷（service-worker `onInstalled` 现在记录安装时间戳）
+  - 扩展 onboarding i18n：zh-CN.json/en-US.json 新增 20+ key（4 步引导标题/描述、功能介绍、隐私说明、示例问题）
+  - 新增 `lib/first-run.js` 集成模块桥接 onboarding → telemetry → feedback 全链路
+  - 定义 10 个核心遥测采集点常量（`TELEMETRY_FEATURES`）及覆盖验证 API
+  - 新增 `getLocalizedStepConfig()` 支持 i18n 函数注入
+  - 34 个集成测试覆盖全链路：触发时机、采集点、NPS 计时、locale、端到端
+
 ### 架构
 - **R226: 超大模块拆分最终收尾 ModuleSplitAbsoluteFinal** — R223 后仍有 4 个 lib 文件略超 400 行上限：bookmark-tag-editor-v2.js(412)、bookmark-onboarding.js(406)、chat-mode.js(403)、bookmark-indexer.js(401)
   - 全部 4 个文件拆分至 ≤400 行，保持 API 向后兼容（re-export 模式）

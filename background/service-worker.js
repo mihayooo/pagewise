@@ -20,7 +20,7 @@ self.addEventListener('unhandledrejection', function (event) {
 // ==================== 初始化 ====================
 
 // 原有菜单项
-PW.runtime.onInstalled.addListener(() => {
+PW.runtime.onInstalled.addListener((details) => {
   createContextMenu({
     id: 'askAI',
     title: '用 智阅 提问',
@@ -36,7 +36,20 @@ PW.runtime.onInstalled.addListener(() => {
   // 注册增强右键菜单项（KIMI-P0-006: QuickActionMenu）
   contextMenuManager.registerMenus();
 
-  logInfo('service-worker', '扩展已安装/更新');
+  // R238: 记录首次安装时间戳（用于 feedback-collector NPS 7 天触发）
+  if (details.reason === 'install') {
+    try {
+      PW.storage.local.set({
+        pagewise_install_date: Date.now(),
+        onboardingCompleted: false,
+      });
+      logInfo('service-worker', '首次安装：已记录安装时间戳和 onboarding 状态');
+    } catch (e) {
+      logError('service-worker', '记录安装时间戳失败', { error: e.message });
+    }
+  }
+
+  logInfo('service-worker', '扩展已安装/更新', { reason: details.reason });
 });
 
 // ==================== 增强右键菜单 (KIMI-P0-006) ====================

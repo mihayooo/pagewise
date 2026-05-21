@@ -278,7 +278,46 @@
   "onboarding": {
     "skip": "Skip",
     "next": "Next",
-    "welcome": "Welcome"
+    "back": "Back",
+    "finish": "Finish",
+    "welcome": "Welcome",
+    "progress": "Step {{current}} of {{total}}",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to PageWise!",
+        "description": "Thanks for installing PageWise! It's an intelligent tech knowledge assistant that helps you ask AI questions instantly while browsing and automatically archives answers to your knowledge base."
+      },
+      "config": {
+        "title": "Configure API",
+        "description": "First, let's configure your AI provider. Choose a provider, enter your API Key, and test the connection."
+      },
+      "testConnection": {
+        "title": "Test Connection",
+        "description": "Let's verify your API connection works. Click the button below to test the API you just configured."
+      },
+      "firstQuestion": {
+        "title": "Try It Out",
+        "description": "Now try sending your first message! Type a question in the input box below, or click a quick action button to get started."
+      }
+    },
+    "features": {
+      "askAI": "Ask on Selection — Select text on any webpage and ask AI directly",
+      "knowledgeBase": "Knowledge Base — AI answers are automatically archived for future reference",
+      "bookmarkGraph": "Bookmark Graph — Transform your browser bookmarks into a knowledge network",
+      "search": "Smart Search — Unified search across knowledge base and bookmarks"
+    },
+    "privacy": {
+      "title": "Privacy Notice",
+      "description": "All data is stored locally on your device and never uploaded to any server. You can disable telemetry data collection anytime in settings."
+    },
+    "sampleQuestions": {
+      "title": "Try These Questions",
+      "websocket": "What is WebSocket? How does it differ from HTTP?",
+      "react": "How does React's useEffect lifecycle work?",
+      "sql": "How can I optimize SQL query performance?",
+      "rag": "What is RAG (Retrieval-Augmented Generation)?",
+      "eventLoop": "How does the JavaScript event loop work?"
+    }
   },
 
   "bookmarkOnboarding": {

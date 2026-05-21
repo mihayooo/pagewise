@@ -278,7 +278,46 @@
   "onboarding": {
     "skip": "跳过",
     "next": "下一步",
-    "welcome": "欢迎"
+    "back": "上一步",
+    "finish": "完成",
+    "welcome": "欢迎",
+    "progress": "第 {{current}} 步，共 {{total}} 步",
+    "steps": {
+      "welcome": {
+        "title": "欢迎使用智阅 PageWise！",
+        "description": "感谢安装智阅 PageWise！这是一个智能技术知识助手，帮助你在浏览网页时即时向 AI 提问，并自动整理成知识库。"
+      },
+      "config": {
+        "title": "配置 API",
+        "description": "首先，让我们配置 AI 服务商。选择一个提供商，填写你的 API Key，然后测试连接是否正常。"
+      },
+      "testConnection": {
+        "title": "测试连接",
+        "description": "让我们验证 API 连接是否正常。点击下方按钮测试你刚才配置的 API。"
+      },
+      "firstQuestion": {
+        "title": "试用功能",
+        "description": "现在试试发送你的第一条消息吧！在下方输入框中输入问题，或点击快捷按钮开始体验。"
+      }
+    },
+    "features": {
+      "askAI": "选中即问 — 在任意网页上选中文字，直接向 AI 提问",
+      "knowledgeBase": "知识库 — AI 回答自动归档，随时回顾",
+      "bookmarkGraph": "书签图谱 — 将浏览器书签转化为知识网络",
+      "search": "智能搜索 — 跨知识库和书签的统一搜索"
+    },
+    "privacy": {
+      "title": "隐私说明",
+      "description": "所有数据仅存储在本地设备上，不会上传到任何服务器。你可以在设置中随时关闭遥测数据采集。"
+    },
+    "sampleQuestions": {
+      "title": "试试这些问题",
+      "websocket": "什么是 WebSocket？它和 HTTP 有什么区别？",
+      "react": "解释一下 React 的 useEffect 生命周期是如何工作的？",
+      "sql": "如何优化 SQL 查询性能？",
+      "rag": "什么是 RAG（检索增强生成）？",
+      "eventLoop": "解释 JavaScript 中的事件循环机制是如何运行的？"
+    }
   },
 
   "bookmarkOnboarding": {

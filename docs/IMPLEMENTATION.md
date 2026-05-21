@@ -2,6 +2,55 @@
 
 ---
 
+## R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt
+
+> 日期: 2026-05-21
+> 复杂度: Medium
+> 前置: R81 (BookmarkOnboarding), R212 (PostLaunchTelemetry)
+
+### 问题
+
+R81 onboarding 和 R212 telemetry/feedback-collector 已实现但从未在真实用户场景中验证，存在以下缺陷:
+1. **安装时间戳缺失**: `pagewise_install_date` 从未被写入 — feedback-collector 读取它但 service worker 的 `onInstalled` 不记录
+2. **Telemetry 未集成**: telemetry.js 存在但未被 sidebar/background/popup/options 导入使用
+3. **Feedback-collector 未集成**: feedback-collector.js 存在但未被任何 UI 代码导入
+4. **Onboarding locale 不完整**: 步骤文案硬编码在 onboarding.js 中，zh-CN.json/en-US.json 仅有 3 个基础 key（skip/next/welcome）
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `background/service-worker.js` | 修改 | `onInstalled` 增加 `install` reason 检查，写入 `pagewise_install_date` 和 `onboardingCompleted: false` |
+| `lib/onboarding.js` | 修改 | 新增 i18n 支持：`ONBOARDING_STEP_I18N` key 映射、`ONBOARDING_STEP_DEFAULTS` 默认文案、`getLocalizedStepConfig()` 方法、`options.t` 依赖注入 |
+| `lib/first-run.js` | 新建 | 首次运行集成模块，桥接 onboarding → telemetry → feedback 全链路；定义 `TELEMETRY_FEATURES` 10 个核心采集点常量；`verifyTelemetryCoverage()` 验证 API |
+| `locales/zh-CN.json` | 修改 | 扩展 onboarding key: steps（4 步 title+description）、features（4 项功能描述）、privacy（隐私说明）、sampleQuestions（5 个示例问题）、back/finish/progress |
+| `locales/en-US.json` | 修改 | 与 zh-CN.json 对应的完整英文翻译 |
+| `tests/test-r238-first-run-experience.js` | 新建 | 34 个集成测试，覆盖 5 个子套件 |
+| `docs/CHANGELOG.md` | 修改 | 新增 R238 变更记录 |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+| `docs/TODO.md` | 修改 | R238 标记完成 |
+
+### 设计决策
+
+- **`lib/first-run.js` 作为集成层**: 不修改 sidebar.js 直接导入 telemetry（影响面太大），而是创建独立的集成模块，由入口代码按需导入。保持原有模块独立可用
+- **`ONBOARDING_STEP_I18N` 导出**: 使测试可以直接验证 i18n key 的完整性和一致性，而非通过 UI 渲染间接验证
+- **install date 写入 service-worker**: 仅在 `details.reason === 'install'` 时写入，避免更新时覆盖。`onboardingCompleted: false` 确保更新后仍可触发引导（但 `shouldShowOnboarding` 只检查 key 是否存在，更新时不会覆盖已设的 true）
+- **10 个核心遥测采集点**: ask_ai / ai_answer / bookmark_op / knowledge_query / search / page_summarize / knowledge_save / screenshot_ask / bookmark_graph / onboarding_complete，覆盖所有用户可见核心动作
+
+### 审查发现
+
+1. **pagewise_install_date 从未写入（已修复）**: feedback-collector.js L80 读取 `pagewise_install_date`，但全代码库无任何地方 `set` 该 key。service-worker.js `onInstalled` 现在记录
+2. **Telemetry 覆盖点分析**: telemetry.js 的 `trackFeature()` 设计合理（幂等累加），但 sidebar.js 仅使用 `log-store.js` 的 `recordMetric()` 而非 telemetry 的 `trackFeature()`。建议后续迭代统一
+3. **7 天 NPS 计时逻辑正确**: feedback-collector.js 的 `(nowFn() - installDate) / _MS_PER_DAY < 7` 逻辑正确，边界测试通过（6天23小时 → false, 7天 → true）
+4. **Onboarding 步骤结构正确**: 4 步（welcome/config/test-connection/first-question），API 已配置时自动跳过 config + test-connection
+
+### 验证结果
+
+- `node --test tests/test-r238-first-run-experience.js`: 34 pass / 0 fail ✅
+- `node --test tests/test-onboarding.js tests/test-telemetry.js tests/test-feedback-collector.js`: 63 pass / 0 fail ✅
+
+---
+
 ## R233: 覆盖率 CI 门禁硬化与基线锁定 CoverageGateHardening
 
 > 日期: 2026-05-21
