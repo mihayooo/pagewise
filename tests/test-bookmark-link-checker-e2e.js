@@ -249,7 +249,7 @@ describe('BookmarkLinkChecker', () => {
         return new Response('', { status: 200, type: 'basic' });
       });
 
-      const checker = new BookmarkLinkChecker({ concurrency: 2 });
+      const checker = new BookmarkLinkChecker({ concurrency: 2, _domainThrottleMs: 10, _minTimeout: 100 });
       const bookmarks = Array.from({ length: 6 }, (_, i) =>
         makeBookmark(`b${i}`, `https://example.com/page${i}`)
       );
@@ -272,7 +272,7 @@ describe('BookmarkLinkChecker', () => {
         return new Response('', { status: 200, type: 'basic' });
       });
 
-      const checker = new BookmarkLinkChecker({ concurrency: 1 });
+      const checker = new BookmarkLinkChecker({ concurrency: 1, _domainThrottleMs: 10, _minTimeout: 100 });
       const bookmarks = Array.from({ length: 10 }, (_, i) =>
         makeBookmark(`b${i}`, `https://example.com/page${i}`)
       );
@@ -304,6 +304,8 @@ describe('BookmarkLinkChecker', () => {
       let progressCalls = 0;
       const checker = new BookmarkLinkChecker({
         concurrency: 1,
+        _domainThrottleMs: 10,
+        _minTimeout: 100,
         onProgress: (checked, total, result) => {
           progressCalls++;
           assert.equal(typeof checked, 'number');
@@ -329,6 +331,8 @@ describe('BookmarkLinkChecker', () => {
       let completeReport = null;
       const checker = new BookmarkLinkChecker({
         concurrency: 1,
+        _domainThrottleMs: 10,
+        _minTimeout: 100,
         onComplete: (report) => {
           completeReport = report;
         },
