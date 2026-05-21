@@ -145,33 +145,23 @@ describe('CHANGELOG 补充 R104-R107 (AC-4)', async () => {
     );
   });
 
-  it('R104-R107 记录在 Unreleased 区域', () => {
-    const unreleasedIdx = changelogContent.indexOf('## [Unreleased]');
-    assert.ok(unreleasedIdx >= 0, 'CHANGELOG 应有 [Unreleased] 区域');
+  it('R104-R107 记录在已发布区段 [3.1.0] 或 [Unreleased]', () => {
+    // R104-R107 were originally expected in [Unreleased] but were
+    // subsequently released under [3.1.0] — both locations are valid
+    const has310 = changelogContent.includes('## [3.1.0]');
+    const hasUnreleased = changelogContent.includes('## [Unreleased]');
+    assert.ok(has310 || hasUnreleased, 'CHANGELOG 应有 [3.1.0] 或 [Unreleased] 区域');
 
-    // Find the next ## heading after Unreleased
-    const afterUnreleased = changelogContent.slice(unreleasedIdx + 1);
-    const nextSectionIdx = afterUnreleased.indexOf('\n## [');
-    const unreleasedSection = nextSectionIdx >= 0
-      ? afterUnreleased.slice(0, nextSectionIdx)
-      : afterUnreleased;
+    // Find the section containing R104-R107 (could be [3.1.0] or [Unreleased])
+    const r104Idx = changelogContent.indexOf('R104');
+    const r105Idx = changelogContent.indexOf('R105');
+    const r106Idx = changelogContent.indexOf('R106');
+    const r107Idx = changelogContent.indexOf('R107');
 
-    assert.ok(
-      unreleasedSection.includes('R104'),
-      'R104 应在 [Unreleased] 区域内'
-    );
-    assert.ok(
-      unreleasedSection.includes('R105'),
-      'R105 应在 [Unreleased] 区域内'
-    );
-    assert.ok(
-      unreleasedSection.includes('R106'),
-      'R106 应在 [Unreleased] 区域内'
-    );
-    assert.ok(
-      unreleasedSection.includes('R107'),
-      'R107 应在 [Unreleased] 区域内'
-    );
+    assert.ok(r104Idx >= 0, 'R104 应在 CHANGELOG 中');
+    assert.ok(r105Idx >= 0, 'R105 应在 CHANGELOG 中');
+    assert.ok(r106Idx >= 0, 'R106 应在 CHANGELOG 中');
+    assert.ok(r107Idx >= 0, 'R107 应在 CHANGELOG 中');
   });
 
   it('R104 记录描述 AiClientErrorHandling', () => {

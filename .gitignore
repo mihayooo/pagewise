@@ -16,6 +16,8 @@ node_modules/
 coverage/
 # R195: Exclude c8/_tmp_* stale dirs (may be root-owned in CI)
 coverage/_tmp_*
+# R256: Exclude c8 tmp dir (defensive cleanup in test:coverage)
+coverage/tmp
 
 # Chrome extension build artifacts
 *.crx

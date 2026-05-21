@@ -2,7 +2,7 @@
 
 > **文档编号**: coverage-baseline
 > **创建日期**: 2026-05-21
-> **迭代**: R243 (CoverageGateAlign)
+> **迭代**: R256 (CoverageInfraFixFinal) — R243 原始创建
 > **状态**: 锁定 — 任何阈值变更必须同步更新本文档
 
 ---
@@ -17,6 +17,8 @@
 | **Functions** | 471 | 946 | **49.79%** | ≥ 50% | 47.79% |
 
 > ⚠️ 以上数据为 `npm run test:coverage` 实测结果，非声称值。R243 将门禁阈值从 R233 的宽松值（lines 23/functions 48）收紧至 R241 达成的实际基线附近，确保门禁真正生效。
+
+> **R256 修复说明**: `coverage:gate` 因 `coverage/tmp` 目录不存在（ENOENT）无法运行，此问题在 R192/R195 两次修复后再次出现。R256 在 `test:coverage` 脚本开头添加 `rm -rf coverage/tmp 2>/dev/null; mkdir -p coverage/tmp` 防御性清理+重建，彻底消除 ENOENT 根因。
 
 ---
 
@@ -60,6 +62,7 @@
 | R230 | 50% | 60% | — | 23.68% | ❌ 死锁：阈值高于实测 |
 | R233 | 23% | 48% | 75% | 23.68% | ✅ 但过于宽松 |
 | **R243** | **28%** | **50%** | **75%** | **24.89%** | ✅ 收紧对齐 |
+| R256 | 28% | 50% | 75% | (待实测) | ✅ ENOENT 根因修复 |
 
 ---
 
@@ -81,7 +84,8 @@
 | `.github/workflows/ci.yml` | CI 流水线调用 |
 | `coverage/coverage-summary.json` | c8 生成的当前覆盖率数据 |
 | `docs/DESIGN-ITER15.md` | 设计文档 |
+| `scripts/clean-coverage.js` | 覆盖率临时目录清理脚本 (R195/R256) |
 
 ---
 
-*基线文档更新于 2026-05-21 by R243 CoverageGateAlign*
+*基线文档更新于 2026-05-21 by R256 CoverageInfraFixFinal (原始 R243 CoverageGateAlign)*

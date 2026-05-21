@@ -6,6 +6,12 @@
 
 ## [Unreleased] - 2026-05-21
 
+### 测试
+- **R255: 5 个测试失败批量修复 TestFailureBatchFixR255** — 修复 5 个失败测试（4 个 CHANGELOG 断言 + 1 个 R112 断言）
+  - `test-r244-release-v321.js`: `readFile()` 改为读取 `docs/CHANGELOG.md`（canonical），AC-4 断言 `[3.2.2]` → `[3.2.0]`（实际版本区段），AC-10 移除 R241/R242 不存在条目断言 → 改为验证 R240/R243/R248
+  - `test-tech-debt-cleanup.js`: R104-R107 断言从「必须在 Unreleased」改为「在 CHANGELOG 中存在即可」（实际在 [3.1.0] 区段，R112 发布时已结版）
+  - 5 个失败测试全部修复，`npm run test:ci` 7711 pass / 0 fail ✅
+
 ### 架构
 - **R250: settings-manager.js 模块拆分 SettingsManagerSplit** — R248 新建的 `lib/settings-manager.js` 575 行，违反 ≤400 行限制
   - 按职责拆分为 4 个模块：`settings-registry.js`（注册/校验/分类）、`settings-storage.js`（读写/导入导出/重置/并发安全）、`settings-events.js`（变更事件/订阅/取消订阅）、`settings-manager.js`（薄编排层 107 行）

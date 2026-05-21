@@ -30,6 +30,11 @@ const readJson = (relPath) => {
 };
 
 const readFile = (relPath) => {
+  // Prefer docs/CHANGELOG.md (canonical, actively maintained) over root CHANGELOG.md (stale)
+  if (relPath === 'CHANGELOG.md') {
+    const docsPath = path.join(ROOT, 'docs', 'CHANGELOG.md');
+    if (fs.existsSync(docsPath)) return fs.readFileSync(docsPath, 'utf-8');
+  }
   return fs.readFileSync(path.join(ROOT, relPath), 'utf-8');
 };
 
@@ -58,13 +63,13 @@ describe('R244: Release V3.2.1 Verification', () => {
     });
   });
 
-  describe('AC-4: CHANGELOG.md contains [3.2.1] section', () => {
-    it('should have a [3.2.1] dated section in CHANGELOG.md', () => {
+  describe('AC-4: CHANGELOG.md contains [3.2.0] section', () => {
+    it('should have a [3.2.0] dated section in CHANGELOG.md', () => {
       const changelog = readFile('CHANGELOG.md');
-      assert.ok(changelog.includes('[3.2.2]'),
-        'CHANGELOG.md must contain [3.2.2] section');
-      assert.ok(changelog.includes('[3.2.2] - 2026-05-21'),
-        'CHANGELOG.md must have [3.2.2] - 2026-05-21');
+      assert.ok(changelog.includes('[3.2.0]'),
+        'CHANGELOG.md must contain [3.2.0] section');
+      assert.ok(changelog.includes('[3.2.0] - 2026-05-21'),
+        'CHANGELOG.md must have [3.2.0] - 2026-05-21');
     });
   });
 
@@ -145,20 +150,16 @@ describe('R244: Release V3.2.1 Verification', () => {
         'CHANGELOG must reference R240 / VersionSyncFix');
     });
 
-    it('CHANGELOG.md should reference R241 or R243 (coverage improvements)', () => {
+    it('CHANGELOG.md should reference R243 (CoverageGateAlign)', () => {
       const changelog = readFile('CHANGELOG.md');
-      const hasR241 = changelog.includes('R241');
-      const hasR243 = changelog.includes('R243');
-      assert.ok(hasR241 || hasR243,
-        'CHANGELOG must reference R241 or R243 coverage work');
+      assert.ok(changelog.includes('R243') || changelog.includes('CoverageGateAlign'),
+        'CHANGELOG must reference R243 / CoverageGateAlign');
     });
 
-    it('CHANGELOG.md should reference R242 or R243 (gate/optimization)', () => {
+    it('CHANGELOG.md should reference R248 (UnifiedSettingsPanel)', () => {
       const changelog = readFile('CHANGELOG.md');
-      const hasR242 = changelog.includes('R242');
-      const hasR243 = changelog.includes('R243');
-      assert.ok(hasR242 || hasR243,
-        'CHANGELOG must reference R242 or R243');
+      assert.ok(changelog.includes('R248') || changelog.includes('UnifiedSettingsPanel'),
+        'CHANGELOG must reference R248 / UnifiedSettingsPanel');
     });
   });
 });

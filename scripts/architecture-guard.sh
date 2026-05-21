@@ -129,6 +129,20 @@ else
 fi
 
 # =============================================================================
+# Part 3: Coverage Infrastructure Guard (R256)
+# =============================================================================
+echo ""
+echo "=== Part 3: Coverage Infrastructure Guard (R256) ==="
+
+COVERAGE_TMP_DIR="$PROJECT_ROOT/coverage/tmp"
+
+if [ -d "$COVERAGE_TMP_DIR" ]; then
+  pass "coverage/tmp directory exists"
+else
+  fail "coverage/tmp directory does not exist — run 'mkdir -p coverage/tmp' or 'npm run test:coverage'"
+fi
+
+# =============================================================================
 # Summary
 # =============================================================================
 echo ""
