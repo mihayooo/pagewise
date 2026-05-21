@@ -1,8 +1,9 @@
 # VERIFICATION.md — Iteration #15 Review
 
-> **任务**: 多语言支持增强 — 英文文档中文问答优化
-> **审查日期**: 2026-04-30
+> **迭代**: R243 CoverageGateAlign
+> **审查日期**: 2026-05-21
 > **审查人**: Guard Agent (Claude)
+> **变更文件**: 3 (`docs/CHANGELOG.md`, `tests/test-r156-coverage-infra.js`, `tests/test-r233-coverage-gate.js`)
 
 ---
 
@@ -10,116 +11,124 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | 核心功能断裂：调用方未更新参数，问题语言检测在运行时永远不会生效 |
-| 代码质量 | ⚠️ | i18n-detector.js 本身质量良好，但 sidebar 集成存在签名不匹配 |
-| 测试覆盖 | ⚠️ | 独立模块 52/52 测试全通过，但缺少集成测试；未覆盖 sidebar 调用链路 |
-| 文档同步 | ❌ | TODO.md 未标记完成、CHANGELOG.md 未新增 R15 条目、IMPLEMENTATION.md 未更新 |
-
-**总评: ❌ 不可合入 — 存在阻断性缺陷，需返工**
+| 功能完整性 | ⚠️ | package.json/baseline/shell 脚本变更已在前序提交完成；本轮仅更新测试断言和 CHANGELOG，但门禁值设为 28% 高于实测 24.89%，CI 将立即阻断 |
+| 代码质量 | ⚠️ | 断言更新逻辑清晰正确，但 Functions 门禁 50% > 实测 49.79%，同样会导致 CI fail；CHANGELOG 声称"新增 53 个验收测试"与实际 0 新增严重不符 |
+| 测试覆盖 | ⚠️ | 32+31 个既有测试断言更新为新阈值，验证逻辑正确；但无新增测试，且无覆盖率提升代码，无法通过 28% 门禁 |
+| 文档同步 | ✅ | CHANGELOG 已更新；coverage-baseline.md 已更新（前序提交）；数据完整、结构清晰 |
 
 ---
 
 ## 发现的问题
 
-### 🔴 P0 — 阻断性缺陷
+### 🔴 P0: 门禁值高于实测值，CI 将必然阻断
 
-#### BUG-1: `_buildLanguagePrompt()` 调用签名不匹配（核心功能断裂）
+| 维度 | 实测覆盖率 | 门禁阈值 | 差距 | CI 结果 |
+|------|-----------|---------|------|--------|
+| Lines | 24.89% | 28% | −3.11pp | ❌ FAIL |
+| Functions | 49.79% | 50% | −0.21pp | ❌ FAIL |
+| Branches | 75.83% | 75% | +0.83pp | ✅ PASS |
 
-**位置**: `sidebar/sidebar.js` 第 2327 行
+**影响**: `npm run coverage:gate`（即 `c8 check-coverage --lines 28 --functions 50`）在当前覆盖率下必定失败，任何 push/PR 到 master 将被 CI 阻断。
 
-**现象**: 函数签名已改为 `_buildLanguagePrompt(pageLang, questionText)`（需要 2 个参数），但唯一的调用方只传了 1 个参数：
+**baseline 文档自身已承认**: 
+> "Lines 门禁阈值（28%）高于当前实测值（24.89%）——这意味着 R241 的覆盖率提升尚未稳定达到 28%"
 
-```javascript
-// 第 2327 行 — 调用方（未更新）
-+ this._buildLanguagePrompt(contentWithSelection.language);
+**建议**: 门禁阈值应 ≤ 实测基线值。若任务目标是"对齐"，Lines 应设为 24（向下取整），Functions 应设为 49。若意图作为"目标驱动"则需搭配覆盖率提升代码，而非仅修改阈值。
 
-// 第 465 行 — 新函数签名
-+ _buildLanguagePrompt(pageLang, questionText) {
+---
+
+### 🔴 P0: CHANGELOG 声称"新增 53 个验收测试"与实际严重不符
+
+| 声称 | 实际 |
+|------|------|
+| 新增 53 个验收测试 | **0 个新增测试** |
+| 10 个 AC 组 | 6 个 AC 组（均来自 R233） |
+
+**验证方法**:
+```bash
+git show HEAD:tests/test-r233-coverage-gate.js | grep -c "it("  # → 32
+grep -c "it(" tests/test-r233-coverage-gate.js                  # → 32
+git show HEAD:tests/test-r156-coverage-infra.js | grep -c "it(" # → 31
+grep -c "it(" tests/test-r156-coverage-infra.js                 # → 31
 ```
 
-**后果**:
-1. `questionText` 在运行时始终为 `undefined`
-2. `detectQuestionLanguage(undefined)` 返回 `null`
-3. **英文文档 + 中文提问 → 中文回答** 这一 R15 核心场景完全失效
-4. 用户在英文文档上用中文提问时，AI 将按页面语言（英文）回答，而非期望的中文
+两个文件的 `it()` 计数完全未变。R243 仅修改了现有测试的断言值（23→28, 23.68%→24.89% 等），未新增任何测试。
 
-**修复方案**: 将调用处改为：
-```javascript
-this._buildLanguagePrompt(contentWithSelection.language, text)
-```
-其中 `text` 是用户输入的问题文本，已在第 2280 行的 `sendMessage(text, selection)` 中可获得。
+**建议**: 修正 CHANGELOG 为"更新 13 个既有测试断言与新阈值对齐"。
 
 ---
 
-### 🟡 P1 — 重要问题
+### 🟡 P1: Functions 门禁 50% > 实测 49.79%（临界）
 
-#### ISSUE-1: 文档未同步更新
+虽然差距仅 0.21pp，但 `c8 check-coverage --functions 50` 要求 Functions ≥ 50%，而实测为 49.79%。这意味着 Functions 维度也无法通过门禁。
 
-| 文档 | 状态 | 缺失 |
-|------|------|------|
-| `docs/TODO.md` | ❌ | "多语言支持增强" 仍标记为 `[ ]`（未完成），应更新为 `[x]` |
-| `docs/CHANGELOG.md` | ❌ | 无 R15 条目，应在 `[Unreleased]` 下新增变更记录 |
-| `docs/IMPLEMENTATION.md` | ❌ | 仅包含 R8 内容，未新增 R15 实现记录 |
-
-#### ISSUE-2: 设计文档与实现范围不一致
-
-设计文档 `DESIGN-ITER15.md` 提到：
-- 支持语言：zh、en、ja、ko、**fr**、**de**、**es**、ru、**pt**、ar
-- `buildMultilingualPrompt()` 签名包含 `pageContent?` 参数
-
-实际实现：
-- 仅支持：zh、en、ja、ko、ru、ar（缺失 fr/de/es/pt）
-- `buildMultilingualPrompt()` 无 `pageContent?` 参数
-
-**评估**: fr/de/es/pt 属于拉丁字母语言，Unicode 范围与英文相同，需要词频分析才能区分。当前实现简化为 'en' 可接受，但应从设计文档中删除未实现的语言以避免混淆。`pageContent?` 参数的移除是合理简化。
+**建议**: 门禁应设为 49（向下取整），或等 Functions 覆盖率稳定 ≥ 50% 后再收紧。
 
 ---
 
-### 🟢 P2 — 建议改进
+### 🟡 P1: 基线文档"门禁阈值"与"目标值"存在语义混淆
 
-#### SUGGEST-1: 缺少集成测试
+| 维度 | 门禁阈值 (c8 check-coverage) | 目标值 (文档标注) |
+|------|------------------------------|-------------------|
+| Lines | 28% | 30% |
+| Functions | 50% | 52% |
 
-52 个测试仅覆盖 `lib/i18n-detector.js` 独立模块。未测试：
-- sidebar 中 `_buildLanguagePrompt()` 被正确调用的路径
-- `contentWithSelection.language` 和 `text` 参数的传递链路
-- `this.settings?.responseLanguage` 设置的读取
-
-建议新增至少 1 个集成测试，验证端到端调用链。
-
-#### SUGGEST-2: `countScripts()` 未导出
-
-`countScripts()` 是纯函数，可独立测试，但未从模块中导出。如有调试/扩展需求，建议导出或标记为内部函数。
+文档中"门禁阈值"实际是**目标值**（高于当前实测），而非**断言当前水平的基线值**。这与 R233 建立的"门禁 ≤ 基线"范式冲突，容易造成误导。
 
 ---
 
-## 代码亮点 ✅
+### 🟢 P2: 测试断言硬编码 R243 数值
 
-1. **模块设计清晰** — `i18n-detector.js` 为独立模块，职责单一，API 明确（4 个导出函数），符合设计文档的"可复用"目标
-2. **防御性编程** — `detectLanguage()` 对 null/undefined/空字符串/纯数字等边界情况处理完善
-3. **代码块剥离** — `stripCodeBlocks()` 避免围栏代码块干扰语言检测，设计合理
-4. **语言决策优先级清晰** — 用户设置 > 问题语言 > 页面语言 > 默认中文，符合直觉
-5. **跨语言 prompt 策略** — 同语言简单指令 vs 跨语言详细策略（含术语双语标注），对 AI 回答质量有实质提升
-6. **测试覆盖全面** — 52 个测试，7 个 describe 分组，覆盖正常/边界/异常/集成场景
+`test-r233-coverage-gate.js` 中多个测试断言精确匹配百分比（如 `assert.ok(content.includes('24.89%'))`）。当覆盖率随测试增减波动时，这些断言需要逐次更新。
+
+**建议**: 考虑范围断言（如 `>= 24% && <= 26%`）以提高稳定性。
 
 ---
 
 ## 返工任务清单
 
-| # | 优先级 | 任务 | 文件 |
+| # | 优先级 | 任务 | 说明 |
 |---|--------|------|------|
-| 1 | 🔴 P0 | 修复调用方：`_buildLanguagePrompt(contentWithSelection.language)` → `_buildLanguagePrompt(contentWithSelection.language, text)` | `sidebar/sidebar.js:2327` |
-| 2 | 🟡 P1 | 更新 TODO.md：将"多语言支持增强"标记为 `[x]` | `docs/TODO.md` |
-| 3 | 🟡 P1 | 更新 CHANGELOG.md：在 `[Unreleased]` 下新增 R15 变更记录 | `docs/CHANGELOG.md` |
-| 4 | 🟡 P1 | 更新 IMPLEMENTATION.md：新增 R15 实现记录 | `docs/IMPLEMENTATION.md` |
-| 5 | 🟡 P1 | 同步设计文档：移除未实现的 fr/de/es/pt 语言，移除 `pageContent?` 参数描述 | `docs/DESIGN-ITER15.md` |
-| 6 | 🟢 P2 | 新增集成测试：验证 sidebar 调用链路和 settings.responseLanguage | `tests/test-i18n-detector.js` |
+| 1 | 🔴 P0 | 修正门禁阈值使 CI 可通过 | `--lines` 改为 24，`--functions` 改为 49（或同步提升覆盖率）；同步更新 `ci.yml` 描述和所有测试断言 |
+| 2 | 🔴 P0 | 修正 CHANGELOG 测试数量声称 | "53 个验收测试" → "更新 13 个既有测试断言"；"10 个 AC 组" → "6 个既有 AC 组" |
+| 3 | 🟡 P1 | 明确基线文档语义 | 区分"当前门禁断言值"和"未来目标值"，避免门禁阈值 > 实测值的混淆 |
+| 4 | 🟡 P1 | 考虑新增实际覆盖测试 | 若目标是 28%/30%，需配套覆盖率提升代码（R241 未完成的零覆盖模块测试） |
+| 5 | 🟢 P2 | 放宽测试断言精度 | 将精确百分比匹配改为范围断言，减少因微小覆盖率波动导致的维护成本 |
+
+---
+
+## 变更明细
+
+### docs/CHANGELOG.md
+- ✅ 新增 R243 条目，结构规范
+- ❌ 测试数量严重夸大（声称 53 新增，实际 0 新增）
+
+### tests/test-r156-coverage-infra.js
+- ✅ `--lines 23` → `--lines 28` 断言更新，匹配 package.json
+- ✅ 测试名称标注 R243 来源
+
+### tests/test-r233-coverage-gate.js
+- ✅ AC-1 门禁阈值断言更新为 28/50/75
+- ✅ AC-4 基线文档断言更新为 24.89%/75.83%/49.79%
+- ✅ AC-4 退化阈值断言更新为 22.89%/73.83%/47.79%
+- ✅ AC-4 历史演进表引用更新为 R243/R233
+- ✅ Cross-validation 断言从范围检查改为精确匹配
+- ⚠️ 精确百分比匹配增加维护成本
+
+### 前序已提交变更（不在本轮 diff 中，但属于 R243）
+- `package.json`: `coverage:gate --lines 28 --functions 50 --branches 75` ✅
+- `docs/reports/coverage-baseline.md`: 完整 R243 基线更新 ✅
+- `.github/workflows/ci.yml`: 门禁描述同步 ✅
+- `scripts/architecture-guard.sh`: 动态解析基文件，自动适配新基线 ✅
 
 ---
 
 ## 结论
 
-**R15 核心模块 `lib/i18n-detector.js` 实现质量优秀**，语言检测算法和多语言 prompt 构建逻辑完善，52 个单元测试全部通过。
+**判定: ⚠️ 需返工**
 
-**但 sidebar 集成存在阻断性缺陷**：函数签名变更后未同步更新调用方，导致问题语言检测功能在运行时完全失效。这是 R15 最核心的价值点（英文文档中文问答 → 中文回答），必须修复后方可合入。
+R243 在文档和断言更新方面质量尚可，但存在两个 P0 问题：
+1. 门禁值（28%/50%）高于实测值（24.89%/49.79%），CI 合并后将立即阻断
+2. CHANGELOG 声称新增 53 个测试，实际 0 个
 
-**合入决策: ❌ BLOCK** — 修复 BUG-1 后可合入。
+建议：要么将门禁值下调至实测基线以下（24%/49%），要么先完成覆盖率提升代码再收紧门禁。

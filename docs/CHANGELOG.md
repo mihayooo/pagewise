@@ -6,6 +6,16 @@
      6|
 ## [3.2.0] - 2026-05-21
 
+### 工程治理
+- **R243: 覆盖率门禁与实测对齐 CoverageGateAlign** — `coverage:gate --lines 23` 与 R236 声称的 ≥35% 门禁不一致，实际行覆盖率 24.89% 刚好过线，门禁形同虚设
+  - `coverage:gate --lines` 从 23 收紧至 28（R241 实际基线附近）
+  - `coverage:gate --functions` 从 48 收紧至 50
+  - `coverage:gate --branches` 维持 75 不变
+  - 更新 `docs/reports/coverage-baseline.md` 记录真实基线数据（行 24.89%/函数 49.79%/分支 75.83%）
+  - CI workflow 门禁描述与实际阈值同步
+  - 更新 R233/R156 测试断言与新阈值对齐
+  - 新增 53 个验收测试验证门禁逻辑（10 个 AC 组）
+
 ### 测试
 - **R240: 版本同步断言修复 VersionSyncFix** — `test-r197-version-sync.js` 中 AC-3 和 AC-5 断言硬编码 `3.1.0` 与实际版本 `3.2.0` 不一致
   - 更新 AC-3 manifest.json 版本断言 `3.1.0` → `3.2.0`

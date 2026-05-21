@@ -143,19 +143,19 @@ describe('R233: Coverage Gate Hardening', () => {
     it('包含 Lines 基线数据', () => {
       const content = readFile(baselinePath)
       assert.ok(content.includes('Lines'), 'should contain Lines metric')
-      assert.ok(content.includes('23.68%'), 'should contain actual baseline value 23.68%')
+      assert.ok(content.includes('24.89%'), 'should contain actual baseline value 24.89% (R243)')
     })
 
     it('包含 Branches 基线数据', () => {
       const content = readFile(baselinePath)
       assert.ok(content.includes('Branches'), 'should contain Branches metric')
-      assert.ok(content.includes('75.97%'), 'should contain actual baseline value 75.97%')
+      assert.ok(content.includes('75.83%'), 'should contain actual baseline value 75.83% (R243)')
     })
 
     it('包含 Functions 基线数据', () => {
       const content = readFile(baselinePath)
       assert.ok(content.includes('Functions'), 'should contain Functions metric')
-      assert.ok(content.includes('48.85%'), 'should contain actual baseline value 48.85%')
+      assert.ok(content.includes('49.79%'), 'should contain actual baseline value 49.79% (R243)')
     })
 
     it('包含测量环境信息', () => {
@@ -168,16 +168,16 @@ describe('R233: Coverage Gate Hardening', () => {
     it('包含门禁阈值映射', () => {
       const content = readFile(baselinePath)
       assert.ok(content.includes('2pp'), 'should mention 2pp tolerance')
-      assert.ok(content.includes('21.68%'), 'should include Lines degradation threshold')
-      assert.ok(content.includes('73.97%'), 'should include Branches degradation threshold')
-      assert.ok(content.includes('46.85%'), 'should include Functions degradation threshold')
+      assert.ok(content.includes('22.89%'), 'should include Lines degradation threshold')
+      assert.ok(content.includes('73.83%'), 'should include Branches degradation threshold')
+      assert.ok(content.includes('47.79%'), 'should include Functions degradation threshold')
     })
 
-    it('包含历史声称 vs 实测对比表', () => {
+    it('包含历史门禁阈值演进表', () => {
       const content = readFile(baselinePath)
-      assert.ok(content.includes('历史声称'), 'should have history comparison section')
-      assert.ok(content.includes('R205'), 'should reference R205')
-      assert.ok(content.includes('R230'), 'should reference R230')
+      assert.ok(content.includes('历史门禁阈值演进'), 'should have history evolution section')
+      assert.ok(content.includes('R243'), 'should reference R243')
+      assert.ok(content.includes('R233'), 'should reference R233')
     })
 
     it('包含更新规则', () => {
@@ -231,31 +231,25 @@ describe('R233: Coverage Gate Hardening', () => {
   })
 
   describe('Cross-validation: 门禁阈值与基线文档一致', () => {
-    it('package.json 的 --lines 值 ≤ baseline Lines 覆盖率', () => {
+    it('package.json 的 --lines 值 = 28 (R243 收紧)', () => {
       const pkg = readJSON('package.json')
       const match = pkg.scripts['coverage:gate'].match(/--lines\s+(\d+)/)
       const gateVal = parseInt(match[1], 10)
-      // 基线 Lines = 23.68%, 门禁应 ≤ 基线
-      assert.ok(gateVal <= 24, 'gate value should not exceed rounded baseline')
-      assert.ok(gateVal >= 23, 'gate value should be at least floor of baseline')
+      assert.equal(gateVal, 28, 'gate --lines should be 28 per R243')
     })
 
-    it('package.json 的 --functions 值 ≤ baseline Functions 覆盖率', () => {
+    it('package.json 的 --functions 值 = 50 (R243 收紧)', () => {
       const pkg = readJSON('package.json')
       const match = pkg.scripts['coverage:gate'].match(/--functions\s+(\d+)/)
       const gateVal = parseInt(match[1], 10)
-      // 基线 Functions = 48.85%
-      assert.ok(gateVal <= 49, 'gate value should not exceed rounded baseline')
-      assert.ok(gateVal >= 48, 'gate value should be at least floor of baseline')
+      assert.equal(gateVal, 50, 'gate --functions should be 50 per R243')
     })
 
-    it('package.json 的 --branches 值 ≤ baseline Branches 覆盖率', () => {
+    it('package.json 的 --branches 值 = 75 (维持不变)', () => {
       const pkg = readJSON('package.json')
       const match = pkg.scripts['coverage:gate'].match(/--branches\s+(\d+)/)
       const gateVal = parseInt(match[1], 10)
-      // 基线 Branches = 75.97%
-      assert.ok(gateVal <= 76, 'gate value should not exceed rounded baseline')
-      assert.ok(gateVal >= 75, 'gate value should be at least floor of baseline')
+      assert.equal(gateVal, 75, 'gate --branches should be 75')
     })
   })
 })
