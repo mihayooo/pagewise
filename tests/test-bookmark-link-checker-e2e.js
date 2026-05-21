@@ -412,7 +412,7 @@ describe('BookmarkLinkChecker', () => {
 
   // --- AC-2: 同域名限流 ---
   describe('同域名限流', () => {
-    it('同域名请求间隔 ≥ 400ms (允许误差)', async () => {
+    it('同域名请求间隔符合 throttle 配置', async () => {
       const timestamps = [];
 
       installFetchMock(async (url) => {
@@ -420,17 +420,19 @@ describe('BookmarkLinkChecker', () => {
         return new Response('', { status: 200, type: 'basic' });
       });
 
-      const checker = new BookmarkLinkChecker({ concurrency: 1 });
+      // R232: 使用 _domainThrottleMs=10 加速测试 (原 500ms 默认值)
+      const throttleMs = 10;
+      const checker = new BookmarkLinkChecker({ concurrency: 1, _domainThrottleMs: throttleMs });
       const bookmarks = Array.from({ length: 3 }, (_, i) =>
         makeBookmark(`b${i}`, `https://same-domain.com/page${i}`)
       );
 
       await checker.checkAll(bookmarks);
 
-      // 验证同域名请求间隔
+      // 验证同域名请求间隔符合配置的限流值
       for (let i = 1; i < timestamps.length; i++) {
         const gap = timestamps[i] - timestamps[i - 1];
-        assert.ok(gap >= 400, `Gap between request ${i - 1} and ${i} was ${gap}ms, expected ≥ 400ms`);
+        assert.ok(gap >= throttleMs - 5, `Gap between request ${i - 1} and ${i} was ${gap}ms, expected ≥ ${throttleMs}ms`);
       }
     });
   });
