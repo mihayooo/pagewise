@@ -6,6 +6,20 @@
      6|
 ## [3.2.0] - 2026-05-21
 
+### 功能
+- **R248: 用户设置统一面板 UnifiedSettingsPanel** — 当前设置分散在多个模块（theme/i18n/privacy/onboarding/telemetry/coach-preferences 等），用户难以找到和管理
+  - 新建 `lib/settings-manager.js` 统一设置层（330 行，≤400 行限制）
+  - 设置聚合：18 个内置设置项，从主题/AI/书签/学习/隐私/高级 6 大分类收集可配置项
+  - SettingsRegistry 支持动态注册 `registerSetting()` 自定义设置项
+  - 设置分组：按 6 类（appearance/ai/bookmark/learning/privacy/advanced）组织
+  - `getSchema()` / `getSchemaByCategory()` 生成设置 schema 供 UI 消费
+  - `exportSettings()` / `importSettings()` JSON 格式，支持跨设备迁移，敏感字段（apiKey）自动排除
+  - `onSettingChange(key, callback)` 事件驱动，返回取消订阅函数
+  - 设置校验：每个设置项附带 validator（类型/范围/枚举），非法值拒绝写入
+  - `resetToDefaults(scope?)` 按类别或全部重置为出厂值
+  - 并发安全：写操作串行化（Promise 队列），防止并发覆盖
+  - 37 个单元测试（10 个 describe 套件），覆盖创建/读写/校验/分组/事件/导入导出/重置/schema/注册/边界
+
 ### 工程治理
 - **R243: 覆盖率门禁与实测对齐 CoverageGateAlign** — `coverage:gate --lines 23` 与 R236 声称的 ≥35% 门禁不一致，实际行覆盖率 24.89% 刚好过线，门禁形同虚设
   - `coverage:gate --lines` 从 23 收紧至 28（R241 实际基线附近）

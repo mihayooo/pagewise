@@ -1703,3 +1703,62 @@ R212 新增 `lib/feedback-collector.js` 时定义了 `const MS_PER_DAY = 24 * 60
 
 - `node --test tests/test-r197-version-sync.js`: 23 pass / 0 fail ✅
 - `npm run test:ci`: 7551 pass / 0 fail ✅
+
+---
+
+## R248: 用户设置统一面板 UnifiedSettingsPanel
+
+> 日期: 2026-05-21
+> 复杂度: Medium
+> 前置: utils.js (getSettings/saveSettings), bookmark-dark-theme.js, bookmark-onboarding.js, telemetry.js, spaced-repetition.js
+
+### 问题
+
+当前设置分散在 15+ 个模块中（theme/i18n/privacy/onboarding/telemetry/coach-preferences 等），
+用户难以找到和管理。各模块各自使用 chrome.storage，无统一注册/校验/事件机制。
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `lib/settings-manager.js` | 新建 | 统一设置管理器（330 行），SettingsRegistry + 18 项内置设置 + 6 分类 + 校验 + 事件 + 导入导出 + 重置 |
+| `tests/test-settings-manager.js` | 新建 | 37 个单元测试，10 个 describe 套件 |
+| `docs/CHANGELOG.md` | 修改 | 新增 R248 变更记录 |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+| `docs/TODO.md` | 修改 | R248 标记完成 |
+
+### 设计决策
+
+- **纯 ES Module + 依赖注入**: storage 接口通过参数注入，测试可用 mock，不依赖 Chrome API
+- **写操作串行化**: `_enqueue()` Promise 队列确保并发 set() 不会互相覆盖
+- **敏感字段排除**: `SENSITIVE_KEYS = ['apiKey']`，exportSettings() 自动清空
+- **值未变化跳过**: set() 值与当前值相同时不写入也不触发事件，减少不必要的 IO 和回调
+- **Schema 驱动 UI**: getSchema() 返回完整的 type/label/description/default/category/options/min/max，前端可据此动态渲染设置表单
+- **向后兼容**: 不修改 utils.js 的 getSettings/saveSettings，settings-manager.js 作为新增的统一层并行存在
+
+### 内置设置清单（18 项）
+
+| Key | 类型 | 分类 | 默认值 |
+|-----|------|------|--------|
+| theme | select | appearance | light |
+| language | select | appearance | zh-CN |
+| apiKey | text | ai | '' |
+| apiProtocol | select | ai | openai |
+| apiBaseUrl | text | ai | https://api.openai.com |
+| model | text | ai | gpt-4o |
+| maxTokens | number | ai | 4096 |
+| maxContentLength | number | ai | 8000 |
+| autoExtract | boolean | bookmark | false |
+| autoCollect | boolean | bookmark | false |
+| reviewReminderEnabled | boolean | learning | true |
+| maxDailyReviews | number | learning | 20 |
+| coachStrictness | select | learning | normal |
+| dailyTaskCount | number | learning | 5 |
+| telemetryEnabled | boolean | privacy | true |
+| dataRetentionDays | number | privacy | 90 |
+| debugMode | boolean | advanced | false |
+| cacheEnabled | boolean | advanced | true |
+
+### 验证结果
+
+- `node --test tests/test-settings-manager.js`: 37 pass / 0 fail ✅
