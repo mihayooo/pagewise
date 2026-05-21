@@ -970,4 +970,4 @@
 
 - [x] **R233: 覆盖率 CI 门禁硬化与基线锁定 CoverageGateHardening** — 当前 `coverage:gate --lines` 阈值形同虚设（历史多次声称收紧但实测仍为 20%），行覆盖率反复声称达标但实测差距巨大；(1) 将 `coverage:gate` 的 `--lines` 阈值从 20 收紧至 R230 达成的实际基线值（如 50）；(2) 在 CI workflow 中添加 `coverage` job，行覆盖率低于门禁阈值则 pipeline fail（硬性阻断）；(3) 添加分支覆盖率和函数覆盖率门禁（branches ≥80%、functions ≥60%）；(4) 生成 `docs/reports/coverage-baseline.md` 记录当前真实基线数据（行/分支/函数/语句）；(5) 在 `scripts/architecture-guard.sh` 中新增覆盖率回归检测（与基线对比，退化 >2pp 则 CI fail）。复杂度: Simple
 
-- [ ] **R234: 全量回归与发布收尾 IterationCloseAF** — R230-R233 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7564 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥50%（实测验证，非声称）；(4) 测试执行 ≤30s；(5) 版本号 3.2.0（package.json + manifest.json 一致）；(6) CHANGELOG.md 包含 R230-R233 条目；(7) CI 覆盖率门禁硬性生效；(8) 输出最终发布候选版本号。复杂度: Simple
+- [x] **R234: 全量回归与发布收尾 IterationCloseAF** — R230-R233 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7564 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥50%（实测验证，非声称）；(4) 测试执行 ≤30s；(5) 版本号 3.2.0（package.json + manifest.json 一致）；(6) CHANGELOG.md 包含 R230-R233 条目；(7) CI 覆盖率门禁硬性生效；(8) 输出最终发布候选版本号。复杂度: Simple

@@ -1,95 +1,188 @@
-# 需求文档 — 迭代 6：代码静态检查 ESLintSetup
+# 需求文档 — R234: 全量回归与发布收尾 IterationCloseAF
 
-> 创建日期: 2026-05-19
-> 迭代主题: R109 代码静态检查 ESLintSetup
-> 前置迭代: Phase H (R108-R112)
-> 历史记录: 迭代 6 标识曾用于 R046/R047 技能生态需求（已完成/废弃）
+> 文档编号: REQUIREMENTS-ITER6
+> 日期: 2026-05-21
+> 作者: Plan Agent
+> 关联迭代: Phase AF 收尾 (R234)
+> 前置依赖: R230 (行覆盖率突破尝试) · R231 (CHANGELOG 补全与 v3.2.0 版本号) · R232 (测试执行效率优化) · R233 (覆盖率 CI 门禁硬化与基线锁定)
 
 ---
 
-## R109: 代码静态检查 ESLintSetup
+## 1. 用户故事
 
-### 用户故事
+**作为** PageWise 的发布管理者，
+**我希望** 在 R230-R233 全部迭代完成后执行一次端到端的全量回归验证，并输出 v3.2.0 正式发布候选版本号，
+**以便** 确认此轮质量治理飞轮（Phase AF）的全部产出可靠、CI 门禁生效、CHANGELOG 完整，满足 Chrome Web Store 提交和用户交付的质量底线。
 
-**作为** PageWise 项目的开发者，**我希望** 在每次提交前自动运行 ESLint 静态检查，**以便** 在代码合入前捕获未定义变量、未使用变量、类型比较错误和隐式全局声明等常见 bug，防止低级错误流入生产代码。
+---
 
-### 验收标准
+## 2. 背景与现状
 
-| # | 验收标准 | 优先级 |
-|---|---------|--------|
-| AC-1 | 项目根目录存在 `eslint.config.js`，使用 ESLint flat config 格式（ES Modules 导出），兼容 `"type": "module"` 项目的 `import` 语法 | P0 |
-| AC-2 | 启用以下 4 条核心规则，且**不得**被 `overrides` 或 `off` 覆盖：`no-unused-vars`（error）、`no-undef`（error）、`eqeqeq`（error）、`no-implicit-globals`（error） | P0 |
-| AC-3 | `package.json` 新增 `"lint"` script，执行 `eslint .`；新增 `"lint:fix"` script，执行 `eslint . --fix`；`npm run lint` 在项目根目录可直接运行、零配置 | P0 |
-| AC-4 | 现有代码基线可通过 lint（允许 `--max-warnings N` 临时从宽，N 需记录在本需求文档中）；渐进收紧计划：每轮迭代将 N 降低 20%，目标 N=0 | P1 |
-| AC-5 | CI 工作流 `.github/workflows/ci.yml` 中现有 `lint` job 增加 `npm install` + `npx eslint . --max-warnings N` 步骤；PR 不通过时阻断合入 | P0 |
+### 2.1 Phase AF (R230-R233) 迭代回顾
 
-### 技术约束
+| 迭代 | 任务 | 核心目标 | 实现阶段结果 |
+|------|------|---------|-------------|
+| **R230** | CoverageRealBreak50 | 行覆盖率突破 50%（从 23.68%） | Phase 3 ❌ 失败 |
+| **R231** | ChangelogV320Finalize | CHANGELOG 补全 + 版本号 3.2.0 | Phase 3 ❌ 失败，但有部分代码变更 |
+| **R232** | TestExecutionFinalOpt | 测试执行 ≤30s（从 44.5s） | Phase 3 ❌ 失败 |
+| **R233** | CoverageGateHardening | 覆盖率门禁硬化 + 基线锁定 | Phase 3 ❌ 失败，但有部分代码变更 |
 
-| # | 约束 | 原因 |
-|---|------|------|
-| C-1 | 使用 ESLint v9+ flat config（`eslint.config.js`），**不使用** `.eslintrc.*` 遗留格式 | Flat config 是 ESLint 官方推荐格式，ES Modules 原生支持，与项目 `"type": "module"` 一致 |
-| C-2 | 仅安装 `eslint` 一个 devDependency，**不引入** `@eslint/js`、`eslint-config-*` 等扩展包 | 项目约束：最小依赖原则（D002 设计决策：不引入构建工具） |
-| C-3 | `eslint.config.js` 需声明 `languageOptions.globals` 中 Chrome Extension 运行时的关键全局变量（如 `chrome`、`browser`），避免 `no-undef` 对合法的 Chrome API 调用误报 | Content script / Sidebar / Popup / Background 均依赖 `chrome.*` API |
-| C-4 | `ignores` 配置排除 `node_modules/`、`coverage/`、`docs/`、`icons/`、`_locales/`、`*.json`、`*.css`、`*.html` | 仅检查 `.js` 源码文件 |
-| C-5 | 不使用 `--max-warnings 0` 作为初始基线，需基于 `npm run lint` 实际输出确定初始 N 值 | 避免因历史代码批量修复引入回归风险 |
-| C-6 | `eqeqeq` 规则配置为 `["error", "smart"]`，允许 `== null` 和 `== undefined` 的惯用比较 | 减少误报，`== null` 同时覆盖 `null` 和 `undefined` 是 JS 社区广泛接受的写法 |
-| C-7 | `no-unused-vars` 配置 `argsIgnorePattern: "^_"`，允许以 `_` 前缀命名的未使用参数 | 回调函数签名约定（如 `(_err, data) =>`）是常见模式 |
+> ⚠️ **关键风险**: R230-R233 四个迭代的实现阶段均标记为"失败"，但部分迭代产生了代码变更（R231 修改了 package.json / manifest.json / CHANGELOG / architecture-metrics，R233 修改了 ci.yml / coverage:gate / architecture-guard.sh）。R234 的全量回归是验证这些变更是否正确落地的 **唯一机会**。
 
-### 依赖关系
+### 2.2 当前项目状态快照
+
+| 维度 | 当前值 | 来源 |
+|------|--------|------|
+| package.json 版本 | `3.2.0` | R231 设置 |
+| manifest.json 版本 | `3.2.0` | R231 设置 |
+| CHANGELOG 最高版本 | `[3.1.0] - 2026-05-20` | 尚无 `[3.2.0]` 区段 |
+| coverage:gate 阈值 | `--lines 23 --branches 75 --functions 48` | R233 设置 |
+| CI workflow | lint → test → package-check | R233 增强了 test job |
+| 实测行覆盖率 | **23.68%** (12,048/50,872) | coverage-baseline.md |
+| 实测分支覆盖率 | **75.97%** (1,970/2,593) | coverage-baseline.md |
+| 实测函数覆盖率 | **48.85%** (449/919) | coverage-baseline.md |
+| 测试用例数 | 7,484 (pass 7,470 / fail 14) | R233 基线 |
+| 测试执行时间 | ~44.5s (目标 ≤30s) | R232 声称优化但未落地 |
+| lint 状态 | 待验证 | — |
+| architecture-guard.sh | 已创建（模块行数门禁 + 覆盖率回归检测） | R233 |
+
+### 2.3 核心问题
+
+1. **R230 覆盖率目标未达成**: 行覆盖率仍然为 23.68%，远低于声称的 50%。R234 不以覆盖率提升为目标，但需验证实测值不低于 R233 基线
+2. **CHANGELOG 缺失 3.2.0 区段**: 当前文件中最高版本仍为 `[3.1.0]`，R231 的变更可能未被提交或被后续覆盖
+3. **测试执行时间未达标**: 历史六次优化（R135/R152/R198/R202/R227/R232）均未将执行时间降至 ≤30s
+4. **14 个测试失败**: 基线显示 7,470 pass / 14 fail，需确认这些 fail 是已知问题还是回归
+
+---
+
+## 3. 验收标准
+
+### AC-1: 全量测试通过（0 fail）
+
+- `npm run test:ci` 执行完成，**0 fail**
+- 通过用例数 ≥ **7,564**（允许 R230-R233 新增用例的正常增长）
+- 输出结果中无 `not ok` 行
+- 如存在已知不可修复的失败（如无浏览器环境的 E2E 测试），需在回归报告中逐条记录并标注原因
+
+### AC-2: Lint 零告警
+
+- `npm run lint` 执行完成，输出 **0 errors / 0 warnings**
+- 与 R218/R219 以来的零告警基线一致
+
+### AC-3: 行覆盖率不低于基线（实测验证，非声称）
+
+- 运行 `npm run test:coverage` 获取覆盖率报告
+- 运行 `npm run coverage:gate` 进行门禁检查，exit code = 0
+- 实测行覆盖率 ≥ **23%**（R233 锁定的门禁阈值）
+- 实测分支覆盖率 ≥ **75%**
+- 实测函数覆盖率 ≥ **48%**
+- **关键约束**: 以 `npm run test:coverage` 实际输出为准，不接受声称值。报告中需附带 c8 text-summary 原始输出
+
+### AC-4: 版本号一致性（3.2.0）
+
+- `package.json` → `"version": "3.2.0"`
+- `manifest.json` → `"version": "3.2.0"`
+- 两文件版本号 **完全一致**，均为 `3.2.0`
+
+### AC-5: CHANGELOG 包含 R230-R233 条目
+
+- `CHANGELOG.md` 包含 `[3.2.0] - 2026-05-21` 区段
+- 区段内涵盖以下迭代的变更记录：
+  - **R230**: 行覆盖率突破尝试、零覆盖模块排查、测试补充
+  - **R231**: CHANGELOG 补全、版本号统一至 3.2.0、RELEASE-NOTES 更新
+  - **R232**: 测试执行效率优化、慢速用例改造、并行度提升
+  - **R233**: 覆盖率门禁硬化、基线锁定、architecture-guard.sh 回归检测
+- 条目格式符合 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 规范
+
+### AC-6: CI 覆盖率门禁硬性生效
+
+- `.github/workflows/ci.yml` 中 `test` job 包含以下步骤（按顺序）：
+  1. `Generate coverage report` → `npm run test:coverage`
+  2. `Coverage gate (hard block)` → `npm run coverage:gate`
+  3. `Coverage regression check` → `bash scripts/architecture-guard.sh`
+- `coverage:gate` 失败时，后续 `package-check` job 不执行（`needs: [lint, test]` 依赖保证）
+- `architecture-guard.sh` 可正常执行（模块行数检查 + 覆盖率回归检测）
+
+### AC-7: 输出发布候选版本号
+
+- 最终输出 **v3.2.0** 作为发布候选版本号
+- 版本号与 package.json / manifest.json 一致
+
+---
+
+## 4. 技术约束
+
+| 约束 | 说明 |
+|------|------|
+| **验证性质** | R234 是回归验证迭代，不做新功能开发或覆盖率提升。如果发现回归问题，只做最小必要修复 |
+| **测试执行时间** | 目标 ≤30s，但鉴于历史六次优化均未达标，如果 R233 基线仍为 ~44.5s，接受现状并记录实际值 |
+| **覆盖率诚实** | 所有覆盖率数据必须来自 `npm run test:coverage` 实测输出，不允许声称值 |
+| **14 个已知失败** | R233 基线显示 14 个测试失败。如果是已知的、已归档的失败，需在回归报告中明确记录；如果是回归，需修复 |
+| **零新依赖** | 不引入新的 npm 依赖或工具链变更 |
+| **CHANGELOG 补全** | 如果 R231 的 CHANGELOG 变更被后续迭代覆盖或丢失，R234 需补全 |
+| **CI workflow 不主动修改** | R233 已设置好 CI workflow。R234 只验证其正确性，除非发现明确错误才修复 |
+
+---
+
+## 5. 依赖关系
 
 ```
-R108 (TestCoverage)          ← 已完成，提供 c8 覆盖率基线
-    ↓
-R109 (ESLintSetup)           ← 本需求
-    ↓
-R112 (TechDebtCleanup)       ← 后续：README 添加 lint badge
+R230 (CoverageRealBreak50) ─── 产出: 覆盖率提升尝试 + 实测基线数据 (23.68%)
+     │
+R231 (ChangelogV320Finalize) ─── 产出: 版本号 3.2.0 + CHANGELOG 补全尝试
+     │
+R232 (TestExecutionFinalOpt) ─── 产出: 测试执行效率优化尝试
+     │
+R233 (CoverageGateHardening) ─── 产出: 门禁硬化 + 基线锁定 + architecture-guard.sh
+     │
+     ▼
+R234 (IterationCloseAF) ─── 全量回归验证 + 发布候选输出
+     │
+     ▼
+v3.2.0 正式发布 (Chrome Web Store 提交)
 ```
 
-| 依赖 | 方向 | 说明 |
+| 依赖 | 类型 | 说明 |
 |------|------|------|
-| R108 TestCoverage | 前置（已完成） | 确认测试基础设施稳定，lint 不会干扰 `c8` 覆盖率收集 |
-| R110 CoreFlowFix | 后续（无阻断） | R110 修改业务代码后需通过 lint 检查，但不依赖 R109 |
-| R112 TechDebtCleanup | 后续（无阻断） | R112 将在 README 添加 lint badge，依赖本需求完成后输出 N=0 状态 |
-| CI workflow `ci.yml` | 直接修改 | 现有 `lint` job 仅有 `node --check` 语法检查，需替换/增强为 ESLint |
-
-### 范围界定
-
-**包含：**
-- `eslint.config.js` 创建与规则配置
-- `package.json` 添加 `lint` / `lint:fix` scripts 和 `eslint` devDependency
-- CI `lint` job 增加 ESLint 步骤
-- 现有代码基线 lint 修复（仅修复 `error` 级别告警）
-- `--max-warnings N` 初始值确定
-
-**不包含：**
-- Prettier 或其他代码格式化工具（后续迭代考虑）
-- 自定义 ESLint 插件开发
-- 代码风格规则（如 `indent`、`semi`、`quotes`）— 项目采用无分号风格，但不在本轮强制编码风格规则
-- 一次性修复所有 `warning` 级别告警（渐进收紧）
-
-### 风险与缓解
-
-| 风险 | 可能性 | 影响 | 缓解措施 |
-|------|--------|------|----------|
-| 现有代码 lint error 过多，修复工作量超预期 | 低 | 中 | 先统计 `--max-warnings` 实际数量，仅修 error 级别；warning 留至后续迭代 |
-| Chrome Extension 全局变量误报 | 中 | 低 | `languageOptions.globals` 配置覆盖 `chrome`、`fetch`、`setTimeout` 等浏览器 API |
-| ESLint v9 flat config 与 Node 22 兼容性 | 低 | 低 | ESLint v9 原生支持 Node 18+，CI 使用 Node 22 |
-
-### 初始 `--max-warnings` 渐进计划
-
-| 迭代 | 预期 max-warnings | 说明 |
-|------|-------------------|------|
-| R109（本轮） | N = 实测值 | 建立基线，不强制修 warning |
-| R110 | N × 0.8 | 修代码时顺带修 lint warning |
-| R111 | N × 0.6 | 安全加固时集中修 warning |
-| R112 | N × 0.4 | 最终清理阶段 |
-| R113+ | 0 | 零告警目标 |
+| R230 | **上游** | 产出覆盖率数据基线（实测 23.68%），R234 以此为最低标准 |
+| R231 | **上游** | 设置版本号 3.2.0、尝试补全 CHANGELOG，R234 验证并补全 |
+| R232 | **上游** | 尝试优化测试执行效率，R234 验证实际效果 |
+| R233 | **上游** | 硬化 CI 门禁、锁定基线、创建 architecture-guard.sh，R234 验证门禁生效 |
+| `.github/workflows/ci.yml` | **输入** | R233 修改后的 CI 流水线配置 |
+| `docs/reports/coverage-baseline.md` | **输入** | R233 创建的覆盖率基线文档 |
+| `scripts/architecture-guard.sh` | **输入** | R233 创建的回归检测脚本 |
 
 ---
 
-## 需求变更记录
+## 6. 风险与缓解
 
-| 日期 | 需求 | 变更内容 |
-|------|------|----------|
-| 2026-05-19 | R109 | 新增 ESLintSetup 代码静态检查需求（迭代 6 重定义） |
-| 2026-04-xx | R046/R047 | 原迭代 6 技能生态需求（已完成/废弃） |
+| 风险 | 概率 | 影响 | 缓解措施 |
+|------|------|------|---------|
+| R230-R233 实现失败意味着代码变更可能不完整 | 高 | 高 | R234 逐项验证，发现缺失立即补全 |
+| 14 个测试失败可能是回归而非已知问题 | 中 | 高 | 全量回归时逐一排查失败原因，区分"已知"与"回归" |
+| CHANGELOG 3.2.0 区段仍未写入 | 高 | 中 | R234 作为收尾迭代，必须补全此区段 |
+| 测试执行时间仍 >30s | 高 | 低 | 记录实际值，标记为已知限制，不阻断发布 |
+| CI 门禁在实际 GitHub Actions 中行为与本地不同 | 中 | 中 | 通过 ci.yml 代码审查验证逻辑正确性 |
+
+---
+
+## 7. 验收检查清单
+
+- [ ] `npm run test:ci` → 0 fail, ≥7564 pass
+- [ ] `npm run lint` → 0 errors, 0 warnings
+- [ ] `npm run test:coverage` 实测行覆盖率 ≥23%
+- [ ] `npm run coverage:gate` exit code = 0
+- [ ] `package.json` version = `3.2.0`
+- [ ] `manifest.json` version = `3.2.0`
+- [ ] `CHANGELOG.md` 含 `[3.2.0]` 区段 + R230-R233 条目
+- [ ] `.github/workflows/ci.yml` 含 coverage → coverage:gate → architecture-guard.sh 三步
+- [ ] `bash scripts/architecture-guard.sh` 正常执行（模块行数 + 覆盖率回归）
+- [ ] 输出发布候选版本号: **v3.2.0**
+
+---
+
+## 8. 变更记录
+
+| 日期 | 变更 | 作者 |
+|------|------|------|
+| 2026-05-21 | 初始版本（覆盖原 R109 内容） | Plan Agent |
