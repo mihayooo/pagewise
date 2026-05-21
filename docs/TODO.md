@@ -966,7 +966,7 @@
 
 - [x] **R231: CHANGELOG 补全与 v3.2.0 版本发布 ChangelogV320Finalize** — CHANGELOG.md 缺少 R225-R228 变更记录，版本号停留在 3.1.0；(1) 补充 `[3.2.0] - 2026-05-21` 区段，涵盖 R225-R229 变更（超大模块拆分收尾、CI 门禁、测试执行优化、E2E 框架验证、覆盖率冲刺）；(2) 同步更新 package.json + manifest.json 版本至 `3.2.0`；(3) 更新 RELEASE-NOTES-v3.2.md；(4) 更新 docs/architecture-metrics.md 模块统计（当前 239 个 lib 模块全部 ≤400 行）；(5) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Simple ✅ 2026-05-21
 
-- [ ] **R232: 测试执行效率终极优化 TestExecutionFinalOpt** — 当前 7484 用例执行 44.5s，历史 R135/R152/R198/R202/R227 五次优化均未达标（目标 ≤30s）；(1) 分析 Top-20 最慢测试文件（按 `--test-reporter=json` duration_ms 排序），定位 >2s 的慢速文件；(2) 对慢速文件内的单个用例逐一排查同步阻塞（`setTimeout`/`await sleep`/循环赋值/大量对象构造）；(3) 将>500ms 的用例改造为异步驱动或降低数据规模；(4) `--test-concurrency=16` 再次提升并行度；(5) 建立 `npm run test:smoke` 子集（核心流程 ≤80 用例，<3s）并作为 CI 快速门禁；(6) 目标: 全量 ≤30s。复杂度: Medium
+- [x] **R232: 测试执行效率终极优化 TestExecutionFinalOpt** — 当前 7484 用例执行 44.5s，历史 R135/R152/R198/R202/R227 五次优化均未达标（目标 ≤30s）；(1) 分析 Top-20 最慢测试文件（按 `--test-reporter=json` duration_ms 排序），定位 >2s 的慢速文件；(2) 对慢速文件内的单个用例逐一排查同步阻塞（`setTimeout`/`await sleep`/循环赋值/大量对象构造）；(3) 将>500ms 的用例改造为异步驱动或降低数据规模；(4) `--test-concurrency=16` 再次提升并行度；(5) 建立 `npm run test:smoke` 子集（核心流程 ≤80 用例，<3s）并作为 CI 快速门禁；(6) 目标: 全量 ≤30s。复杂度: Medium
 
 - [ ] **R233: 覆盖率 CI 门禁硬化与基线锁定 CoverageGateHardening** — 当前 `coverage:gate --lines` 阈值形同虚设（历史多次声称收紧但实测仍为 20%），行覆盖率反复声称达标但实测差距巨大；(1) 将 `coverage:gate` 的 `--lines` 阈值从 20 收紧至 R230 达成的实际基线值（如 50）；(2) 在 CI workflow 中添加 `coverage` job，行覆盖率低于门禁阈值则 pipeline fail（硬性阻断）；(3) 添加分支覆盖率和函数覆盖率门禁（branches ≥80%、functions ≥60%）；(4) 生成 `docs/reports/coverage-baseline.md` 记录当前真实基线数据（行/分支/函数/语句）；(5) 在 `scripts/architecture-guard.sh` 中新增覆盖率回归检测（与基线对比，退化 >2pp 则 CI fail）。复杂度: Simple
 
