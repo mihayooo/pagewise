@@ -1086,3 +1086,11 @@
 - [x] **R263: Test Execution Optimization 11 TestExecutionOpt11** — 7633 tests in 62.2s, target <=35s (gap 27.2s/78%), 10 prior optimizations failed; (1) Use --test-reporter=json --test-concurrency=1 to find Top-10 slowest files (>3s); (2) Fix Top-3 slow files root cause (mock object construction / sync I/O / loop assertions); (3) Exclude coverage-boost/ tests from test:ci; (4) Build test:smoke subset <=80 tests <5s; (5) Target: npm run test:ci <=45s. Complexity: Medium
 
 - [x] **R264: Coverage Real Sprint CoverageSprintReal** — First real coverage sprint after infra fix: (1) Run npm run test:coverage to get real line/function/branch coverage; (2) Identify Top-20 zero-coverage modules by uncovered lines; (3) Write tests for Top-10 zero-coverage pure logic modules (>=3 cases each); (4) Target: line coverage >=30%, function coverage >=52%; (5) Add >=30 test cases. Complexity: Medium
+
+## 自动生成任务 — 2026-05-21 21:01
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [ ] **R181: 测试覆盖率提升** — 补充 0% 覆盖率模块的单元测试，目标 ≥80%
+- [ ] **R182: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [ ] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
