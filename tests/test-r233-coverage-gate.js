@@ -50,20 +50,20 @@ describe('R233: Coverage Gate Hardening', () => {
       assert.ok(pkg.scripts['coverage:gate'].includes('--functions'), 'should include --functions')
     })
 
-    it('门禁阈值: --lines 设为 23 (实测基线 23.68%)', () => {
+    it('门禁阈值: --lines 设为 28 (R243 收紧自 23)', () => {
       const pkg = readJSON('package.json')
       const match = pkg.scripts['coverage:gate'].match(/--lines\s+(\d+)/)
       assert.ok(match, '--lines should have a numeric value')
       const val = parseInt(match[1], 10)
-      assert.equal(val, 23, '--lines should be 23 (downward adjusted from 50)')
+      assert.equal(val, 28, '--lines should be 28 (R243 tightened from 23)')
     })
 
-    it('门禁阈值: --functions 设为 48 (实测基线 48.85%)', () => {
+    it('门禁阈值: --functions 设为 50 (R243 收紧自 48)', () => {
       const pkg = readJSON('package.json')
       const match = pkg.scripts['coverage:gate'].match(/--functions\s+(\d+)/)
       assert.ok(match, '--functions should have a numeric value')
       const val = parseInt(match[1], 10)
-      assert.equal(val, 48, '--functions should be 48 (downward adjusted from 60)')
+      assert.equal(val, 50, '--functions should be 50 (R243 tightened from 48)')
     })
 
     it('门禁阈值: --branches 设为 75 (实测基线 75.97%)', () => {

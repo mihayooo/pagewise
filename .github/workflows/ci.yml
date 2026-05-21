@@ -67,7 +67,7 @@ jobs:
       - name: Generate coverage report
         run: npm run test:coverage
 
-      - name: Coverage gate (lines >= 23%, branches >= 75%, functions >= 48%)
+      - name: Coverage gate (lines >= 28%, branches >= 75%, functions >= 50%)
         run: npm run coverage:gate
 
       - name: Coverage regression check
