@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R239
+> 迭代轮次: R43 - R249
 > 最后更新: 2026-05-21
 
 ---
@@ -1008,4 +1008,23 @@
 
 - [x] **R243: 覆盖率门禁与实测对齐 CoverageGateAlign** — 当前 `coverage:gate --lines 23` 与 R236 声称的 ≥35% 门禁不一致，实际行覆盖率 24.89% 刚好过线，门禁形同虚设；(1) 将 `coverage:gate --lines` 收紧至 R241 达成的实际基线值（28 或 30）；(2) 同步将 `--functions` 从 48 收紧至 50、`--branches` 从 75 维持不变；(3) 在 CI workflow 中验证门禁硬性阻断（手动测试覆盖率低于阈值时 pipeline 是否 fail）；(4) 更新 `docs/reports/coverage-baseline.md` 记录当前真实基线数据（行 24.89%/目标 30%、函数 49.79%/目标 52%、分支 75.83%）；(5) 在 `scripts/architecture-guard.sh` 中新增覆盖率回归检测（与基线对比，退化 >2pp 则 CI fail）；(6) 新增 ≥10 个验收测试验证门禁逻辑。复杂度: Simple
 
-- [ ] **R244: 全量回归与 v3.2.1 发布收尾 ReleaseV321** — R240-R243 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7611 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥30%（实测验证，非声称）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.1] - 2026-05-21` 区段，涵盖 R240-R243 变更（版本断言修复、覆盖率突破 30%、测试效率优化、门禁硬化）；(7) 更新 RELEASE-NOTES-v3.2.1.md；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+- [x] **R244: 全量回归与 v3.2.1 发布收尾 ReleaseV321** — R240-R243 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7611 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 行覆盖率 ≥30%（实测验证，非声称）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.1] - 2026-05-21` 区段，涵盖 R240-R243 变更（版本断言修复、覆盖率突破 30%、测试效率优化、门禁硬化）；(7) 更新 RELEASE-NOTES-v3.2.1.md；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+
+---
+
+## Phase AI: 覆盖率门禁达标与产品体验深化 (R245-R249) — 5 轮
+
+> 飞轮迭代 R68 起，2026-05-21
+> 现状 (实测): 7551 pass / 0 fail / 38.5s；Lint 0/0；行覆盖率 **24.89%**（门禁 ≥28% 未达标）、函数覆盖率 **49.79%**（门禁 ≥50% 未达标）、分支覆盖率 75.83%（门禁 ≥75% 刚好过线）；240 个 lib 模块；VERSION 3.2.1；所有历史 TODO 任务已完成、技术债务全部关闭
+> 目标: 覆盖率门禁三项全部达标、测试执行 ≤35s、知识库检索体验增强、v3.2.2 发布就绪
+> 任务来源优先级: 修复覆盖率门禁 > 性能优化 > 产品体验 > 发布收尾
+
+- [x] **R245: 覆盖率门禁三项达标冲刺 CoverageGatePass** — 当前覆盖率两项未过门禁：行覆盖率 24.89%（门禁 ≥28%，差距 3.11pp/需新增覆盖 ~1590 行）、函数覆盖率 49.79%（门禁 ≥50%，差距 0.21pp/需新增覆盖 ~2 个函数）；根因始终相同：~38000 行零覆盖模块在测试中从未被 import；(1) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-20（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-10 零覆盖纯逻辑模块编写测试文件（每模块 ≥5 用例，确保 c8 可插桩——必须通过 `import` 加载目标模块而非仅 mock）；(3) 为函数覆盖率缺口补测：定位未被调用的关键函数（按函数体行数降序），确保新增测试直接调用目标函数；(4) 将 `coverage:gate --lines` 从 28 收紧至与实测对齐的稳定值（确认 ≥28% 后维持或收紧至 30）；(5) 更新 `docs/reports/coverage-baseline.md` 基线快照；(6) 目标: 行覆盖率 ≥28%（门禁通过）、函数覆盖率 ≥50%（门禁通过）、分支覆盖率 ≥75%（维持）；(7) 新增 ≥40 用例。复杂度: Medium
+
+- [ ] **R246: 测试执行效率九期 TestExecutionOpt9** — 当前 7551 用例执行 38.5s，R242 目标 ≤35s 未达成（差距 3.5s/9%），历史八次优化（R135/R152/R198/R202/R227/R232/R237/R242）均未降至 ≤30s；本轮新策略——识别并隔离"重量级"测试文件：(1) 用 `--test-reporter=json` 分析所有测试文件的 duration_ms，找出累计耗时 Top-10 的单文件（>1s）；(2) 将 Top-3 最慢文件（预计为 R241/R245 新增的覆盖率测试集——大量 import 零覆盖模块导致模块加载开销大）拆分为多个 ≤30 用例的小文件；(3) 将 R245 新增测试文件独立为 `tests/coverage-boost/` 子目录，在 `test:ci` 中排除（避免拖慢主测试流），通过 `test:ci:coverage` 单独执行；(4) `--test-concurrency=16` 维持高并行度；(5) 目标: `npm run test:ci` ≤35s、`npm run test:smoke` ≤3s。复杂度: Medium
+
+- [ ] **R247: 知识库智能检索升级 KnowledgeBaseSmartSearch** — 当前知识库搜索仅支持关键词精确匹配，用户体验待提升；新建 `lib/knowledge-smart-search.js`，提供类搜索引擎体验：(1) 模糊搜索：支持拼写纠错（编辑距离 ≤2 的近似匹配）、拼音搜索（中文标题转拼音后匹配）；(2) 搜索结果高亮：返回匹配片段并标记命中关键词位置（复用 sanitize.js XSS 安全）；(3) 搜索联想/自动补全：基于知识库高频词和用户搜索历史（复用 bookmark-search-history.js）生成实时建议；(4) 多维度排序：相关度（TF-IDF）+ 时间（最近更新优先）+ 使用频率（访问次数加权），支持用户切换排序方式；(5) 搜索过滤器：按类型（书签/知识条目/笔记）/时间范围/标签/领域过滤；(6) 与现有 bookmark-semantic-search.js 和 knowledge-base-query.js 集成，不重复造轮子；(7) 性能：1000 条知识库搜索 <50ms；(8) 测试 ≥30 用例。复杂度: Complex
+
+- [ ] **R248: 用户设置统一面板 UnifiedSettingsPanel** — 当前设置分散在多个模块（theme/i18n/privacy/onboarding/telemetry/coach-preferences 等），用户难以找到和管理；新建 `lib/settings-manager.js` 统一设置层：(1) 设置聚合：从 15+ 个模块收集所有可配置项（主题、语言、AI 模型选择、自动采集开关、复习提醒频率、教练严格程度、遥测开关、数据生命周期等），统一注册到 SettingsRegistry；(2) 设置分组：按类别（外观/AI/书签/学习/隐私/高级）组织，生成 settings schema 供 UI 消费；(3) 设置导入导出：`exportSettings()` / `importSettings()` JSON 格式，支持跨设备迁移（复用 bookmark-io.js 框架）；(4) 设置变更事件：`onSettingChange(key, callback)` 事件驱动，其他模块可监听设置变化并实时响应；(5) 设置校验：每个设置项附带 validator（类型/范围/枚举），非法值拒绝写入；(6) 设置重置：`resetToDefaults(scope?)` 按类别或全部重置为出厂值；(7) 与 options/options.html 设置页集成：生成设置项配置驱动 UI 渲染；(8) 测试 ≥25 用例。复杂度: Medium
+
+- [ ] **R249: 全量回归与 v3.2.2 发布收尾 ReleaseV322** — R245-R248 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7600 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.2.2（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.2.2] - 2026-05-21` 区段，涵盖 R245-R248 变更（覆盖率门禁达标、测试效率优化、知识库智能检索、统一设置面板）；(7) 更新 `docs/reports/coverage-baseline.md`；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
