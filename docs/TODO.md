@@ -985,7 +985,7 @@
 
 - [x] **R236: 行覆盖率真实提升至 35% CoverageRealSprint35** — 当前行覆盖率仅 23.68%，历史 R205/R216/R222/R225/R230 五次冲刺均未达成 ≥50%；本轮务实目标 35%（+5700 行覆盖）：(1) 运行 c8 分析零覆盖模块 Top-30（按未覆盖行数排序）；(2) 为其中纯逻辑/工具函数模块（无 Chrome API 依赖）批量补测试，每模块 ≥3 用例；(3) 对 Chrome API 依赖模块编写 mock-aware 测试覆盖主路径（sidebar-chat/sidebar-bookmark/sidebar-settings/sidebar-knowledge/sidebar-utils 等 R158 拆分产物）；(4) 将 `coverage:gate --lines` 从 23 收紧至 33；(5) 目标: 行覆盖率 ≥35%、函数覆盖率 ≥55%；(6) 新增 ≥100 用例。复杂度: Complex
 
-- [ ] **R237: 测试执行效率终极优化 TestExecutionUltimateOpt** — 当前 7516 用例执行 35.6s，目标 ≤30s（差距 5.6s/16%）；历史 R135/R152/R198/R202/R227/R232 六次优化均未达标；(1) 用 `--test-reporter=json` 分析 Top-20 最慢测试文件，定位单个 >500ms 的用例；(2) 对慢速文件排查同步阻塞（循环赋值/大量对象构造/同步 I/O mock）并改造为异步或降低数据规模；(3) `--test-concurrency=16` 提升并行度；(4) 验证 `npm run test:smoke` ≤3s 作为 CI 快速门禁；(5) 目标: 全量 ≤30s。复杂度: Medium
+- [x] **R237: 测试执行效率终极优化 TestExecutionUltimateOpt** — 当前 7516 用例执行 35.6s，目标 ≤30s（差距 5.6s/16%）；历史 R135/R152/R198/R202/R227/R232 六次优化均未达标；(1) 用 `--test-reporter=json` 分析 Top-20 最慢测试文件，定位单个 >500ms 的用例；(2) 对慢速文件排查同步阻塞（循环赋值/大量对象构造/同步 I/O mock）并改造为异步或降低数据规模；(3) `--test-concurrency=16` 提升并行度；(4) 验证 `npm run test:smoke` ≤3s 作为 CI 快速门禁；(5) 目标: 全量 ≤30s。复杂度: Medium
 
 - [ ] **R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt** — R81 onboarding + R212 telemetry 已实现但从未在真实用户场景验证；(1) 审查 onboarding 4 步流程在 manifest.json 中的触发时机（service worker install 事件 → chrome.storage 检查 completed flag）；(2) 验证 telemetry.js 数据采集点覆盖核心动作（选中即问/AI 回答/书签操作/知识库查询/搜索），确保无遗漏；(3) 验证 feedback-collector.js NPS 弹窗在第 7 天触发的计时逻辑正确（基于 chrome.storage.local 安装时间戳）；(4) 优化 onboarding 引导中的功能截图和文案（当前为英文，补充中文 locale）；(5) 补充 ≥15 个集成测试覆盖 onboarding → telemetry → feedback 全链路。复杂度: Medium
 
