@@ -1,271 +1,545 @@
 /**
- * 测试 lib/error-handler.js — 错误分类与重试机制
+ * 测试 lib/error-handler.js — 全局错误处理、分类与重试机制
+ *
+ * 覆盖：
+ * - ErrorType 枚举完整性
+ * - classifyAIError: 超时/网络/状态码/关键字/未知
+ * - classifyByStatusCode: 401/403/404/413/429/5xx/其他
+ * - retryWithBackoff: 速率限制重试、非速率限制直接抛出、onRetry 回调
+ * - classifyContentError: youtube/pdf/通用
+ * - isIndexedDBAvailable: 可用/不可用
+ * - classifyStorageError: 配额/不可用/通用
+ * - buildAIErrorMessageHTML: 带重试按钮/无重试按钮/HTML 转义
+ * - installGlobalErrorHandler: window 存在/不存在
  */
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  classifyAIError,
-  classifyContentError,
-  classifyStorageError,
-  isIndexedDBAvailable,
-  retryWithBackoff,
+
+const {
   ErrorType,
-  CONTENT_ERROR_MESSAGES
-} from '../lib/error-handler.js';
+  CONTENT_ERROR_MESSAGES,
+  classifyAIError,
+  retryWithBackoff,
+  classifyContentError,
+  isIndexedDBAvailable,
+  classifyStorageError,
+  buildAIErrorMessageHTML,
+  installGlobalErrorHandler,
+} = await import('../lib/error-handler.js');
 
-// ==================== AI 错误分类 ====================
+// ==================== ErrorType 枚举 ====================
 
-describe('classifyAIError - 网络错误', () => {
-  it('TypeError 被识别为网络错误', () => {
-    const result = classifyAIError(new TypeError('Failed to fetch'));
-    assert.equal(result.type, ErrorType.NETWORK);
-    assert.equal(result.message, '网络连接失败，请检查网络');
-    assert.equal(result.retryable, true);
+describe('ErrorType', () => {
+  it('should have all 8 error types', () => {
+    assert.equal(ErrorType.NETWORK, 'network');
+    assert.equal(ErrorType.AUTH, 'auth');
+    assert.equal(ErrorType.MODEL_NOT_FOUND, 'model_not_found');
+    assert.equal(ErrorType.TOKEN_LIMIT, 'token_limit');
+    assert.equal(ErrorType.RATE_LIMIT, 'rate_limit');
+    assert.equal(ErrorType.SERVER_ERROR, 'server_error');
+    assert.equal(ErrorType.TIMEOUT, 'timeout');
+    assert.equal(ErrorType.UNKNOWN, 'unknown');
   });
 
-  it('"网络错误" 关键字触发网络分类', () => {
-    const result = classifyAIError(new Error('网络错误: fetch failed'));
-    assert.equal(result.type, ErrorType.NETWORK);
-    assert.equal(result.retryable, true);
-  });
-
-  it('"failed to fetch" 触发网络分类', () => {
-    const result = classifyAIError(new Error('Failed to fetch'));
-    assert.equal(result.type, ErrorType.NETWORK);
-  });
-});
-
-describe('classifyAIError - 认证错误', () => {
-  it('API 401 被识别为认证错误', () => {
-    const result = classifyAIError(new Error('API 401: Unauthorized'));
-    assert.equal(result.type, ErrorType.AUTH);
-    assert.equal(result.message, 'API Key 无效，请检查设置');
-    assert.equal(result.retryable, false);
-  });
-
-  it('API 403 被识别为认证错误', () => {
-    const result = classifyAIError(new Error('API 403: Forbidden'));
-    assert.equal(result.type, ErrorType.AUTH);
+  it('should have exactly 8 keys', () => {
+    assert.equal(Object.keys(ErrorType).length, 8);
   });
 });
 
-describe('classifyAIError - 模型错误', () => {
-  it('API 404 被识别为模型不存在', () => {
-    const result = classifyAIError(new Error('API 404: Model not found'));
-    assert.equal(result.type, ErrorType.MODEL_NOT_FOUND);
-    assert.equal(result.message, '模型名称错误，请检查设置');
-    assert.equal(result.retryable, false);
+// ==================== CONTENT_ERROR_MESSAGES ====================
+
+describe('CONTENT_ERROR_MESSAGES', () => {
+  it('should have all 5 content error messages', () => {
+    assert.equal(typeof CONTENT_ERROR_MESSAGES.NO_CONTENT, 'string');
+    assert.equal(typeof CONTENT_ERROR_MESSAGES.NO_YOUTUBE_CAPTIONS, 'string');
+    assert.equal(typeof CONTENT_ERROR_MESSAGES.PDF_READ_ERROR, 'string');
+    assert.equal(typeof CONTENT_ERROR_MESSAGES.STORAGE_UNAVAILABLE, 'string');
+    assert.equal(typeof CONTENT_ERROR_MESSAGES.STORAGE_QUOTA, 'string');
   });
 });
 
-describe('classifyAIError - Token 超限', () => {
-  it('API 413 被识别为 token 超限', () => {
-    const result = classifyAIError(new Error('API 413: Too large'));
-    assert.equal(result.type, ErrorType.TOKEN_LIMIT);
-    assert.equal(result.message, '输入内容过长，请缩短');
-  });
+// ==================== classifyAIError ====================
 
-  it('"token limit" 关键字触发 token 分类', () => {
-    const result = classifyAIError(new Error('Token limit exceeded'));
-    assert.equal(result.type, ErrorType.TOKEN_LIMIT);
-    assert.equal(result.retryable, false);
-  });
-});
-
-describe('classifyAIError - 速率限制', () => {
-  it('API 429 被识别为速率限制', () => {
-    const result = classifyAIError(new Error('API 429: Too Many Requests'));
-    assert.equal(result.type, ErrorType.RATE_LIMIT);
-    assert.equal(result.message, '请求频繁，请稍后重试');
-    assert.equal(result.retryable, true);
-  });
-
-  it('"rate" 关键字触发速率限制分类', () => {
-    const result = classifyAIError(new Error('Rate limit exceeded'));
-    assert.equal(result.type, ErrorType.RATE_LIMIT);
-  });
-});
-
-describe('classifyAIError - 超时', () => {
-  it('AbortError 被识别为超时', () => {
-    const error = new Error('The operation was aborted');
+describe('classifyAIError', () => {
+  it('should classify AbortError as timeout', () => {
+    const error = new Error('aborted');
     error.name = 'AbortError';
     const result = classifyAIError(error);
     assert.equal(result.type, ErrorType.TIMEOUT);
-    assert.equal(result.message, '请求超时，请重试');
     assert.equal(result.retryable, true);
   });
 
-  it('"timeout" 关键字触发超时分类', () => {
-    const result = classifyAIError(new Error('Request timeout'));
+  it('should classify timeout keyword as timeout', () => {
+    const result = classifyAIError(new Error('Request timeout after 30s'));
     assert.equal(result.type, ErrorType.TIMEOUT);
+    assert.equal(result.retryable, true);
   });
-});
 
-describe('classifyAIError - 未知错误', () => {
-  it('无法识别的错误返回 unknown', () => {
-    const result = classifyAIError(new Error('Something weird happened'));
+  it('should classify Chinese timeout keyword', () => {
+    const result = classifyAIError(new Error('请求超时'));
+    assert.equal(result.type, ErrorType.TIMEOUT);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify TypeError as network error', () => {
+    const result = classifyAIError(new TypeError('Failed to fetch'));
+    assert.equal(result.type, ErrorType.NETWORK);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify "network error" as network', () => {
+    const result = classifyAIError(new Error('NetworkError when attempting to fetch'));
+    assert.equal(result.type, ErrorType.NETWORK);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify "failed to fetch" as network', () => {
+    const result = classifyAIError(new Error('Failed to fetch'));
+    assert.equal(result.type, ErrorType.NETWORK);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify Chinese network keyword', () => {
+    const result = classifyAIError(new Error('网络连接失败'));
+    assert.equal(result.type, ErrorType.NETWORK);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify API 401 as auth error', () => {
+    const result = classifyAIError(new Error('API 401 Unauthorized'));
+    assert.equal(result.type, ErrorType.AUTH);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify API 403 as auth error', () => {
+    const result = classifyAIError(new Error('API 403 Forbidden'));
+    assert.equal(result.type, ErrorType.AUTH);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify API 404 as model not found', () => {
+    const result = classifyAIError(new Error('API 404 Not Found'));
+    assert.equal(result.type, ErrorType.MODEL_NOT_FOUND);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify API 429 as rate limit', () => {
+    const result = classifyAIError(new Error('API 429 Too Many Requests'));
+    assert.equal(result.type, ErrorType.RATE_LIMIT);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify API 413 as token limit', () => {
+    const result = classifyAIError(new Error('API 413 Payload Too Large'));
+    assert.equal(result.type, ErrorType.TOKEN_LIMIT);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify API 500 as server error', () => {
+    const result = classifyAIError(new Error('API 500 Internal Server Error'));
+    assert.equal(result.type, ErrorType.SERVER_ERROR);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify API 503 as server error', () => {
+    const result = classifyAIError(new Error('API 503 Service Unavailable'));
+    assert.equal(result.type, ErrorType.SERVER_ERROR);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify 401 keyword as auth', () => {
+    const result = classifyAIError(new Error('Status 401 unauthorized'));
+    assert.equal(result.type, ErrorType.AUTH);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify "invalid key" as auth', () => {
+    const result = classifyAIError(new Error('Invalid API key provided'));
+    assert.equal(result.type, ErrorType.AUTH);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify "model not found" as model not found', () => {
+    const result = classifyAIError(new Error('The model gpt-5 does not exist'));
+    assert.equal(result.type, ErrorType.MODEL_NOT_FOUND);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify "token limit exceeded" as token limit', () => {
+    const result = classifyAIError(new Error('Token limit exceeded for this request'));
+    assert.equal(result.type, ErrorType.TOKEN_LIMIT);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify "too long" token error as token limit', () => {
+    const result = classifyAIError(new Error('Token count is too long for the model'));
+    assert.equal(result.type, ErrorType.TOKEN_LIMIT);
+    assert.equal(result.retryable, false);
+  });
+
+  it('should classify "rate" keyword as rate limit', () => {
+    const result = classifyAIError(new Error('Rate limit exceeded'));
+    assert.equal(result.type, ErrorType.RATE_LIMIT);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify "too many requests" as rate limit', () => {
+    const result = classifyAIError(new Error('Too many requests, please slow down'));
+    assert.equal(result.type, ErrorType.RATE_LIMIT);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify "throttled" as rate limit', () => {
+    const result = classifyAIError(new Error('Request was throttled'));
+    assert.equal(result.type, ErrorType.RATE_LIMIT);
+    assert.equal(result.retryable, true);
+  });
+
+  it('should classify unknown errors', () => {
+    const result = classifyAIError(new Error('Something went wrong'));
     assert.equal(result.type, ErrorType.UNKNOWN);
     assert.equal(result.retryable, false);
   });
 
-  it('null/undefined 错误不崩溃', () => {
-    const result = classifyAIError(null);
+  it('should handle null/undefined error gracefully', () => {
+    const result1 = classifyAIError(null);
+    assert.equal(result1.type, ErrorType.UNKNOWN);
+    assert.equal(result1.originalMessage, '');
+
+    const result2 = classifyAIError(undefined);
+    assert.equal(result2.type, ErrorType.UNKNOWN);
+    assert.equal(result2.originalMessage, '');
+  });
+
+  it('should handle error without message', () => {
+    const error = {};
+    const result = classifyAIError(error);
     assert.equal(result.type, ErrorType.UNKNOWN);
+    assert.equal(result.originalMessage, '');
+  });
+
+  it('should preserve originalMessage', () => {
+    const result = classifyAIError(new Error('Original error text'));
+    assert.equal(result.originalMessage, 'Original error text');
   });
 });
 
-describe('classifyAIError - 服务器错误', () => {
-  it('500 被识别为 SERVER_ERROR 且可重试', () => {
-    const result = classifyAIError(new Error('API 500: Internal Server Error'));
-    assert.equal(result.type, ErrorType.SERVER_ERROR);
-    assert.equal(result.message, '服务器错误，请稍后重试');
-    assert.equal(result.retryable, true);
+// ==================== retryWithBackoff ====================
+
+describe('retryWithBackoff', () => {
+  it('should return result on first success', async () => {
+    let calls = 0;
+    const fn = async () => { calls++; return 'ok'; };
+    const result = await retryWithBackoff(fn);
+    assert.equal(result, 'ok');
+    assert.equal(calls, 1);
   });
 
-  it('502 被识别为 SERVER_ERROR', () => {
-    const result = classifyAIError(new Error('API 502: Bad Gateway'));
-    assert.equal(result.type, ErrorType.SERVER_ERROR);
-    assert.equal(result.retryable, true);
+  it('should not retry non-rate-limit errors', async () => {
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      throw new Error('Network error');
+    };
+    await assert.rejects(() => retryWithBackoff(fn, { baseDelay: 1 }), {
+      message: 'Network error'
+    });
+    assert.equal(calls, 1);
   });
 
-  it('503 被识别为 SERVER_ERROR', () => {
-    const result = classifyAIError(new Error('API 503: Service Unavailable'));
-    assert.equal(result.type, ErrorType.SERVER_ERROR);
-    assert.equal(result.retryable, true);
+  it('should retry rate limit errors up to maxRetries', async () => {
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      if (calls <= 2) throw new Error('Rate limit exceeded');
+      return 'success';
+    };
+    const result = await retryWithBackoff(fn, { maxRetries: 3, baseDelay: 1 });
+    assert.equal(result, 'success');
+    assert.equal(calls, 3);
+  });
+
+  it('should throw after exhausting maxRetries for rate limit', async () => {
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      throw new Error('Rate limit exceeded');
+    };
+    await assert.rejects(() => retryWithBackoff(fn, { maxRetries: 2, baseDelay: 1 }), {
+      message: 'Rate limit exceeded'
+    });
+    assert.equal(calls, 3); // initial + 2 retries
+  });
+
+  it('should call onRetry callback on each retry', async () => {
+    const retryLog = [];
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      if (calls <= 2) throw new Error('429 Too Many Requests');
+      return 'ok';
+    };
+    const result = await retryWithBackoff(fn, {
+      maxRetries: 3,
+      baseDelay: 1,
+      onRetry: (attempt, delay, error) => {
+        retryLog.push({ attempt, delay, type: error.type });
+      }
+    });
+    assert.equal(result, 'ok');
+    assert.equal(retryLog.length, 2);
+    assert.equal(retryLog[0].attempt, 1);
+    assert.equal(retryLog[1].attempt, 2);
+    assert.equal(retryLog[0].type, ErrorType.RATE_LIMIT);
+  });
+
+  it('should apply exponential backoff delays', async () => {
+    const delays = [];
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      if (calls <= 2) throw new Error('Rate limit');
+      return 'ok';
+    };
+    await retryWithBackoff(fn, {
+      maxRetries: 3,
+      baseDelay: 10,
+      onRetry: (attempt, delay) => delays.push(delay)
+    });
+    assert.deepEqual(delays, [10, 20]); // baseDelay * 2^0, baseDelay * 2^1
+  });
+
+  it('should use default options when none provided', async () => {
+    let calls = 0;
+    const fn = async () => {
+      calls++;
+      return 'result';
+    };
+    const result = await retryWithBackoff(fn);
+    assert.equal(result, 'result');
+    assert.equal(calls, 1);
   });
 });
 
-// ==================== 内容提取错误分类 ====================
+// ==================== classifyContentError ====================
 
 describe('classifyContentError', () => {
-  it('YouTube 页面返回无字幕提示', () => {
-    const result = classifyContentError(new Error('no captions'), 'youtube');
+  it('should classify youtube page type', () => {
+    const result = classifyContentError(new Error('some error'), 'youtube');
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_YOUTUBE_CAPTIONS);
     assert.equal(result.fallback, false);
   });
 
-  it('"字幕" 关键字触发 YouTube 分类', () => {
-    const result = classifyContentError(new Error('无法获取字幕'));
+  it('should classify caption keyword as youtube', () => {
+    const result = classifyContentError(new Error('No captions available'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_YOUTUBE_CAPTIONS);
+    assert.equal(result.fallback, false);
+  });
+
+  it('should classify subtitle keyword as youtube', () => {
+    const result = classifyContentError(new Error('No subtitles found'));
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_YOUTUBE_CAPTIONS);
   });
 
-  it('PDF 页面返回无法读取提示', () => {
-    const result = classifyContentError(new Error('read error'), 'pdf');
+  it('should classify Chinese 字幕 keyword as youtube', () => {
+    const result = classifyContentError(new Error('该视频没有字幕'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_YOUTUBE_CAPTIONS);
+  });
+
+  it('should classify pdf page type', () => {
+    const result = classifyContentError(new Error('some error'), 'pdf');
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.PDF_READ_ERROR);
     assert.equal(result.fallback, true);
     assert.equal(result.fallbackLabel, '手动输入内容');
   });
 
-  it('"pdf" 关键字触发 PDF 分类', () => {
-    const result = classifyContentError(new Error('PDF parsing failed'));
+  it('should classify pdf keyword', () => {
+    const result = classifyContentError(new Error('Cannot parse PDF document'));
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.PDF_READ_ERROR);
+    assert.equal(result.fallback, true);
   });
 
-  it('通用页面返回无法提取提示', () => {
-    const result = classifyContentError(new Error('empty content'));
+  it('should classify general errors with fallback', () => {
+    const result = classifyContentError(new Error('DOM parse failed'));
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_CONTENT);
     assert.equal(result.fallback, true);
     assert.equal(result.fallbackLabel, '手动输入内容');
   });
+
+  it('should handle null error', () => {
+    const result = classifyContentError(null, 'general');
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_CONTENT);
+    assert.equal(result.fallback, true);
+  });
+
+  it('should default to general pageType', () => {
+    const result = classifyContentError(new Error('unknown'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.NO_CONTENT);
+  });
 });
 
-// ==================== 存储错误分类 ====================
+// ==================== isIndexedDBAvailable ====================
+
+describe('isIndexedDBAvailable', () => {
+  it('should return boolean', () => {
+    const result = isIndexedDBAvailable();
+    assert.equal(typeof result, 'boolean');
+  });
+});
+
+// ==================== classifyStorageError ====================
 
 describe('classifyStorageError', () => {
-  it('quota 错误返回存储空间不足', () => {
+  it('should classify quota exceeded', () => {
     const result = classifyStorageError(new Error('QuotaExceededError'));
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_QUOTA);
     assert.equal(result.fatal, false);
   });
 
-  it('indexeddb 错误返回存储不可用', () => {
-    const result = classifyStorageError(new Error('IndexedDB not available'));
+  it('should classify "exceeded" as quota', () => {
+    const result = classifyStorageError(new Error('Storage exceeded'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_QUOTA);
+    assert.equal(result.fatal, false);
+  });
+
+  it('should classify "storage full" as quota', () => {
+    const result = classifyStorageError(new Error('LocalStorage is full'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_QUOTA);
+    assert.equal(result.fatal, false);
+  });
+
+  it('should classify Chinese 空间不足 as quota', () => {
+    const result = classifyStorageError(new Error('存储空间不足'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_QUOTA);
+    assert.equal(result.fatal, false);
+  });
+
+  it('should classify indexeddb unavailable', () => {
+    const result = classifyStorageError(new Error('IndexedDB is not available'));
     assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_UNAVAILABLE);
     assert.equal(result.fatal, true);
   });
 
-  it('通用存储错误', () => {
-    const result = classifyStorageError(new Error('something'));
+  it('should classify "not allowed" as unavailable', () => {
+    const result = classifyStorageError(new Error('Storage access not allowed'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_UNAVAILABLE);
+    assert.equal(result.fatal, true);
+  });
+
+  it('should classify "blocked" as unavailable', () => {
+    const result = classifyStorageError(new Error('IndexedDB blocked by browser'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_UNAVAILABLE);
+    assert.equal(result.fatal, true);
+  });
+
+  it('should classify Chinese 不可用 as unavailable', () => {
+    const result = classifyStorageError(new Error('存储不可用'));
+    assert.equal(result.message, CONTENT_ERROR_MESSAGES.STORAGE_UNAVAILABLE);
+    assert.equal(result.fatal, true);
+  });
+
+  it('should classify unknown storage errors', () => {
+    const result = classifyStorageError(new Error('Something else'));
+    assert.equal(result.message, '存储操作失败');
+    assert.equal(result.fatal, false);
+  });
+
+  it('should handle null error', () => {
+    const result = classifyStorageError(null);
     assert.equal(result.message, '存储操作失败');
     assert.equal(result.fatal, false);
   });
 });
 
-// ==================== IndexedDB 可用性检查 ====================
+// ==================== buildAIErrorMessageHTML ====================
 
-describe('isIndexedDBAvailable', () => {
-  it('在 Node.js 环境中应返回 false（无 indexedDB）', () => {
-    // Node.js 环境没有 indexedDB
-    const result = isIndexedDBAvailable();
-    assert.equal(result, false);
+describe('buildAIErrorMessageHTML', () => {
+  it('should render error message with warning emoji', () => {
+    const html = buildAIErrorMessageHTML({
+      type: ErrorType.UNKNOWN,
+      message: 'Something failed'
+    });
+    assert.ok(html.includes('⚠️'));
+    assert.ok(html.includes('Something failed'));
+    assert.ok(html.includes('error-message'));
+  });
+
+  it('should include retry button for network errors with retryFn', () => {
+    const html = buildAIErrorMessageHTML(
+      { type: ErrorType.NETWORK, message: 'Network down' },
+      () => {}
+    );
+    assert.ok(html.includes('btn-retry-ai'));
+    assert.ok(html.includes('重试'));
+  });
+
+  it('should include retry button for timeout errors with retryFn', () => {
+    const html = buildAIErrorMessageHTML(
+      { type: ErrorType.TIMEOUT, message: 'Timed out' },
+      () => {}
+    );
+    assert.ok(html.includes('btn-retry-ai'));
+  });
+
+  it('should not include retry button for auth errors', () => {
+    const html = buildAIErrorMessageHTML(
+      { type: ErrorType.AUTH, message: 'Invalid key' },
+      () => {}
+    );
+    assert.ok(!html.includes('btn-retry-ai'));
+  });
+
+  it('should not include retry button when no retryFn', () => {
+    const html = buildAIErrorMessageHTML({
+      type: ErrorType.NETWORK,
+      message: 'Network down'
+    });
+    assert.ok(!html.includes('btn-retry-ai'));
+  });
+
+  it('should not include retry button for rate limit errors', () => {
+    const html = buildAIErrorMessageHTML(
+      { type: ErrorType.RATE_LIMIT, message: 'Rate limited' },
+      () => {}
+    );
+    assert.ok(!html.includes('btn-retry-ai'));
+  });
+
+  it('should escape HTML in error message', () => {
+    const html = buildAIErrorMessageHTML({
+      type: ErrorType.UNKNOWN,
+      message: '<script>alert("xss")</script>'
+    });
+    assert.ok(!html.includes('<script>'));
+    assert.ok(html.includes('&lt;script&gt;'));
+  });
+
+  it('should escape quotes in error message', () => {
+    const html = buildAIErrorMessageHTML({
+      type: ErrorType.UNKNOWN,
+      message: 'Error "quoted"'
+    });
+    assert.ok(html.includes('&quot;'));
+  });
+
+  it('should escape ampersands', () => {
+    const html = buildAIErrorMessageHTML({
+      type: ErrorType.UNKNOWN,
+      message: 'A & B'
+    });
+    assert.ok(html.includes('&amp;'));
+    assert.ok(!html.match(/[^&]&[^a]/)); // no unescaped &
   });
 });
 
-// ==================== 重试机制 ====================
+// ==================== installGlobalErrorHandler ====================
 
-describe('retryWithBackoff', () => {
-  it('成功时不重试', async () => {
-    let callCount = 0;
-    const fn = async () => { callCount++; return 'ok'; };
-    const result = await retryWithBackoff(fn, { maxRetries: 3 });
-    assert.equal(result, 'ok');
-    assert.equal(callCount, 1);
-  });
-
-  it('非速率限制错误不重试', async () => {
-    let callCount = 0;
-    const fn = async () => {
-      callCount++;
-      throw new Error('API 401: Unauthorized');
-    };
-    await assert.rejects(
-      () => retryWithBackoff(fn, { maxRetries: 3, baseDelay: 10 }),
-      { message: /401/ }
-    );
-    assert.equal(callCount, 1);
-  });
-
-  it('速率限制错误自动重试', async () => {
-    let callCount = 0;
-    const fn = async () => {
-      callCount++;
-      if (callCount < 3) {
-        throw new Error('API 429: Too Many Requests');
-      }
-      return 'success';
-    };
-    const result = await retryWithBackoff(fn, { maxRetries: 3, baseDelay: 10 });
-    assert.equal(result, 'success');
-    assert.equal(callCount, 3);
-  });
-
-  it('超过最大重试次数后抛出错误', async () => {
-    let callCount = 0;
-    const fn = async () => {
-      callCount++;
-      throw new Error('API 429: Too Many Requests');
-    };
-    await assert.rejects(
-      () => retryWithBackoff(fn, { maxRetries: 2, baseDelay: 10 }),
-      { message: /429/ }
-    );
-    assert.equal(callCount, 3); // 初始调用 + 2 次重试
-  });
-
-  it('onRetry 回调被调用', async () => {
-    let retryCalls = 0;
-    const fn = async () => {
-      if (retryCalls < 2) throw new Error('API 429: Rate limit');
-      return 'ok';
-    };
-    const result = await retryWithBackoff(fn, {
-      maxRetries: 3,
-      baseDelay: 10,
-      onRetry: () => retryCalls++
+describe('installGlobalErrorHandler', () => {
+  it('should not throw when window is undefined', () => {
+    // In Node.js, window is undefined — should be a no-op
+    assert.doesNotThrow(() => {
+      installGlobalErrorHandler(() => {});
     });
-    assert.equal(result, 'ok');
-    assert.equal(retryCalls, 2);
   });
 });

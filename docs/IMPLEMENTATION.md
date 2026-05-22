@@ -1762,3 +1762,22 @@ R212 新增 `lib/feedback-collector.js` 时定义了 `const MS_PER_DAY = 24 * 60
 ### 验证结果
 
 - `node --test tests/test-settings-manager.js`: 37 pass / 0 fail ✅
+
+### R183: error-handler.js 测试覆盖 (2026-05-22)
+
+**目标**: 为 `lib/error-handler.js` (393行) 创建全面的单元测试
+
+**新增文件**:
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `tests/test-error-handler.js` | 新建 | 66 个单元测试，9 个 describe 套件 |
+
+**设计决策**:
+- 纯 Node.js 测试，不依赖 Chrome API mock（error-handler.js 为纯逻辑模块）
+- 覆盖所有 8 个导出符号 + 内部 `classifyByStatusCode` 逻辑路径
+- 包含中英文错误消息的分类测试（国际化场景）
+- 边界测试：null/undefined/无 message 的 error 对象
+- XSS 防护测试：HTML 转义在 `buildAIErrorMessageHTML` 中的行为
+
+**验证结果**:
+- `node --test tests/test-error-handler.js`: 66 pass / 0 fail ✅

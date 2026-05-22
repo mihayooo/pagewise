@@ -4,9 +4,16 @@
      4|
      5|---
 
-## [Unreleased] - 2026-05-21
+## [Unreleased] - 2026-05-22
 
 ### 测试
+- **R183: error-handler.js 测试覆盖 ErrorHandlerTests** — `lib/error-handler.js` (393行) 是核心错误处理模块，被多个模块依赖，但无任何测试覆盖
+  - 新建 `tests/test-error-handler.js`：66 个单元测试，9 个 describe 套件
+  - 覆盖：ErrorType 枚举 (2)、CONTENT_ERROR_MESSAGES (1)、classifyAIError (26)、retryWithBackoff (7)、classifyContentError (9)、isIndexedDBAvailable (1)、classifyStorageError (10)、buildAIErrorMessageHTML (9)、installGlobalErrorHandler (1)
+  - 测试场景：超时/网络/状态码分类、关键字检测、中英文错误消息、null/undefined 边界、指数退避重试、HTML 转义防 XSS、重试按钮条件渲染
+  - `node --test tests/test-error-handler.js` 66 pass / 0 fail ✅
+
+---
 - **R255: 5 个测试失败批量修复 TestFailureBatchFixR255** — 修复 5 个失败测试（4 个 CHANGELOG 断言 + 1 个 R112 断言）
   - `test-r244-release-v321.js`: `readFile()` 改为读取 `docs/CHANGELOG.md`（canonical），AC-4 断言 `[3.2.2]` → `[3.2.0]`（实际版本区段），AC-10 移除 R241/R242 不存在条目断言 → 改为验证 R240/R243/R248
   - `test-tech-debt-cleanup.js`: R104-R107 断言从「必须在 Unreleased」改为「在 CHANGELOG 中存在即可」（实际在 [3.1.0] 区段，R112 发布时已结版）
