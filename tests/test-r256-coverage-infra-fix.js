@@ -2,14 +2,14 @@
  * Tests for R256: CoverageInfraFixFinal — 覆盖率基础设施根因修复
  *
  * 验收标准:
- * AC-1: test:coverage 脚本开头包含防御性 rm -rf + mkdir -p coverage/tmp
+ * AC-1: test:coverage 脚本开头包含 clean-coverage.js + mkdir -p coverage/tmp
  * AC-2: .gitignore 包含 coverage/tmp 和 coverage/_tmp_*
  * AC-3: scripts/clean-coverage.js 安全导出可用
  * AC-4: coverage:gate 三项门禁阈值正确 (lines ≥28%, functions ≥50%, branches ≥75%)
  * AC-5: architecture-guard.sh 包含 coverage/tmp 目录存在性检查
  * AC-6: architecture-guard.sh 包含模块行数检查和回归检测
  * AC-7: docs/reports/coverage-baseline.md 基线文档存在且结构完整
- * AC-8: test:coverage 脚本防御顺序正确 (clean → rm → mkdir → c8)
+ * AC-8: test:coverage 脚本防御顺序正确 (clean → mkdir → c8)
  */
 
 import { describe, it } from 'node:test'
@@ -42,12 +42,12 @@ describe('R256: CoverageInfraFixFinal — 覆盖率基础设施根因修复', ()
       assert.ok(pkg.scripts['test:coverage'], 'test:coverage script should exist')
     })
 
-    it('test:coverage 以 rm -rf coverage/tmp 开头（防御性清理）', () => {
+    it('test:coverage 使用 clean-coverage.js 清理（R195 安全模式）', () => {
       const pkg = readJSON('package.json')
       const script = pkg.scripts['test:coverage']
       assert.ok(
-        script.includes('rm -rf coverage/tmp'),
-        'should contain rm -rf coverage/tmp for defensive cleanup'
+        script.includes('clean-coverage.js'),
+        'should use clean-coverage.js for safe cleanup (no direct rm -rf)'
       )
     })
 
@@ -60,12 +60,12 @@ describe('R256: CoverageInfraFixFinal — 覆盖率基础设施根因修复', ()
       )
     })
 
-    it('test:coverage 包含 2>/dev/null 抑制 rm 错误', () => {
+    it('test:coverage 不直接使用 rm -rf（由 clean-coverage.js 处理）', () => {
       const pkg = readJSON('package.json')
       const script = pkg.scripts['test:coverage']
       assert.ok(
-        script.includes('2>/dev/null'),
-        'should suppress rm errors with 2>/dev/null'
+        !script.includes('rm -rf'),
+        'should not use rm -rf directly, delegated to clean-coverage.js'
       )
     })
 
@@ -347,14 +347,14 @@ describe('R256: CoverageInfraFixFinal — 覆盖率基础设施根因修复', ()
   })
 
   describe('AC-8: test:coverage 脚本执行顺序正确', () => {
-    it('rm -rf 在 mkdir -p 之前执行', () => {
+    it('clean-coverage.js 在 mkdir -p 之前执行', () => {
       const pkg = readJSON('package.json')
       const script = pkg.scripts['test:coverage']
-      const rmIdx = script.indexOf('rm -rf coverage/tmp')
+      const cleanIdx = script.indexOf('clean-coverage.js')
       const mkdirIdx = script.indexOf('mkdir -p coverage/tmp')
-      assert.ok(rmIdx >= 0, 'rm -rf should be present')
+      assert.ok(cleanIdx >= 0, 'clean-coverage.js should be present')
       assert.ok(mkdirIdx >= 0, 'mkdir -p should be present')
-      assert.ok(rmIdx < mkdirIdx, 'rm -rf should come before mkdir -p')
+      assert.ok(cleanIdx < mkdirIdx, 'clean-coverage.js should come before mkdir -p')
     })
 
     it('mkdir -p 在 c8 之前执行', () => {
