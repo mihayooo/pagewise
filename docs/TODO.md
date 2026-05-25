@@ -1288,7 +1288,7 @@
   - 新增 ≥60 用例，目标 7777+ pass
   - 复杂度: Medium
 
-- [ ] **R282: JSDoc 完整性审计与补充 JSDocAuditR282** — 多个 lib 模块缺少 JSDoc 注释，影响 IDE 智能提示和维护效率
+- [x] **R282: JSDoc 完整性审计与补充 JSDocAuditR282** — 多个 lib 模块缺少 JSDoc 注释，影响 IDE 智能提示和维护效率
   - 运行 `jsdoc --explain` 或自定义脚本扫描所有 lib/*.js，统计无 JSDoc 的 exported function 占比
   - 优先补充: 所有 `export function` 和 `export class` 的 JSDoc（@param/@returns/@throws）
   - 重点模块: R275-R278 新增模块（bookmark-accessibility.js/performance-monitor.js/browser-compat.js/storage-adapter.js）确保 100% JSDoc
