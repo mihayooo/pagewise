@@ -1,4 +1,112 @@
-# 需求文档 — R279: 全量回归与 v3.4.0 发布 ReleaseV340
+# 需求文档 — R286: Chrome Web Store 真正提交 CWSActualSubmit
+
+> 迭代: 飞轮迭代 R10 (R286)
+> 复杂度: Medium
+> 创建日期: 2026-05-25
+
+---
+
+## 1. 用户故事
+
+作为 **PageWise 项目维护者**，我经历了 R210/R239/R274/R284 四次"发布就绪"自检均停留在 `publish-check.sh` 绿灯阶段而未实际提交 Chrome Web Store Developer Dashboard，我需要在 v3.4.0 上完成从产物验证到实际提交审核的全链路闭环，让 PageWise 真正进入 Chrome Web Store 审核流程并获得 submission ID，从而结束长达数月的"准备但不提交"循环。
+
+---
+
+## 2. 验收标准
+
+| # | 验收标准 | 验证方式 |
+|---|---------|---------|
+| AC-1 | `bash scripts/publish-check.sh` 退出码 0（全部 PASS），随后 `bash scripts/build.sh chrome` 成功生成 `dist/pagewise-v3.4.0-chrome.zip`，且 zip 体积 ≤ 500KB | `ls -lh dist/pagewise-v3.4.0-chrome.zip` 确认文件存在且大小 ≤ 512000 bytes |
+| AC-2 | `.zip` 产物在 Chrome 中可正常加载运行：通过 `chrome://extensions` → 开发者模式 → 加载已解压扩展程序后，侧边栏可正常打开、页面感知生效、AI 问答可触发（或通过 Puppeteer 自动化验证加载无报错） | 手动截图 或 Puppeteer 脚本输出 `extension loaded: true, sidePanel opened: true` |
+| AC-3 | `docs/privacy-policy.html` 覆盖 v3.4.0 全部数据处理声明：cross-browser compat（`lib/browser-compat.js`）、performance-monitor（`lib/performance-monitor.js`）、crash-reporter（如有 `lib/crash-reporter.js`）、telemetry（`lib/telemetry.js`），且"最后更新日期"为 2026-05-25 | `grep -c 'v3.4.0' docs/privacy-policy.html` ≥ 1；人工审查各模块声明完整 |
+| AC-4 | Chrome Web Store Listing 资产就绪：5 张功能截图（1280×800px PNG）、1 张宣传图（1400×560px PNG）、中英文产品描述（各 ≤132 字符的简短描述 + 详细描述）存储在 `docs/cws-assets/` 目录下 | `ls docs/cws-assets/*.png \| wc -l` ≥ 6；`docs/cws-assets/description-zh.md` 和 `docs/cws-assets/description-en.md` 存在 |
+| AC-5 | 在 Chrome Web Store Developer Dashboard 创建商品并提交审核，记录 submission ID 到 `docs/reports/cws-submission.md` | 文件 `docs/reports/cws-submission.md` 存在，包含 submission ID（格式 `chrome-extension-submission-YYYYMMDD-XXXX`）、提交时间、版本号 3.4.0、状态"待审核" |
+| AC-6 | `docs/reports/cws-submission.md` 包含完整的提交状态记录和后续跟进计划（审核预计时间线、被拒常见原因及预案、上线后待办事项） | 文件存在且包含「提交状态」「审核跟进计划」「上线后待办」三个章节 |
+
+---
+
+## 3. 技术约束
+
+| 约束 | 说明 |
+|------|------|
+| **产物完整性** | `.zip` 必须通过 `scripts/publish-check.sh` 全部 7 项检查（版本一致性、权限最小化、图标完整、i18n 完整、default_locale、无残留文件、安全审计），且由 `scripts/build.sh chrome` 白名单模式构建 |
+| **版本号锁定** | `manifest.json` 和 `package.json` 版本均为 `3.4.0`（R279/R280 已完成同步），本次不可修改版本号 |
+| **隐私政策完整性** | `docs/privacy-policy.html` 当前已覆盖 v3.4.0 的性能监控（§3.1）、用户反馈（§3.2）、使用统计（§3.3）、跨浏览器兼容层（§3.4），但需核实 `lib/crash-reporter.js` 是否已实现——若已实现则需新增声明；若未实现则隐私政策中不应提及 |
+| **截图规范** | Chrome Web Store 截图要求：1280×800px 或 640×400px，PNG/JPEG 格式；宣传图（Promotional Tile）1400×560px；不得包含浏览器 chrome 装饰、个人信息 |
+| **Listing 描述限制** | 简短描述 ≤132 字符；详细描述 ≤16000 字符；名称 ≤45 字符；需提供中文（zh_CN）和英文（en）双语版本 |
+| **Host 权限声明** | CWS 审核严格审查 `host_permissions`：当前声明 `api.anthropic.com`、`api.openai.com`、`api.deepseek.com`、`localhost`、`127.0.0.1`，需在提交说明中解释每个域名的用途 |
+| **content_scripts <all_urls>** | 当前 `content_scripts.matches` 使用 `<all_urls>`（用于划词提问功能），CWS 审核可能质疑权限过度。需在提交备注中说明用途（用户在任意页面选中文本后提问），或考虑缩减为 `http://*/*` + `https://*/*` |
+| **提交账号** | 需要已注册的 Chrome Web Store Developer 账号（一次性注册费 $5），由人工登录操作，非自动化脚本可完成 |
+| **不引入新功能代码** | 本次迭代的核心动作是"提交"而非"开发"。仅允许：(a) 构建截图/UI 微调；(b) 隐私政策文字补充；(c) Listing 描述文案撰写。不新增 lib/ 模块功能代码 |
+| **Node.js 环境** | 构建验证在 Node.js ≥ v22 执行 |
+
+---
+
+## 4. 依赖关系
+
+| 依赖 | 方向 | 说明 |
+|------|------|------|
+| R210 (首次 CWS 提交准备) | 历史前置 ✅ | 首次建立 `publish-check.sh` + `build.sh` 发布工具链 |
+| R239 (二次 CWS 提交准备) | 历史前置 ✅ | 完善权限最小化和 i18n 审计 |
+| R274 (FirstRunPolish) | 前置 ✅ | 隐私政策初版、权限审计、i18n 完整性验证已在该迭代完成 |
+| R279 (ReleaseV340) | 前置 ✅ | 版本号 bump 至 3.4.0、`publish-check.sh` 全 PASS |
+| R280 (ChangelogV340Fix) | 前置 ✅ | CHANGELOG `[3.4.0]` 区段补全，CI 测试 7847 pass / 0 fail |
+| R282 (JSDocAuditR282) | 前置 ✅ | JSDoc 完整性审计，提升代码可维护性 |
+| R283 (E2ESmokeStable) | 前置 ✅ | E2E 冒烟测试稳定化，确保加载验证可靠 |
+| R284 (ReleaseAutomationR284) | 前置 ✅ | 发布自动化脚本完善，提供 `publish-check.sh` 增强 |
+| R285 (TestInfraFixR285) | 前置 ⏳ | 测试基础设施修复——如在 R286 执行前未完成，需优先恢复 CI 绿灯 |
+| `scripts/publish-check.sh` | 工具依赖 | 已存在的发布前自检脚本，AC-1 直接调用 |
+| `scripts/build.sh` | 工具依赖 | 已存在的构建脚本，AC-1 直接调用 |
+| Chrome Web Store Developer Dashboard | 外部依赖 | 需要人工登录 Google 账号在 Web Store Developer Console 操作提交；无法通过 API 自动化 |
+| 截图工具 | 工具依赖 | 需要 Chrome 浏览器 + 截图工具（或 Puppeteer 脚本）生成 1280×800 功能截图 |
+
+---
+
+## 5. 变更范围预估
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `docs/privacy-policy.html` | 可能修改 | 如 `lib/crash-reporter.js` 已实现，新增 §3.5 崩溃报告声明；如未实现，确认无需变更 |
+| `docs/cws-assets/description-zh.md` | 新建 | 中文 Listing 描述（简短描述 + 详细描述） |
+| `docs/cws-assets/description-en.md` | 新建 | 英文 Listing 描述（简短描述 + 详细描述） |
+| `docs/cws-assets/*.png` (×6) | 新建 | 5 张功能截图（1280×800）+ 1 张宣传图（1400×560） |
+| `docs/reports/cws-submission.md` | 新建 | 提交状态记录（submission ID、时间、版本、状态、跟进计划） |
+| `scripts/publish-check.sh` | 审查 | 确认 7 项检查均 PASS，无需修改 |
+| `scripts/build.sh` | 审查 | 确认 `.zip` 构建成功且 ≤ 500KB |
+
+---
+
+## 6. 风险评估
+
+| 风险 | 等级 | 缓解措施 |
+|------|------|----------|
+| `<all_urls>` content_scripts 权限被 CWS 审核拒绝 | **高** | 在提交说明中详细解释用途（划词提问功能需在任意页面注入选区检测脚本）；备选方案：提交前将 matches 收窄为 `http://*/*` + `https://*/*`（排除 chrome:// 等协议页面） |
+| `host_permissions` 含 4 个 API 域名 + localhost 被质疑 | **中** | 在 CWS 提交备注中逐一说明：Anthropic/OpenAI/DeepSeek 为用户自选 AI 服务，localhost 为本地 Ollama 模型支持；参考竞品 AIPRM、Merlin 等扩展的同类声明 |
+| R285 测试基础设施未修复导致无法验证 CI 绿灯 | **中** | R286 应在 R285 修复后执行；若 R285 尚未完成，R286 的 AC-1/AC-2 验证可先执行 `publish-check.sh` + `build.sh`，但提交审核前必须确认 CI 状态 |
+| `.zip` 产物体积超过 500KB 目标 | **低** | 当前白名单构建模式已排除 tests/docs/coverage/scripts/node_modules；如仍超限，检查是否包含未压缩的图片资源或冗余 JSON |
+| 截图质量不满足 CWS 规范（分辨率/内容） | **低** | 使用 Puppeteer 在标准 1280×800 viewport 中截图；确保截图展示核心功能（划词提问、AI 回答、知识库、书签图谱、技能系统） |
+| 首次提交被拒后需多轮修改 | **中** | `docs/reports/cws-submission.md` 中记录常见拒绝原因及预案（权限说明不足、隐私政策缺失、功能描述不清等）；预留修改后重新提交的时间窗口 |
+
+---
+
+## 7. 执行步骤概要
+
+> 以下为人工执行步骤，非代码实现。
+
+1. **验证产物完整性** — 运行 `publish-check.sh` + `build.sh chrome`，确认 7 项检查全部 PASS、`.zip` ≤ 500KB
+2. **本地加载验证** — 在 Chrome 中加载 `.zip` 解压产物，验证侧边栏打开、页面感知、AI 问答基本流程
+3. **隐私政策审查** — 确认 `privacy-policy.html` 覆盖 v3.4.0 所有数据处理模块，必要时补充声明
+4. **Listing 资产准备** — 截取 5 张功能截图 + 1 张宣传图，撰写中英文描述，存储到 `docs/cws-assets/`
+5. **Dashboard 提交** — 登录 Chrome Web Store Developer Dashboard，创建商品、上传 `.zip`、填写 Listing 信息、提交审核
+6. **记录跟进** — 创建 `docs/reports/cws-submission.md`，记录 submission ID 和后续跟进计划
+
+---
+
+*文档创建于 2026-05-25，飞轮迭代 R10*
+
+---
+
+# (以下为 R279 历史文档，保留参考)
 
 > 迭代: 飞轮迭代 R10 (R279)
 > 复杂度: Simple

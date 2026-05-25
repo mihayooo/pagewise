@@ -1,9 +1,9 @@
-# VERIFICATION.md — Iteration #10 Review (R284: 发布自动化脚本完善)
+# VERIFICATION.md — Iteration #10 Review (R286: Chrome Web Store 真正提交 CWSActualSubmit)
 
 > 审查人: Guard Agent
 > 审查日期: 2026-05-25
-> 任务: **R284: 发布自动化脚本完善 ReleaseAutomationR284** — 手动发布步骤繁琐，需自动化
-> 实际变更范围: `docs/reports/2026-05-25-R10.md` (+10/-27) — 仅报告文件更新
+> 任务: **R286: Chrome Web Store 真正提交 CWSActualSubmit** — 经 R210/R239/R274/R284 四次"准备就绪"均停留在自检阶段未实际提交 Chrome Web Store Developer Dashboard
+> 实际变更范围: 59 files, +412/-13 — 以 JSDoc 批量插入为主（R282 收尾），R286 全部 6 项验收标准均未达成
 
 ---
 
@@ -11,152 +11,215 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | **R284 完全未实现。** git diff 中无任何发布自动化脚本变更，仅有迭代报告从 R282→R283 内容的覆盖更新 |
-| 代码质量 | ❌ | 无法评估——无功能代码变更 |
-| 测试覆盖 | ❌ | 0 pass / 0 fail，无测试执行记录 |
-| 文档同步 | ❌ | 迭代报告描述的是 R283（E2E 稳定化）内容而非 R284（发布自动化）；CHANGELOG.md 未更新；TODO.md 不存在于仓库根目录 |
+| 功能完整性 | ❌ | **R286 全部 6 项验收标准 (AC-1 ~ AC-6) 均未达成。** 无构建产物、无 CWS Listing 资产、无提交记录。提交内容实为 R282 JSDoc 审计的收尾工作 |
+| 代码质量 | ⚠️ | 批量插入的 JSDoc 注释质量参差不齐：`lib/i18n.js`、`lib/knowledge-graph-layout.js`、`lib/stats.js`、`lib/wiki-store-funcs.js` 含完整 `@param`/`@returns` 注释；约 40 个文件仅有 `/** ClassName 类 */` 单行占位注释，实际价值有限 |
+| 测试覆盖 | ❌ | 0 pass / 0 fail — 无任何测试被执行或新增。新增的 `scripts/fix-jsdoc-batch.mjs` 无配套测试 |
+| 文档同步 | ❌ | `docs/TODO.md` 中 R286 仍标记为 `[ ]`（未完成）；迭代报告（2026-05-25-R10.md）自行承认"本次迭代实际上完成了 R282 的收尾工作，而非 R286 的任务"；CHANGELOG.md 未更新 |
 
-**综合判定: ❌ 不通过 — 任务未执行，需完全返工**
-
----
-
-## 关键发现
-
-### 🔴 P0 — R284 任务完全没有执行
-
-**现象:** commit `0e6658f` 的标题为 `feat: **R283: E2E 冒烟测试稳定化 E2ESmokeStable**`，其 diff 仅修改了 `docs/reports/2026-05-25-R10.md`（报告从 R281→R283 内容覆盖）。R284（发布自动化脚本完善）从未被执行：
-
-- **无新建脚本文件** — `scripts/` 目录中未添加任何新文件
-- **无现有脚本修改** — `publish-check.sh`、`build.sh`、`bump-version.sh`、`rollback.sh`、`generate-changelog.sh` 均未变更
-- **无 GitHub Actions 变更** — `.github/workflows/release.yml` 未修改
-- **无测试文件** — 没有发布自动化相关的测试用例
-
-**根因分析:** 飞轮迭代 R10 轮次中，R280-R284 五个任务共用同一个迭代编号。R280/R281/R282/R283 已依次执行（各有独立 commit），但 R284 被跳过——迭代引擎可能在 R283 后提前终止了该轮次。
+**综合判定: ❌ 不通过 — R286 任务完全未执行，需在下轮迭代中从零开始**
 
 ---
 
-### 🔴 P0 — 迭代报告内容与任务不匹配
+## R286 验收标准逐项对照
+
+| # | 验收标准 | 实际状态 | 详情 |
+|---|---------|---------|------|
+| AC-1 | 运行 `publish-check.sh` + `build.sh`，生成 ≤500KB 的 `.zip` | ❌ **未执行** | `dist/pagewise-v3.4.0-chrome.zip` 不存在；无构建产物 |
+| AC-2 | `.zip` 在 Chrome 中可正常加载运行 | ❌ **未执行** | 无 .zip 可验证 |
+| AC-3 | `docs/privacy-policy.html` 覆盖 v3.4.0 全部数据处理 | ⚠️ **已有内容** | 隐私政策已存在且最后更新日期为 2026-05-25，已覆盖 §3.1~§3.4。但未核实 `lib/crash-reporter.js` 是否存在并补充对应声明 |
+| AC-4 | 5 张截图 + 1 张宣传图 + 中英文描述存于 `docs/cws-assets/` | ❌ **未执行** | `docs/cws-assets/` 目录不存在 |
+| AC-5 | 提交审核并记录 submission ID 到 `docs/reports/cws-submission.md` | ❌ **未执行** | 文件不存在 |
+| AC-6 | 提交状态记录含后续跟进计划 | ❌ **未执行** | 依赖 AC-5 |
+
+**AC 达成率: 0/6（AC-3 为部分预存，非本次变更）**
+
+---
+
+## 发现的问题
+
+### 🔴 P0 — R286 任务完全未执行，提交内容为 R282 溢出工作
+
+**现象:** git diff 显示本轮迭代的实质变更全部是 JSDoc 注释插入——这属于 **R282: JSDoc 完整性审计与补充** 的收尾工作，与 R286（Chrome Web Store 提交）毫无关系。
+
+变更明细:
+| 类别 | 文件数 | 内容 |
+|------|--------|------|
+| 批量 JSDoc 单行注释（`/** XxxClass 类 */`） | ~40 | `fix-jsdoc-batch.mjs` 自动插入的占位注释 |
+| 详细 JSDoc 注释（含 `@param`/`@returns`） | 4 | `lib/i18n.js`、`lib/knowledge-graph-layout.js`、`lib/stats.js`、`lib/wiki-store-funcs.js` |
+| `coverage:gate` 门禁上调 | 1 | `package.json`: `--lines 22` → `--lines 28` |
+| 移除未使用的 import | 1 | `lib/page-sense.js`: 删除 `ContextExtractor` 导入 |
+| 新增工具脚本 | 1 | `scripts/fix-jsdoc-batch.mjs`（批量 JSDoc 修复） |
+| 迭代报告更新 | 1 | `docs/reports/2026-05-25-R10.md` — 描述的是 R285 而非 R286 |
+| 需求文档更新 | 1 | `docs/REQUIREMENTS-ITER10.md` — 被覆盖为 R286 需求 |
+| TODO 更新 | 1 | `docs/TODO.md` — 新增 Phase AQ 路线图（R285-R289） |
+
+**根因:** 迭代引擎在 R285（测试基础设施修复）后将 R286 标记为当前任务，但执行器未能识别 R286 的特殊性——它是一个以**人工操作为主**的任务（CWS Developer Dashboard 提交），仅自动化步骤（build 验证、资产生成）可被代码执行。结果执行器回落到了已完成的 JSDoc 收尾工作上。
+
+---
+
+### 🔴 P0 — 迭代报告任务标题不一致
 
 **位置:** `docs/reports/2026-05-25-R10.md`
 
-当前工作树中的报告文件（未提交的变更）描述的是 **R283: E2E 冒烟测试稳定化**，而非 R284：
-
+报告中任务描述为：
 ```
-## 任务
-**R283: E2E 冒烟测试稳定化 E2ESmokeStable** — ...
+**R285: 测试基础设施断裂修复与全量回归 TestInfraFixR285** — ...
 ```
 
-报告中的 "代码变更" 列出的是 `tests/e2e-chrome/helpers.js` 的 E2E 稳定化变更，与发布自动化无关。报告应为 R284 生成独立内容，或 R284 应有独立报告文件。
+但 `docs/REQUIREMENTS-ITER10.md` 已被覆盖为 R286 需求文档。报告记录的是 R285 的执行结果，需求文档写的是 R286 的要求——两者不匹配。R286 没有自己的迭代报告。
 
 ---
 
-### 🔴 P0 — 飞轮流程状态矛盾
+### 🔴 P0 — 迭代流程 Phase 状态虚标
 
-**位置:** `docs/reports/2026-05-25-R10.md` Phase 状态
+**位置:** `docs/reports/2026-05-25-R10.md`
 
-| Phase | 记录状态 | 实际状态 | 矛盾 |
+| Phase | 报告状态 | 实际证据 | 判定 |
 |-------|---------|---------|------|
-| Phase 1: 需求分析 | ❌ 失败 | ❌ 未执行 R284 需求 | ✅ 一致（但未说明是 R284） |
-| Phase 2: 设计 | ❌ 失败 | ❌ 未执行 R284 设计 | ✅ 一致（但未说明是 R284） |
-| Phase 3: 实现 | ❌ 失败 | ❌ 未实现 | ✅ 一致 |
-| Phase 4: 验证 | ✅ 全部通过 | ❌ 0 pass/0 fail 无法验证 | **❌ 矛盾 — 标记"全部通过"但无测试** |
-| Phase 5: 回顾 | ✅ 完成 | ❌ TODO.md 不存在 | **❌ 矛盾 — 标记完成但无证据** |
-
-**Phase 4 标记 "✅ 全部通过" 但测试统计为 0 pass / 0 fail，这是逻辑矛盾。** 无测试执行的"全部通过"是无效判定。
+| Phase 1: 需求分析 | ✅ 完成 | REQUIREMENTS-ITER10.md 已覆盖为 R286 内容 | ⚠️ 形式上存在，但未执行 R286 特有的 AC 拆解验证 |
+| Phase 2: 设计 | ❌ 失败 | 无设计文档 | ✅ 一致 |
+| Phase 3: 实现 | ❌ 失败 | 无 R286 功能实现 | ✅ 一致 |
+| Phase 4: 验证 | ✅ 全部通过 | **0 pass / 0 fail** | **❌ 矛盾 — 无测试执行的"全部通过"无效** |
+| Phase 5: 回顾 | ✅ 完成 | TODO.md 中 R286 仍标记 `[ ]` | **❌ 矛盾 — 任务未标记完成** |
 
 ---
 
-### 🟡 P1 — 现有发布自动化脚本审计（R214 遗留）
+### 🟡 P1 — JSDoc 批量注释质量不达标
 
-虽然 R284 未执行，但对现有发布自动化脚本（R214 遗留）进行基线审计，识别出以下需改进项：
+**位置:** ~40 个 `lib/` 文件
 
-| 脚本 | 现状 | 建议改进 |
-|------|------|---------|
-| `scripts/build.sh` | 功能完整，支持 Chrome/Firefox/Edge 三平台 | 多平台构建（`manifest.firefox.json`/`manifest.edge.json`）未验证存在性 |
-| `scripts/publish-check.sh` | 7 项自检，覆盖全面 | 未检查 `manifest.firefox.json` / `manifest.edge.json` |
-| `scripts/bump-version.sh` | 同步 package.json + manifest.json + CHANGELOG | CHANGELOG 路径写为 `docs/CHANGELOG.md` 但实际 CHANGELOG 在 `CHANGELOG.md`（根目录） |
-| `scripts/rollback.sh` | 支持 `--list`/`--current`/`--dry-run` | 仅构建 Chrome 版，未支持 Firefox/Edge 回滚 |
-| `scripts/generate-changelog.sh` | 解析 conventional commits | 无 `--write` 直接写入 CHANGELOG.md 的便捷选项 |
-| `.github/workflows/release.yml` | tag 触发自动构建+发布 | 缺少 `publish-check.sh` 步骤；未发布到 Chrome Web Store API |
+`scripts/fix-jsdoc-batch.mjs` 对"仅缺 1 个 JSDoc"的文件自动插入了注释，但质量极低：
 
-#### 🟡 P1 — `bump-version.sh` CHANGELOG 路径错误
-
-**位置:** `scripts/bump-version.sh:73`
-
-```bash
-if [ -f "docs/CHANGELOG.md" ]; then
+```javascript
+// 示例 — lib/bookmark-core.js:249
+/** BookmarkContentPreview 类 */
+export class BookmarkContentPreview {
 ```
 
-CHANGELOG.md 位于项目根目录（`/home/claude-user/pagewise/CHANGELOG.md`），而非 `docs/CHANGELOG.md`。这导致 `bump-version.sh` 执行时永远不会更新 CHANGELOG。
-
----
-
-#### 🟡 P1 — `release.yml` 缺少发布前自检步骤
-
-**位置:** `.github/workflows/release.yml`
-
-当前 workflow 流程：`checkout → npm install → test → package → GitHub Release`。缺少 `publish-check.sh` 步骤，意味着如果版本不一致或权限不合规，仍会被发布。
-
----
-
-#### 🟡 P1 — `release.yml` 使用 `package.sh` 而非 `build.sh`
-
-**位置:** `.github/workflows/release.yml:19`
-
-```yaml
-- name: Package extension
-  run: bash scripts/package.sh
+```javascript
+// 示例 — lib/bookmark-tagger.js:28
+/** BookmarkTagger 类 */
+export class BookmarkTagger {
 ```
 
-`scripts/package.sh` 是独立的打包脚本（与 `build.sh` 功能重叠），可能导致产物与 `publish-check.sh` 验证的不一致。建议统一使用 `build.sh`。
+这些注释：
+- **不含任何语义信息** — 仅重复类名 + "类"字，对 IDE 智能提示或文档生成无帮助
+- **不含 `@param` / `@returns` 标签** — 无法被 JSDoc 工具链利用
+- **与手动添加的高质量注释形成反差** — 同一迭代中 `lib/i18n.js` 等文件的注释含完整参数说明
+
+建议：要么为批量注释补充有意义的描述，要么在 `fix-jsdoc-batch.mjs` 中将 `missing !== 1` 阈值改为更严格的条件，避免插入纯占位注释。
 
 ---
 
-### ⚪ P2 — 建议改进（非阻塞）
+### 🟡 P1 — `coverage:gate` 上调缺乏依据
 
-1. **发布一键化脚本缺失:** 当前发布需手动执行 5 步（bump → check → build → tag → push），建议新增 `scripts/release.sh` 一键完成全部步骤。
+**位置:** `package.json:17`
 
-2. **Chrome Web Store API 自动上传:** 当前需手动在 Developer Dashboard 上传 .zip，可集成 `chrome-webstore-upload-cli` 实现 CI 自动上传。
+```diff
+-    "coverage:gate": "c8 check-coverage --lines 22 --branches 75 --functions 50",
++    "coverage:gate": "c8 check-coverage --lines 28 --branches 75 --functions 50",
+```
 
-3. **灰度发布策略仅文档化:** R214 文档提到 10%→50%→100% 分阶段放量，但无自动化脚本支持。Chrome Web Store API 支持 `publishPercent` 参数。
+`--lines` 从 22 上调至 28，但：
+- 迭代报告中测试统计为 0 pass / 0 fail —— **无法验证 28% 门禁是否真正通过**
+- 未在任何文档中说明上调理由（覆盖率基线报告未更新）
+- 如 R285（测试基础设施修复）未真正恢复测试执行，此门禁可能阻塞后续 CI
+
+---
+
+### 🟡 P1 — `scripts/fix-jsdoc-batch.mjs` 存在质量问题
+
+**位置:** `scripts/fix-jsdoc-batch.mjs`（新增 61 行）
+
+1. **安全风险：正则注入** — 第 28-32 行使用 `new RegExp(...)` 构造正则时直接拼接 `name` 变量，若导出符号名含正则特殊字符（如 `$`、`.`），会导致匹配错误或 ReDoS：
+   ```javascript
+   if (line.match(new RegExp(`^\\s*export\\s+class\\s+${name}\\b`))) { ... }
+   ```
+
+2. **未列入 `package.json` scripts** — 脚本无法通过 `npm run` 发现和执行，只能手动 `node scripts/fix-jsdoc-batch.mjs` 调用
+
+3. **无测试覆盖** — 作为一次性脚本可接受，但应有 dry-run 模式或至少在 README 中记录用法
+
+4. **副作用不可逆** — 直接 `fs.writeFileSync` 覆写源文件，无备份、无 `--dry-run` 选项、无 git diff 预览
+
+---
+
+### 🟡 P1 — `lib/page-sense.js` 删除 import 缺乏说明
+
+**位置:** `lib/page-sense.js:22`
+
+```diff
+-import { ContextExtractor } from './page-sense-context.js';
+```
+
+移除了 `ContextExtractor` 的导入，但：
+- 未在提交信息或报告中说明原因
+- 未检查 `page-sense-context.js` 模块是否仍有其他消费者
+- 若 `ContextExtractor` 已废弃，应同步更新 `page-sense-context.js` 的导出或标记 `@deprecated`
+
+---
+
+### ⚪ P2 — 报告自我承认任务未执行
+
+**位置:** `docs/reports/2026-05-25-R10.md` 第 72 行
+
+> "本次迭代实际上完成了 R282 的收尾工作，而非 R286 的任务。R286 需要人工实际提交到 Chrome Web Store，无法自动化完成。"
+
+这段自述说明执行器已意识到 R286 未被完成，但仍以"R286"为标题提交了迭代报告和需求文档更新，造成文档混乱。
 
 ---
 
 ## 安全质量审查
 
-| 检查项 | 结果 |
-|--------|------|
-| 硬编码密钥/密码 | ✅ 未发现（无新代码） |
-| XSS 风险 | N/A（无代码变更） |
-| 路径遍历风险 | ✅ 现有脚本使用 `SCRIPT_DIR`/`PROJECT_DIR` 相对路径，安全 |
-| GitHub Token 使用 | ✅ `release.yml` 使用 `${{ secrets.GITHUB_TOKEN }}`，正确 |
+| 检查项 | 结果 | 说明 |
+|--------|------|------|
+| 硬编码密钥/密码 | ✅ 未发现 | 无新增敏感信息 |
+| XSS 风险 | ✅ 未发现 | 无新增 HTML/DOM 操作代码 |
+| 正则注入 | ⚠️ 存在 | `scripts/fix-jsdoc-batch.mjs:28-32` 使用未转义的 `name` 变量构造正则 |
+| 文件覆盖风险 | ⚠️ 存在 | `fix-jsdoc-batch.mjs` 直接覆写源文件无备份 |
+| `<all_urls>` 权限 | ⚠️ 待审查 | R286 要求评估是否收窄为 `http://*/*` + `https://*/*`，但未执行 |
 
 ---
 
 ## 返工任务清单
 
+### R286 下轮迭代必须完成
+
+| 优先级 | 任务 | 涉及文件/工具 | 预估工作量 |
+|--------|------|-------------|-----------|
+| 🔴 P0 | **运行 `publish-check.sh` + `build.sh chrome` 验证产物** | `scripts/publish-check.sh`, `scripts/build.sh` | 10 min |
+| 🔴 P0 | **本地加载 .zip 验证扩展正常运行** | Chrome 浏览器 | 15 min |
+| 🔴 P0 | **准备 CWS Listing 资产**（截图 + 宣传图 + 中英文描述） | `docs/cws-assets/` (新建目录) | 60 min |
+| 🔴 P0 | **核实隐私政策覆盖 `crash-reporter`** | `docs/privacy-policy.html` | 10 min |
+| 🔴 P0 | **在 CWS Developer Dashboard 创建商品并提交审核** | 人工操作 | 30 min |
+| 🔴 P0 | **创建 `docs/reports/cws-submission.md`** 记录 submission ID | `docs/reports/cws-submission.md` (新建) | 5 min |
+| 🔴 P0 | **修正迭代报告** — R286 应有独立报告，或将当前报告改名为 R285 | `docs/reports/2026-05-25-R10.md` | 5 min |
+
+### 本轮迭代遗留问题
+
 | 优先级 | 任务 | 涉及文件 | 预估工作量 |
 |--------|------|---------|-----------|
-| 🔴 P0 | **执行 R284 任务：完善发布自动化脚本** | `scripts/*.sh`, `.github/workflows/release.yml` | 30 min |
-| 🔴 P0 | 修正 `docs/reports/2026-05-25-R10.md` — 当前报告描述 R283 而非 R284 | `docs/reports/2026-05-25-R10.md` | 5 min |
-| 🔴 P0 | 修正 Phase 4 状态——"✅ 全部通过" 但 0 pass/0 fail 是无效判定 | `docs/reports/2026-05-25-R10.md` | 2 min |
-| 🟡 P1 | 修正 `bump-version.sh` CHANGELOG 路径 `docs/CHANGELOG.md` → `CHANGELOG.md` | `scripts/bump-version.sh:73` | 2 min |
-| 🟡 P1 | `release.yml` 增加 `publish-check.sh` 步骤 | `.github/workflows/release.yml` | 5 min |
-| 🟡 P1 | 统一 `release.yml` 使用 `build.sh` 替代 `package.sh` | `.github/workflows/release.yml:19` | 5 min |
-| ⚪ P2 | 新增 `scripts/release.sh` 一键发布脚本 | `scripts/release.sh` (新) | 15 min |
-| ⚪ P2 | 补充发布自动化测试用例 | `tests/` | 10 min |
-| ⚪ P2 | 更新 CHANGELOG.md 记录 R284 发布自动化完善 | `CHANGELOG.md` | 3 min |
+| 🟡 P1 | 提升批量 JSDoc 注释质量 — 为 `/** ClassName 类 */` 添加语义描述 | ~40 个 `lib/` 文件 | 30 min |
+| 🟡 P1 | 修正 `fix-jsdoc-batch.mjs` 正则注入问题 — 使用 `escapeRegExp()` 转义 | `scripts/fix-jsdoc-batch.mjs:28-32` | 5 min |
+| 🟡 P1 | 验证 `coverage:gate --lines 28` 可通过 — R285 修复后执行 `npm run coverage:gate` | `package.json` | 5 min |
+| 🟡 P1 | 审查 `lib/page-sense.js` 删除 `ContextExtractor` 的影响 | `lib/page-sense.js`, `lib/page-sense-context.js` | 10 min |
+| ⚪ P2 | 为 `fix-jsdoc-batch.mjs` 添加 `--dry-run` 模式和 `escapeRegExp` | `scripts/fix-jsdoc-batch.mjs` | 10 min |
 
-**总计预估返工时间: ~77 分钟**
+**R286 核心返工预估: ~135 分钟**（其中 CWS Listing 资产准备和 Dashboard 提交为人工操作）
 
 ---
 
 ## 总结
 
-R284 任务（发布自动化脚本完善）在本轮迭代中**完全未被执行**。Git diff 仅显示迭代报告文件从 R282 内容覆盖为 R283 内容的变更，无任何发布自动化相关的代码修改、新增或测试。迭代流程的 Phase 4 和 Phase 5 被标记为"完成"但缺乏实际证据（0 测试通过、TODO.md 不存在），属于流程状态虚标。
+R286（Chrome Web Store 真正提交）是该项目**第五次**尝试完成 CWS 提交（前四次：R210/R239/R274/R284），本轮仍然**完全未执行**。59 个文件的变更实质是 R282 JSDoc 审计的收尾工作，与 CWS 提交无任何关联。
 
-现有发布自动化基础（R214 遗留）结构完整，但存在 CHANGELOG 路径错误、CI 流程不完整等遗留问题，需在 R284 返工时一并修复。
+关键问题：
+1. **执行器未能处理"以人工操作为主"的任务** — R286 的 6 项 AC 中有 3 项需要人工操作（Chrome 加载验证、截图、Dashboard 提交），但可自动化的步骤（build 验证、资产目录创建、提交记录模板）也未执行
+2. **迭代报告与需求文档不一致** — 报告记录 R285 执行结果，需求文档已覆盖为 R286 内容
+3. **流程状态虚标** — Phase 4 标记"✅ 全部通过"但 0 测试执行，Phase 5 标记"✅ 完成"但 TODO.md 未勾选
+
+**建议：R286 应在下轮迭代中作为唯一任务执行，且执行前必须先完成 R285（测试基础设施修复）以获得可靠的 CI 状态。** 对于 R286 中需要人工操作的步骤（CWS Dashboard 提交），执行器应仅完成可自动化的部分（build 验证 + 资产准备 + 模板生成），并明确标记"等待人工操作"的状态。
 
 ---
 
-*本报告由 Guard Agent 自动生成，基于 `git diff` 逐行审查、跨文件一致性校验及脚本内容审计。*
+*本报告由 Guard Agent 自动生成，基于 `git diff HEAD~1` 全量审查、验收标准逐项对照、文件存在性验证及代码质量分析。*
