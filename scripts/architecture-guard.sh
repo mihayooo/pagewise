@@ -143,6 +143,65 @@ else
 fi
 
 # =============================================================================
+# Part 4: c8 Config Drift Guard (R291)
+# =============================================================================
+echo ""
+echo "=== Part 4: c8 Config Drift Guard (R291) ==="
+
+C8RC_FILE="$PROJECT_ROOT/.c8rc.json"
+
+if [ ! -f "$C8RC_FILE" ]; then
+  fail ".c8rc.json not found at $C8RC_FILE"
+else
+  pass ".c8rc.json exists"
+
+  # Validate JSON
+  if ! node -e "JSON.parse(require('fs').readFileSync('$C8RC_FILE','utf8'))" 2>/dev/null; then
+    fail ".c8rc.json is not valid JSON"
+  else
+    pass ".c8rc.json is valid JSON"
+
+    # tmpDir 不应指向外部 /tmp
+    C8RC_TMPDIR=$(node -e "
+      const c = JSON.parse(require('fs').readFileSync('$C8RC_FILE','utf8'));
+      console.log(c.tmpDir || '');
+    " 2>/dev/null)
+
+    if [ -z "$C8RC_TMPDIR" ]; then
+      fail "c8rc tmpDir is empty"
+    elif echo "$C8RC_TMPDIR" | grep -qE '^/tmp/'; then
+      fail "c8rc tmpDir points to external /tmp: $C8RC_TMPDIR"
+    else
+      pass "c8rc tmpDir OK: $C8RC_TMPDIR"
+    fi
+
+    # reporter 必须包含 lcov + text-summary
+    C8RC_REPORTERS=$(node -e "
+      const c = JSON.parse(require('fs').readFileSync('$C8RC_FILE','utf8'));
+      console.log(Array.isArray(c.reporter) ? c.reporter.join(',') : '');
+    " 2>/dev/null)
+
+    if echo "$C8RC_REPORTERS" | grep -q "lcov" && echo "$C8RC_REPORTERS" | grep -q "text-summary"; then
+      pass "c8rc reporter includes lcov + text-summary"
+    else
+      fail "c8rc reporter missing lcov or text-summary (got: $C8RC_REPORTERS)"
+    fi
+
+    # include 必须覆盖 lib/
+    C8RC_INCLUDE=$(node -e "
+      const c = JSON.parse(require('fs').readFileSync('$C8RC_FILE','utf8'));
+      console.log(Array.isArray(c.include) ? c.include.join(',') : '');
+    " 2>/dev/null)
+
+    if echo "$C8RC_INCLUDE" | grep -q "lib/"; then
+      pass "c8rc include covers lib/"
+    else
+      fail "c8rc include does not cover lib/ (got: $C8RC_INCLUDE)"
+    fi
+  fi
+fi
+
+# =============================================================================
 # Summary
 # =============================================================================
 echo ""

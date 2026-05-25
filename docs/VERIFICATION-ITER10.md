@@ -1,9 +1,8 @@
-# VERIFICATION.md — Iteration #10 Review (R286: Chrome Web Store 真正提交 CWSActualSubmit)
+# VERIFICATION.md — Iteration #10 Review
 
-> 审查人: Guard Agent
-> 审查日期: 2026-05-25
-> 任务: **R286: Chrome Web Store 真正提交 CWSActualSubmit** — 经 R210/R239/R274/R284 四次"准备就绪"均停留在自检阶段未实际提交 Chrome Web Store Developer Dashboard
-> 实际变更范围: 59 files, +412/-13 — 以 JSDoc 批量插入为主（R282 收尾），R286 全部 6 项验收标准均未达成
+**任务**: R291: 覆盖率基础设施配置防漂移 CoverageConfigDriftGuard  
+**审查时间**: 2026-05-25  
+**审查人**: Guard Agent  
 
 ---
 
@@ -11,215 +10,171 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ❌ | **R286 全部 6 项验收标准 (AC-1 ~ AC-6) 均未达成。** 无构建产物、无 CWS Listing 资产、无提交记录。提交内容实为 R282 JSDoc 审计的收尾工作 |
-| 代码质量 | ⚠️ | 批量插入的 JSDoc 注释质量参差不齐：`lib/i18n.js`、`lib/knowledge-graph-layout.js`、`lib/stats.js`、`lib/wiki-store-funcs.js` 含完整 `@param`/`@returns` 注释；约 40 个文件仅有 `/** ClassName 类 */` 单行占位注释，实际价值有限 |
-| 测试覆盖 | ❌ | 0 pass / 0 fail — 无任何测试被执行或新增。新增的 `scripts/fix-jsdoc-batch.mjs` 无配套测试 |
-| 文档同步 | ❌ | `docs/TODO.md` 中 R286 仍标记为 `[ ]`（未完成）；迭代报告（2026-05-25-R10.md）自行承认"本次迭代实际上完成了 R282 的收尾工作，而非 R286 的任务"；CHANGELOG.md 未更新 |
-
-**综合判定: ❌ 不通过 — R286 任务完全未执行，需在下轮迭代中从零开始**
+| 功能完整性 | ✅ | 8/8 验收标准全部实现并验证通过 |
+| 代码质量 | ⚠️ | `validate-c8-config.sh` 与 `architecture-guard.sh` Part 4 存在逻辑重复；未发现安全问题 |
+| 测试覆盖 | ✅ | 新增 test-r291 共 28 用例 + 旧测试更新 5 用例，全部 102 用例通过（3 个测试文件） |
+| 文档同步 | ⚠️ | TODO.md R291 未标记 `[x]`；CHANGELOG.md 未补充 R291 记录 |
 
 ---
 
-## R286 验收标准逐项对照
+## 逐项验收标准检查
 
-| # | 验收标准 | 实际状态 | 详情 |
-|---|---------|---------|------|
-| AC-1 | 运行 `publish-check.sh` + `build.sh`，生成 ≤500KB 的 `.zip` | ❌ **未执行** | `dist/pagewise-v3.4.0-chrome.zip` 不存在；无构建产物 |
-| AC-2 | `.zip` 在 Chrome 中可正常加载运行 | ❌ **未执行** | 无 .zip 可验证 |
-| AC-3 | `docs/privacy-policy.html` 覆盖 v3.4.0 全部数据处理 | ⚠️ **已有内容** | 隐私政策已存在且最后更新日期为 2026-05-25，已覆盖 §3.1~§3.4。但未核实 `lib/crash-reporter.js` 是否存在并补充对应声明 |
-| AC-4 | 5 张截图 + 1 张宣传图 + 中英文描述存于 `docs/cws-assets/` | ❌ **未执行** | `docs/cws-assets/` 目录不存在 |
-| AC-5 | 提交审核并记录 submission ID 到 `docs/reports/cws-submission.md` | ❌ **未执行** | 文件不存在 |
-| AC-6 | 提交状态记录含后续跟进计划 | ❌ **未执行** | 依赖 AC-5 |
+### AC-1: .c8rc.json tmpDir 与 test:coverage 脚本一致 ✅
 
-**AC 达成率: 0/6（AC-3 为部分预存，非本次变更）**
+**变更**: `.c8rc.json` 的 `tmpDir` 从 `"/tmp/c8_r289"`（外部 /tmp 路径）修正为 `"coverage/tmp"`（项目内相对路径）。
+
+```
+-  "tmpDir": "/tmp/c8_r289"
++  "tmpDir": "coverage/tmp"
+```
+
+**验证**: `test:coverage` 脚本 `clean-coverage.js && mkdir -p coverage/tmp && c8 ...` 中 `mkdir -p coverage/tmp` 与 `c8rc.tmpDir` 完全一致。  
+**测试**: `test-r291-coverage-config-drift-guard.js` AC-1 组 3 用例全部通过。
+
+### AC-2: .c8rc.json reporter 从实际文件读取验证 ✅
+
+**验证**: reporter 数组 `["lcov", "text-summary", "html"]` 包含所有必需 reporter。  
+**测试**: AC-2 组 4 用例（数组类型、lcov、text-summary、html）全部通过。
+
+### AC-3: .c8rc.json include 覆盖 lib/ ✅
+
+**变更**: 两个测试文件从硬编码 `assert.deepEqual(config.include, ['lib/**/*.js'])` 改为结构断言：
+
+```js
+// 旧: 硬编码精确匹配 — 配置变更即红灯
+assert.deepEqual(config.include, ['lib/**/*.js']);
+
+// 新: 结构断言 — 容忍配置模式变更
+const hasLibPattern = c8rc.include.some(p =>
+  typeof p === 'string' && p.includes('lib/') && (p.includes('*.js') || p.includes('**'))
+);
+assert.ok(hasLibPattern, ...);
+```
+
+**覆盖文件**: `tests/test-coverage-infra.js`（1 处）、`tests/test-r156-coverage-infra.js`（3 处：include/exclude/src）。  
+**测试**: 全部通过。
+
+### AC-4: scripts/validate-c8-config.sh 存在且包含关键字段验证 ✅
+
+**新增文件**: `scripts/validate-c8-config.sh`（167 行，`-rwxrwxr-x`）
+
+验证项：
+1. `.c8rc.json` 文件存在性
+2. JSON 合法性
+3. `tmpDir` 不指向外部 `/tmp` 路径
+4. `reporter` 包含 `lcov` + `text-summary` + `html`
+5. `include` 覆盖 `lib/`
+6. `exclude` 包含 `tests`
+7. `all` 设为 `true`
+8. `tmpDir` 与 `test:coverage` 脚本中 `mkdir -p` 一致性
+
+**运行结果**: 10 passed, 0 failed ✅
+
+### AC-5: scripts/architecture-guard.sh 集成 c8 配置验证 ✅
+
+**新增**: Part 4（+59 行）在 `architecture-guard.sh` 中直接嵌入 c8 配置验证逻辑。
+
+验证项：
+- `.c8rc.json` 存在 + JSON 合法性
+- `tmpDir` 不指向外部 `/tmp`
+- `reporter` 包含 `lcov` + `text-summary`
+- `include` 覆盖 `lib/`
+
+**运行结果**: Part 4 5/5 passed ✅（注意 Part 3 因 `coverage/tmp` 目录不存在报 1 fail，属预存问题）
+
+### AC-6: test:coverage 脚本防御性 mkdir -p ✅
+
+**验证**: `package.json` 中 `test:coverage` 为：
+```
+node scripts/clean-coverage.js && mkdir -p coverage/tmp && c8 --reporter=lcov --reporter=text-summary --reporter=html npm run test:ci:coverage
+```
+
+`mkdir -p coverage/tmp` 在 `c8` 之前执行，顺序正确。  
+**测试**: AC-6 组 2 用例全部通过。
+
+### AC-7: c8 配置断言从 .c8rc.json 读取（非硬编码）✅
+
+**变更摘要**:
+| 文件 | 旧断言 | 新断言 |
+|------|--------|--------|
+| test-coverage-infra.js | `c8rc.include.includes('lib/**/*.js')` | `c8rc.include.some(p => p.includes('lib/') && ...)` |
+| test-r156-coverage-infra.js | `assert.deepEqual(config.include, ['lib/**/*.js'])` | `Array.isArray + some()` |
+| test-r156-coverage-infra.js | `assert.deepEqual(config.src, ['lib'])` | `Array.isArray + includes('lib')` |
+| test-r156-coverage-infra.js | `config.exclude.includes('tests/**')` | `config.exclude.some(p => p.includes('tests'))` |
+
+**新增**: `test-r291-coverage-config-drift-guard.js` AC-7 组 3 用例验证结构正确性。
+
+### AC-8: validate-c8-config.sh 验证完整性 ✅
+
+**测试**: AC-8 组 3 用例（tmpDir 验证、exit code、set -euo pipefail）全部通过。
 
 ---
 
 ## 发现的问题
 
-### 🔴 P0 — R286 任务完全未执行，提交内容为 R282 溢出工作
+### ⚠️ 问题 1: validate-c8-config.sh 与 architecture-guard.sh Part 4 逻辑重复
 
-**现象:** git diff 显示本轮迭代的实质变更全部是 JSDoc 注释插入——这属于 **R282: JSDoc 完整性审计与补充** 的收尾工作，与 R286（Chrome Web Store 提交）毫无关系。
+`validate-c8-config.sh` 和 `architecture-guard.sh` Part 4 执行了几乎相同的验证逻辑（JSON 解析、tmpDir 检查、reporter 检查、include 检查），均通过独立 `node -e` 调用实现。
 
-变更明细:
-| 类别 | 文件数 | 内容 |
-|------|--------|------|
-| 批量 JSDoc 单行注释（`/** XxxClass 类 */`） | ~40 | `fix-jsdoc-batch.mjs` 自动插入的占位注释 |
-| 详细 JSDoc 注释（含 `@param`/`@returns`） | 4 | `lib/i18n.js`、`lib/knowledge-graph-layout.js`、`lib/stats.js`、`lib/wiki-store-funcs.js` |
-| `coverage:gate` 门禁上调 | 1 | `package.json`: `--lines 22` → `--lines 28` |
-| 移除未使用的 import | 1 | `lib/page-sense.js`: 删除 `ContextExtractor` 导入 |
-| 新增工具脚本 | 1 | `scripts/fix-jsdoc-batch.mjs`（批量 JSDoc 修复） |
-| 迭代报告更新 | 1 | `docs/reports/2026-05-25-R10.md` — 描述的是 R285 而非 R286 |
-| 需求文档更新 | 1 | `docs/REQUIREMENTS-ITER10.md` — 被覆盖为 R286 需求 |
-| TODO 更新 | 1 | `docs/TODO.md` — 新增 Phase AQ 路线图（R285-R289） |
+**风险**: 未来若增加新的 c8 配置校验项，需同步修改两处脚本，增加遗漏风险（即 R291 试图防止的配置漂移问题的另一种形式）。
 
-**根因:** 迭代引擎在 R285（测试基础设施修复）后将 R286 标记为当前任务，但执行器未能识别 R286 的特殊性——它是一个以**人工操作为主**的任务（CWS Developer Dashboard 提交），仅自动化步骤（build 验证、资产生成）可被代码执行。结果执行器回落到了已完成的 JSDoc 收尾工作上。
-
----
-
-### 🔴 P0 — 迭代报告任务标题不一致
-
-**位置:** `docs/reports/2026-05-25-R10.md`
-
-报告中任务描述为：
-```
-**R285: 测试基础设施断裂修复与全量回归 TestInfraFixR285** — ...
+**建议**: `architecture-guard.sh` Part 4 改为调用 `validate-c8-config.sh`：
+```bash
+# Part 4: c8 Config Drift Guard (R291)
+if [ -f "$PROJECT_ROOT/scripts/validate-c8-config.sh" ]; then
+  bash "$PROJECT_ROOT/scripts/validate-c8-config.sh" && pass "c8 config drift guard" || fail "c8 config drift guard"
+else
+  fail "validate-c8-config.sh not found"
+fi
 ```
 
-但 `docs/REQUIREMENTS-ITER10.md` 已被覆盖为 R286 需求文档。报告记录的是 R285 的执行结果，需求文档写的是 R286 的要求——两者不匹配。R286 没有自己的迭代报告。
+**严重程度**: 低（功能正确，维护性次优）
 
----
+### ⚠️ 问题 2: TODO.md R291 未标记完成
 
-### 🔴 P0 — 迭代流程 Phase 状态虚标
+`docs/TODO.md` 第 1345 行 R291 仍为 `- [ ]`（未勾选），应更新为 `- [x]`。
 
-**位置:** `docs/reports/2026-05-25-R10.md`
+**严重程度**: 低（文档同步遗漏）
 
-| Phase | 报告状态 | 实际证据 | 判定 |
-|-------|---------|---------|------|
-| Phase 1: 需求分析 | ✅ 完成 | REQUIREMENTS-ITER10.md 已覆盖为 R286 内容 | ⚠️ 形式上存在，但未执行 R286 特有的 AC 拆解验证 |
-| Phase 2: 设计 | ❌ 失败 | 无设计文档 | ✅ 一致 |
-| Phase 3: 实现 | ❌ 失败 | 无 R286 功能实现 | ✅ 一致 |
-| Phase 4: 验证 | ✅ 全部通过 | **0 pass / 0 fail** | **❌ 矛盾 — 无测试执行的"全部通过"无效** |
-| Phase 5: 回顾 | ✅ 完成 | TODO.md 中 R286 仍标记 `[ ]` | **❌ 矛盾 — 任务未标记完成** |
+### ⚠️ 问题 3: CHANGELOG.md 未补充 R291 记录
 
----
+`CHANGELOG.md` 中无 R291 相关条目。按项目规范（Keep a Changelog），应至少在 "### Added" 或 "### Fixed" 下补充：
+> - **c8 配置防漂移**：修复 `.c8rc.json tmpDir` 指向外部 `/tmp` 问题，新增 `validate-c8-config.sh` CI 门禁脚本
 
-### 🟡 P1 — JSDoc 批量注释质量不达标
+**严重程度**: 低（文档同步遗漏）
 
-**位置:** ~40 个 `lib/` 文件
+### ℹ️ 信息 4: architecture-guard.sh Part 3 可能误报
 
-`scripts/fix-jsdoc-batch.mjs` 对"仅缺 1 个 JSDoc"的文件自动插入了注释，但质量极低：
-
-```javascript
-// 示例 — lib/bookmark-core.js:249
-/** BookmarkContentPreview 类 */
-export class BookmarkContentPreview {
-```
-
-```javascript
-// 示例 — lib/bookmark-tagger.js:28
-/** BookmarkTagger 类 */
-export class BookmarkTagger {
-```
-
-这些注释：
-- **不含任何语义信息** — 仅重复类名 + "类"字，对 IDE 智能提示或文档生成无帮助
-- **不含 `@param` / `@returns` 标签** — 无法被 JSDoc 工具链利用
-- **与手动添加的高质量注释形成反差** — 同一迭代中 `lib/i18n.js` 等文件的注释含完整参数说明
-
-建议：要么为批量注释补充有意义的描述，要么在 `fix-jsdoc-batch.mjs` 中将 `missing !== 1` 阈值改为更严格的条件，避免插入纯占位注释。
-
----
-
-### 🟡 P1 — `coverage:gate` 上调缺乏依据
-
-**位置:** `package.json:17`
-
-```diff
--    "coverage:gate": "c8 check-coverage --lines 22 --branches 75 --functions 50",
-+    "coverage:gate": "c8 check-coverage --lines 28 --branches 75 --functions 50",
-```
-
-`--lines` 从 22 上调至 28，但：
-- 迭代报告中测试统计为 0 pass / 0 fail —— **无法验证 28% 门禁是否真正通过**
-- 未在任何文档中说明上调理由（覆盖率基线报告未更新）
-- 如 R285（测试基础设施修复）未真正恢复测试执行，此门禁可能阻塞后续 CI
-
----
-
-### 🟡 P1 — `scripts/fix-jsdoc-batch.mjs` 存在质量问题
-
-**位置:** `scripts/fix-jsdoc-batch.mjs`（新增 61 行）
-
-1. **安全风险：正则注入** — 第 28-32 行使用 `new RegExp(...)` 构造正则时直接拼接 `name` 变量，若导出符号名含正则特殊字符（如 `$`、`.`），会导致匹配错误或 ReDoS：
-   ```javascript
-   if (line.match(new RegExp(`^\\s*export\\s+class\\s+${name}\\b`))) { ... }
-   ```
-
-2. **未列入 `package.json` scripts** — 脚本无法通过 `npm run` 发现和执行，只能手动 `node scripts/fix-jsdoc-batch.mjs` 调用
-
-3. **无测试覆盖** — 作为一次性脚本可接受，但应有 dry-run 模式或至少在 README 中记录用法
-
-4. **副作用不可逆** — 直接 `fs.writeFileSync` 覆写源文件，无备份、无 `--dry-run` 选项、无 git diff 预览
-
----
-
-### 🟡 P1 — `lib/page-sense.js` 删除 import 缺乏说明
-
-**位置:** `lib/page-sense.js:22`
-
-```diff
--import { ContextExtractor } from './page-sense-context.js';
-```
-
-移除了 `ContextExtractor` 的导入，但：
-- 未在提交信息或报告中说明原因
-- 未检查 `page-sense-context.js` 模块是否仍有其他消费者
-- 若 `ContextExtractor` 已废弃，应同步更新 `page-sense-context.js` 的导出或标记 `@deprecated`
-
----
-
-### ⚪ P2 — 报告自我承认任务未执行
-
-**位置:** `docs/reports/2026-05-25-R10.md` 第 72 行
-
-> "本次迭代实际上完成了 R282 的收尾工作，而非 R286 的任务。R286 需要人工实际提交到 Chrome Web Store，无法自动化完成。"
-
-这段自述说明执行器已意识到 R286 未被完成，但仍以"R286"为标题提交了迭代报告和需求文档更新，造成文档混乱。
-
----
-
-## 安全质量审查
-
-| 检查项 | 结果 | 说明 |
-|--------|------|------|
-| 硬编码密钥/密码 | ✅ 未发现 | 无新增敏感信息 |
-| XSS 风险 | ✅ 未发现 | 无新增 HTML/DOM 操作代码 |
-| 正则注入 | ⚠️ 存在 | `scripts/fix-jsdoc-batch.mjs:28-32` 使用未转义的 `name` 变量构造正则 |
-| 文件覆盖风险 | ⚠️ 存在 | `fix-jsdoc-batch.mjs` 直接覆写源文件无备份 |
-| `<all_urls>` 权限 | ⚠️ 待审查 | R286 要求评估是否收窄为 `http://*/*` + `https://*/*`，但未执行 |
+Part 3（R256）检查 `coverage/tmp` 目录是否存在。在未运行过 `test:coverage` 的 CI 环境中该目录不存在会导致 fail。Part 4（R291）仅验证配置文件，不受此影响。这是预存问题，不在 R291 范围内，但建议后续迭代修复（改为在 guard 中创建临时目录或放宽检查）。
 
 ---
 
 ## 返工任务清单
 
-### R286 下轮迭代必须完成
-
-| 优先级 | 任务 | 涉及文件/工具 | 预估工作量 |
-|--------|------|-------------|-----------|
-| 🔴 P0 | **运行 `publish-check.sh` + `build.sh chrome` 验证产物** | `scripts/publish-check.sh`, `scripts/build.sh` | 10 min |
-| 🔴 P0 | **本地加载 .zip 验证扩展正常运行** | Chrome 浏览器 | 15 min |
-| 🔴 P0 | **准备 CWS Listing 资产**（截图 + 宣传图 + 中英文描述） | `docs/cws-assets/` (新建目录) | 60 min |
-| 🔴 P0 | **核实隐私政策覆盖 `crash-reporter`** | `docs/privacy-policy.html` | 10 min |
-| 🔴 P0 | **在 CWS Developer Dashboard 创建商品并提交审核** | 人工操作 | 30 min |
-| 🔴 P0 | **创建 `docs/reports/cws-submission.md`** 记录 submission ID | `docs/reports/cws-submission.md` (新建) | 5 min |
-| 🔴 P0 | **修正迭代报告** — R286 应有独立报告，或将当前报告改名为 R285 | `docs/reports/2026-05-25-R10.md` | 5 min |
-
-### 本轮迭代遗留问题
-
-| 优先级 | 任务 | 涉及文件 | 预估工作量 |
-|--------|------|---------|-----------|
-| 🟡 P1 | 提升批量 JSDoc 注释质量 — 为 `/** ClassName 类 */` 添加语义描述 | ~40 个 `lib/` 文件 | 30 min |
-| 🟡 P1 | 修正 `fix-jsdoc-batch.mjs` 正则注入问题 — 使用 `escapeRegExp()` 转义 | `scripts/fix-jsdoc-batch.mjs:28-32` | 5 min |
-| 🟡 P1 | 验证 `coverage:gate --lines 28` 可通过 — R285 修复后执行 `npm run coverage:gate` | `package.json` | 5 min |
-| 🟡 P1 | 审查 `lib/page-sense.js` 删除 `ContextExtractor` 的影响 | `lib/page-sense.js`, `lib/page-sense-context.js` | 10 min |
-| ⚪ P2 | 为 `fix-jsdoc-batch.mjs` 添加 `--dry-run` 模式和 `escapeRegExp` | `scripts/fix-jsdoc-batch.mjs` | 10 min |
-
-**R286 核心返工预估: ~135 分钟**（其中 CWS Listing 资产准备和 Dashboard 提交为人工操作）
+| 优先级 | 任务 | 指向 |
+|--------|------|------|
+| P2 | TODO.md R291 标记为 `[x]` | 文档同步 |
+| P2 | CHANGELOG.md 补充 R291 记录 | 文档同步 |
+| P3 | architecture-guard.sh Part 4 改为调用 validate-c8-config.sh，消除重复 | 维护性 |
 
 ---
 
-## 总结
+## 测试运行结果
 
-R286（Chrome Web Store 真正提交）是该项目**第五次**尝试完成 CWS 提交（前四次：R210/R239/R274/R284），本轮仍然**完全未执行**。59 个文件的变更实质是 R282 JSDoc 审计的收尾工作，与 CWS 提交无任何关联。
-
-关键问题：
-1. **执行器未能处理"以人工操作为主"的任务** — R286 的 6 项 AC 中有 3 项需要人工操作（Chrome 加载验证、截图、Dashboard 提交），但可自动化的步骤（build 验证、资产目录创建、提交记录模板）也未执行
-2. **迭代报告与需求文档不一致** — 报告记录 R285 执行结果，需求文档已覆盖为 R286 内容
-3. **流程状态虚标** — Phase 4 标记"✅ 全部通过"但 0 测试执行，Phase 5 标记"✅ 完成"但 TODO.md 未勾选
-
-**建议：R286 应在下轮迭代中作为唯一任务执行，且执行前必须先完成 R285（测试基础设施修复）以获得可靠的 CI 状态。** 对于 R286 中需要人工操作的步骤（CWS Dashboard 提交），执行器应仅完成可自动化的部分（build 验证 + 资产准备 + 模板生成），并明确标记"等待人工操作"的状态。
+| 测试文件 | 用例数 | 通过 | 失败 |
+|----------|--------|------|------|
+| `tests/test-r291-coverage-config-drift-guard.js` | 28 | 28 | 0 |
+| `tests/test-coverage-infra.js` | 43 | 43 | 0 |
+| `tests/test-r156-coverage-infra.js` | 31 | 31 | 0 |
+| `scripts/validate-c8-config.sh` | 10 | 10 | 0 |
+| **合计** | **112** | **112** | **0** |
 
 ---
 
-*本报告由 Guard Agent 自动生成，基于 `git diff HEAD~1` 全量审查、验收标准逐项对照、文件存在性验证及代码质量分析。*
+## 结论
+
+R291 功能实现完整，核心修复（`.c8rc.json tmpDir` 从 `/tmp/c8_r289` 改为 `coverage/tmp`）正确解决了配置漂移根因。新增的 `validate-c8-config.sh` 和 `test-r291-coverage-config-drift-guard.js` 提供了全面的防护网。测试改为结构断言的策略正确，将未来配置变更引起的误报降至最低。
+
+存在 3 个 P2/P3 级文档/维护性问题，不阻塞合入但建议在本次迭代或下一轮中修复。
+
+**审查结论**: ✅ **通过**（附 3 项改进建议）

@@ -7,6 +7,7 @@ function createFakeCanvas() {
   return {
     getContext: () => ({
       clearRect: () => ops.push('clearRect'),
+      fillRect: () => ops.push('fillRect'),
       beginPath: () => ops.push('beginPath'),
       moveTo: () => ops.push('moveTo'),
       lineTo: () => ops.push('lineTo'),
@@ -14,9 +15,14 @@ function createFakeCanvas() {
       fill: () => ops.push('fill'),
       stroke: () => ops.push('stroke'),
       fillText: () => ops.push('fillText'),
+      save: () => ops.push('save'),
+      restore: () => ops.push('restore'),
+      translate: () => ops.push('translate'),
+      scale: () => ops.push('scale'),
       measureText: () => ({ width: 50 }),
       fillStyle: '',
       strokeStyle: '',
+      globalAlpha: 1,
       lineWidth: 0,
       font: '',
       textAlign: '',

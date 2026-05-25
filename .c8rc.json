@@ -9,5 +9,5 @@
   "reporter": ["lcov", "text-summary", "html"],
   "all": true,
   "src": ["lib"],
-  "tmpDir": "/tmp/c8_r289"
+  "tmpDir": "coverage/tmp"
 }
