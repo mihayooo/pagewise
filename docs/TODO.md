@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R309
+> 迭代轮次: R43 - R314
 > 最后更新: 2026-05-25
 
 ---
@@ -1401,4 +1401,24 @@
 
 - [x] **R308: TODO.md 存档与项目文档瘦身 ProjectDocsHygiene** — TODO.md 已膨胀至 1386 行（R43-R303 全部 [x] 完成），每次迭代 Plan Agent 需读取全文浪费 token；CHANGELOG.md 71KB、IMPLEMENTATION.md 110KB 同样臃肿；(1) 将 TODO.md 中 R43-R303 全部已完成任务迁移至 `docs/TODO-ARCHIVE.md`（保留 Phase AU R305-R309 活跃任务）；(2) TODO.md 仅保留当前活跃 Phase（≤50 行），添加指向 ARCHIVE 的链接；(3) 审查 CHANGELOG.md，将 v1.0-v3.1 历史记录压缩为一行摘要（保留 [Unreleased] 和 [3.4.0] 完整内容）；(4) 更新 `docs/ROADMAP.md` 中版本状态表（当前仍显示 v3.1.0 / R209，需更新至 v3.4.0 / R303）；(5) 清理 docs/ 下 ≥10 个过期的 DESIGN-ITER*.md / VERIFICATION-ITER*.md 文件（仅保留最近 3 轮）；(6) 输出清理报告：文件数量变化、总大小变化。复杂度: Simple
 
-- [ ] **R309: 全量回归与 v3.4.1 发布 ReleaseV341** — R305-R308 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥8078 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s（若 R306 恢复排除文件导致超时，调整排除策略）；(5) 版本号 bump 至 3.4.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.1]` 区段（R305-R308 变更摘要）；(7) `npm run test:e2e:smoke` 通过（6 条路径）；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`。复杂度: Simple
+- [x] **R309: 全量回归与 v3.4.1 发布 ReleaseV341** — R305-R308 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥8078 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s（若 R306 恢复排除文件导致超时，调整排除策略）；(5) 版本号 bump 至 3.4.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.1]` 区段（R305-R308 变更摘要）；(7) `npm run test:e2e:smoke` 通过（6 条路径）；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`。复杂度: Simple
+
+---
+
+## Phase AV: v3.4.2 — 项目卫生治理与质量深水区 (R310-R314) — 5 轮
+
+> 飞轮迭代 R19，2026-05-25
+> 现状 (实测): 8078+ pass / 0 fail / ~35s；Lint 0/0；行覆盖率 ~28%（门禁 ≥28% 刚过线零安全裕量）；254 个 lib 模块 (54,653 行)；VERSION 3.4.0/3.4.1；R43-R309 全部完成、技术债务清零
+> 文档卫生问题严重: docs/ 9.6MB（138 个过期迭代文档 DESIGN-ITER/VERIFICATION-ITER/REQUIREMENTS-ITER 未清理）、ROADMAP.md 仍显示 v3.1.0/R209（实际 v3.4.0/R309）、ARCHITECTURE.md 声称"130+ 模块"（实际 254）、coverage-baseline.md 基线快照过期（2026-05-21 R256 数据）、CHANGELOG.md 历史版本累积臃肿
+> 目标: 项目文档全面卫生治理、覆盖率安全裕量稳固 ≥30%、E2E 拓展至真实用户路径、lib 架构瘦身审计、v3.4.2 发布
+> 任务来源优先级: 文档卫生(8.6MB 过期文件) > 覆盖率安全裕量(0pp) > E2E 真实路径 > 架构瘦身 > 发布收尾
+
+- [x] **R310: 项目文档全面卫生治理 ProjectDocsHygieneV2** — R308 做了 TODO.md 存档但 docs/ 整体卫生问题未解决：(1) 清理 138 个过期迭代文档：删除 `docs/DESIGN-ITER*.md`（仅保留最近 3 轮 DESIGN-ITER64/DESIGN-ITER67/DESIGN-ITER56）、`docs/VERIFICATION-ITER*.md`（仅保留最近 3 轮）、`docs/REQUIREMENTS-ITER*.md`（仅保留最近 3 轮 + REQUIREMENTS-BOOKMARK.md），预计清理 ≥80 个文件释放 ≥3MB；(2) 更新 `docs/ROADMAP.md`：版本状态表 v3.1.0/R209 → v3.4.1/R309、模块数 222 → 254、测试数 7088 → 8078+、Phase 列表补充 AB-AU；(3) 更新 `docs/ARCHITECTURE.md`："130+ 模块" → "254 模块 (54,653 行)"、更新分层架构图反映 R158-R217 模块拆分成果；(4) 更新 `docs/reports/coverage-baseline.md`：R256 基线快照（24.89%）过期，用 R306/R309 实测数据刷新；(5) 审查 `docs/ROADMAP-20.md`、`docs/ROADMAP.md` 是否重复需合并；(6) 输出清理报告：文件数量变化（before/after）、总大小变化（9.6MB → 目标 ≤5MB）。复杂度: Simple
+
+- [ ] **R311: 行覆盖率稳固突破 30% CoverageStableBreak30** — 当前行覆盖率 ~28% 门禁刚好过线零安全裕量，任何新模块新增或 test:ci 排除清单调整都可能跌破门禁；R205-R301 十一次覆盖率冲刺（声称 50%/40%/35%/33%/32%/30%）均未稳固落地，根因始终是 ~40,000 行零覆盖模块在 test:ci 中从未被 import；本轮务实策略：(1) 运行 `npm run test:coverage` 获取精确基线，确认实测行覆盖率；(2) 运行 `c8 report --reporter=json` 识别零覆盖高价值模块 Top-20（>200 行纯逻辑/无 Chrome API 依赖），排除 sidebar-*/popup-* 等 UI 入口模块；(3) 为 Top-10 零覆盖纯逻辑模块编写边界用例（每模块 ≥5 用例，覆盖正常路径+异常路径+空数据，必须通过 `import` 加载确保 c8 可插桩）；(4) 为 `lib/user-insight-report.js`（R305 拆分产物）和 R275-R278 新增模块（browser-compat.js/storage-adapter.js/platform-detector.js/performance-monitor.js）补充测试；(5) 目标: 行覆盖率 ≥30%（2pp 安全裕量）、函数覆盖率 ≥53%、分支覆盖率 ≥75%；(6) 将 `coverage:gate --lines` 从 28 收紧至 30；(7) 更新 `docs/reports/coverage-baseline.md`；(8) 新增 ≥50 用例。复杂度: Medium
+
+- [ ] **R312: E2E 核心用户路径扩展 E2ECoreUserPaths** — E2E 经 10 次迭代（R211-R288）仅 6 条冒烟路径（扩展加载/SidePanel/选中文字/书签采集/知识库搜索/设置切换），缺乏真实用户完整路径覆盖：(1) 新增 3 条深度用户路径（非冒烟）：①选中文字→AI 问答→知识库归档→搜索验证（完整"选中即问"核心路径）、②书签采集→语义搜索→相似推荐→图谱可视化（完整书签知识图谱路径）、③间隔复习→评分→学习目标打卡→学习教练回顾（完整学习闭环路径）；(2) 每条路径 60s 硬超时 + 2 次自动重试（仅 TimeoutError），与 R288 策略一致；(3) 路径级断言（非步骤级冒烟）：验证最终状态（知识库中有归档条目/搜索返回结果/复习卡片状态更新），不验证中间 DOM 状态（降低脆弱性）；(4) `--test-concurrency=1` 串行执行避免浏览器状态污染；(5) 目标: `npm run test:e2e` ≥9 条路径通过（原有 6 条 + 新增 3 条）；(6) 更新 `docs/reports/e2e-baseline.md` 记录新增路径和预期稳定性数据。复杂度: Complex
+
+- [ ] **R313: lib 架构瘦身与孤立模块审计 LibArchAudit** — 254 个 lib 模块 (54,653 行) 经 300+ 轮迭代积累，存在模块间依赖不清晰、低引用孤立模块、潜在冗余代码：(1) 模块引用图谱：扫描所有 lib/*.js 的 `import` 语句，构建依赖图（模块→引用它的模块列表），输出 `docs/reports/module-dependency-graph.md`；(2) 孤立模块检测：识别引用计数 = 0 的 lib 模块（未被任何其他模块 import），标记为"仅被测试 import"或"死代码"；(3) 低引用模块审计：引用计数 = 1 的模块评估是否应合并到唯一引用者（减少模块总数 ≥5 个）；(4) 循环依赖检测：在依赖图中搜索环路，输出循环依赖链清单（如有）；(5) 重复模式识别：按导出函数签名相似度聚类，标记功能重叠模块对（R207 已处理 dedup/io 但可能遗漏其他）；(6) 输出架构瘦身建议清单：可合并模块对、可移除死代码、循环依赖破除方案；(7) 新增 CI 门禁脚本 `scripts/check-module-health.sh`：模块总数上限 260、零引用模块告警、循环依赖阻断；(8) 验证 `npm run test:ci` 0 fail + `npm run lint` 0/0。复杂度: Medium
+
+- [ ] **R314: 全量回归与 v3.4.2 发布 ReleaseV342** — R310-R313 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥8078 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.4.2（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.2]` 区段（R310-R313 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md` + `docs/reports/module-dependency-graph.md`。复杂度: Simple
