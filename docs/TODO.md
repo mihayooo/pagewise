@@ -1309,3 +1309,22 @@
   - 新建 `scripts/publish-check.sh` 验证发布产物（manifest 合法性、文件完整性、权限检查）
   - 测试: ≥15 用例（版本 bump 逻辑/changelog 提取/zip 打包）
   - 复杂度: Medium
+
+---
+
+## Phase AQ: v3.4.0 后发布治理与质量深水区 (R285-R289) — 5 轮
+
+> 飞轮迭代 R11 起，2026-05-25
+> 现状 (实测): 0 pass / 0 fail（测试基础设施疑似断裂）；Lint 0/0；行覆盖率 ~28%（门禁 ≥28% 刚过）；244 个 lib 模块 (52,421 行)；208 个测试文件 (76,476 行)；VERSION 3.4.0；R43-R284 全部标记完成、技术债务全部关闭；R10 迭代实现阶段标记失败且验证报告显示 0/0（无实际测试执行）；测试执行 ~69.3s（历经 14 次优化未达标 ≤35s）；E2E Chrome 经 8 次迭代仍未 CI 稳定；Chrome Web Store 提交经 R210/R239/R274/R284 四次准备均未实际提交
+> 目标: 修复测试基础设施断裂、E2E Chrome CI 真正稳定、Chrome Web Store 实际提交、测试执行首次达标 ≤35s、覆盖率突破 32%
+> 任务来源优先级: 修复测试基础设施 > Store 提交 > 测试性能 > 覆盖率治理 > E2E 加固
+
+- [ ] **R285: 测试基础设施断裂修复与全量回归 TestInfraFixR285** — R10 迭代报告显示 0 pass / 0 fail，实现阶段标记失败，表明测试基础设施可能已断裂（脚本路径错误/依赖缺失/c8 配置损坏/ESM 解析失败）；(1) 运行 `npm run test:ci` 并诊断根因（是 Node.js 版本/ESM 配置/依赖安装/测试发现路径哪一层出问题）；(2) 运行 `npm run test:smoke` 验证核心冒烟路径；(3) 修复所有发现的测试红灯（目标 ≥7800 pass / 0 fail）；(4) 验证 `npm run lint` 0/0、`npm run coverage:gate` 三项门禁通过；(5) 确认测试执行时间并记录基线；(6) 更新 `docs/reports/coverage-baseline.md` 最新数据。复杂度: Medium
+
+- [ ] **R286: Chrome Web Store 真正提交 CWSActualSubmit** — 经 R210/R239/R274/R284 四次"准备就绪"均停留在自检阶段未实际提交 Chrome Web Store Developer Dashboard；(1) 运行 `scripts/publish-check.sh` + `scripts/build.sh` 验证产物完整性（manifest 版本 3.4.0、权限最小化、图标完整、_locales 双语一致、.zip ≤500KB）；(2) 验证 .zip 产物在 Chrome 中可正常加载运行（手动或 Puppeteer）；(3) 更新 `docs/privacy-policy.html` 确保覆盖 v3.4.0 全部数据处理（cross-browser compat、performance-monitor、crash-reporter、telemetry）；(4) 准备 Chrome Web Store Listing 资产（5 张功能截图 1280×800、宣传图 1400×560、中英文描述）；(5) 在 Chrome Web Store Developer Dashboard 创建商品并提交审核（记录 submission ID）；(6) 新建 `docs/reports/cws-submission.md` 记录提交状态和后续跟进计划。复杂度: Medium
+
+- [ ] **R287: 测试执行效率十五期 — 首次达标 ≤35s TestExecutionOpt15** — 当前 ~69.3s（目标 ≤35s 差距 34.3s），历史 R135/R152/R198/R202/R227/R232/R237/R242/R246/R253/R263/R267/R271/R281 十四次优化均未达标；本轮采用"根因穷尽"策略：(1) 用 `--test-reporter=json --test-concurrency=1` 串行执行，输出每个测试文件的独立耗时，精确识别累计 Top-10 最慢文件（>3s）；(2) 对 Top-5 慢文件逐个分析根因——是 mock Chrome API 构造开销、大量对象构造（>1000 书签 fixture）、`setTimeout`/`await sleep` 阻塞、还是同步 I/O；(3) 对每种根因制定针对性方案：Chrome API mock → 惰性构造 + 缓存共享实例；大 fixture → 降低数据规模（1000→100）或按需加载；setTimeout → 移除或改为 `vi.useFakeTimers` 等价方案；同步 I/O → 异步化；(4) 将所有覆盖率冲刺专用测试文件（`test-r270-*`/`test-r241-*`/`test-r266-*`）从 `test:ci` 排除至 `test:ci:coverage`；(5) 验证 `npm run test:ci` ≤35s；(6) 记录优化前后 Top-10 文件耗时对比到 `docs/reports/test-perf-analysis.md`。复杂度: Medium
+
+- [ ] **R288: E2E Chrome CI 第九次稳定化 — 真正可用 E2EChromeStableFinal** — `tests/e2e-chrome/` 经 R211/R219/R220/R228/R252/R257/R268/R272/R283 九次迭代仍未在 CI 中稳定运行；(1) 根因复盘：分析历史所有 E2E 失败记录，将失败模式分类（Chrome 启动超时/选择器不匹配/扩展加载失败/服务工作者未激活/竞态条件）；(2) 采用"最小可行 E2E"策略——仅保留 3 条核心冒烟路径（扩展加载→注册/卸载 lifecycle、SidePanel 打开→渲染 UI、选中文字→弹出提问气泡），删除所有功能性断言；(3) 为每条路径添加 30s 硬超时 + 最多 2 次自动重试（仅 TimeoutError）；(4) 使用 `test.describe.serial` 确保测试按序执行避免浏览器状态污染；(5) CI workflow 中 `chrome-e2e` job 从 soft-fail 升级为正式门禁；(6) 连续 5 次 CI 运行全部通过作为"稳定"判定标准；(7) 更新 `docs/reports/e2e-baseline.md`。复杂度: Complex
+
+- [ ] **R289: 行覆盖率真实突破 32% CoverageBreak32** — 当前行覆盖率 ~28%（门禁 ≥28% 刚过），历史 R205-R270/R283 十一次冲刺均未稳定突破 35%；本轮务实目标 32%（需新增覆盖 ~2,100 行）：(1) 在 R285 修复测试基础设施后运行 `npm run test:coverage` 获取真实覆盖率基线；(2) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(3) 为 Top-20 零覆盖纯逻辑模块编写测试（每模块 ≥5 用例，必须通过 `import` 加载确保 c8 可插桩）；(4) 重点覆盖 Phase AO/AP 新增模块（bookmark-accessibility.js、crash-reporter.js、usage-analytics-dashboard.js、performance-monitor.js、browser-compat.js、storage-adapter.js、platform-detector.js、release-automation.js）；(5) 将 `coverage:gate --lines` 从 28 收紧至 30；(6) 目标: 行覆盖率 ≥32%、函数覆盖率 ≥55%；(7) 新增 ≥60 用例。复杂度: Medium
