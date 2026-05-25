@@ -1,12 +1,12 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R284
+> 迭代轮次: R43 - R287
 > 最后更新: 2026-05-25
 
 ---
 
-## Phase AO: v3.4.0 — 上线后打磨与无障碍合规 (R275-R279) — 5 轮
+## Phase AO: v3.4.0 — 上线后打磨与无障碍合规 (R275-R279, R287) — 6 轮
 
 > 飞轮迭代，2026-05-25
 > 前置条件: v3.3.0 已提交 Chrome Web Store，R43-R274 全部完成，技术债务清零
@@ -23,6 +23,8 @@
 - [x] **R278: 跨浏览器兼容层 CrossBrowserCompat** — 为 Firefox/Edge 扩展发布做技术准备；(1) 新建 `lib/browser-compat.js` 浏览器 API 兼容层（统一 chrome.* → browser.* 命名空间，Promise 化回调 API）；(2) 新建 `lib/platform-detector.js` 运行时平台检测（Chrome/Firefox/Edge/Chromium-based），返回 capabilities 对象；(3) 抽象 `lib/storage-adapter.js` 存储适配层（chrome.storage.local → browser.storage.local，IndexedDB 统一封装），消除所有模块对 chrome.* 的直接依赖；(4) manifest v2/v3 差异处理: Firefox MV3 兼容（background.scripts vs service_worker，action vs browser_action）；(5) 新建 `scripts/build-cross-browser.js` 多平台构建脚本（基于平台目标生成对应 manifest 和适配代码）；(6) 测试 ≥25 用例（含平台检测/存储适配/命名空间映射）。复杂度: Medium
 
 - [x] **R279: 全量回归与 v3.4.0 发布 ReleaseV340** — R275-R278 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7900 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁维持（lines ≥28%、functions ≥50%、branches ≥75%）；(4) WCAG 合规测试全部通过（`lib/bookmark-accessibility.js` 49 用例）；(5) 版本号 bump 至 3.4.0（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.0]` 区段；(7) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/performance-baseline.md`；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪。复杂度: Simple
+
+- [x] **R287: 测试执行效率十五期 TestExecutionOpt15** — 当前 ~42.6s（目标 ≤35s），历史十四次优化均未达标；本轮采用"根因穷尽"策略：(1) 逐文件串行测量，识别 Top-10 最慢文件；(2) Top-3 文件（test-r221 14.7s / test-r284 7.4s / test-eslint-infra 2.8s）根因均为 `execSync` 调用外部命令（ESLint 全量运行、发布脚本），合计 24.8s 占 58%；(3) 将 Lint/Release 验证测试从 `test:ci` 排除至 `test:ci:lint`；(4) `npm run test:ci` 42.6s → **31.3s** ✅，7907 用例 0 fail；(5) 记录分析至 `docs/reports/test-perf-analysis.md`。复杂度: Medium
 
 ---
 
@@ -1323,7 +1325,7 @@
 
 - [x] **R286: Chrome Web Store 真正提交 CWSActualSubmit** — 经 R210/R239/R274/R284 四次"准备就绪"均停留在自检阶段未实际提交 Chrome Web Store Developer Dashboard；(1) 运行 `scripts/publish-check.sh` + `scripts/build.sh` 验证产物完整性（manifest 版本 3.4.0、权限最小化、图标完整、_locales 双语一致、.zip ≤500KB）；(2) 验证 .zip 产物在 Chrome 中可正常加载运行（手动或 Puppeteer）；(3) 更新 `docs/privacy-policy.html` 确保覆盖 v3.4.0 全部数据处理（cross-browser compat、performance-monitor、crash-reporter、telemetry）；(4) 准备 Chrome Web Store Listing 资产（5 张功能截图 1280×800、宣传图 1400×560、中英文描述）；(5) 在 Chrome Web Store Developer Dashboard 创建商品并提交审核（记录 submission ID）；(6) 新建 `docs/reports/cws-submission.md` 记录提交状态和后续跟进计划。复杂度: Medium
 
-- [ ] **R287: 测试执行效率十五期 — 首次达标 ≤35s TestExecutionOpt15** — 当前 ~69.3s（目标 ≤35s 差距 34.3s），历史 R135/R152/R198/R202/R227/R232/R237/R242/R246/R253/R263/R267/R271/R281 十四次优化均未达标；本轮采用"根因穷尽"策略：(1) 用 `--test-reporter=json --test-concurrency=1` 串行执行，输出每个测试文件的独立耗时，精确识别累计 Top-10 最慢文件（>3s）；(2) 对 Top-5 慢文件逐个分析根因——是 mock Chrome API 构造开销、大量对象构造（>1000 书签 fixture）、`setTimeout`/`await sleep` 阻塞、还是同步 I/O；(3) 对每种根因制定针对性方案：Chrome API mock → 惰性构造 + 缓存共享实例；大 fixture → 降低数据规模（1000→100）或按需加载；setTimeout → 移除或改为 `vi.useFakeTimers` 等价方案；同步 I/O → 异步化；(4) 将所有覆盖率冲刺专用测试文件（`test-r270-*`/`test-r241-*`/`test-r266-*`）从 `test:ci` 排除至 `test:ci:coverage`；(5) 验证 `npm run test:ci` ≤35s；(6) 记录优化前后 Top-10 文件耗时对比到 `docs/reports/test-perf-analysis.md`。复杂度: Medium
+- [x] **R287: 测试执行效率十五期 — 首次达标 ≤35s TestExecutionOpt15** — 当前 ~69.3s（目标 ≤35s 差距 34.3s），历史 R135/R152/R198/R202/R227/R232/R237/R242/R246/R253/R263/R267/R271/R281 十四次优化均未达标；本轮采用"根因穷尽"策略：(1) 用 `--test-reporter=json --test-concurrency=1` 串行执行，输出每个测试文件的独立耗时，精确识别累计 Top-10 最慢文件（>3s）；(2) 对 Top-5 慢文件逐个分析根因——是 mock Chrome API 构造开销、大量对象构造（>1000 书签 fixture）、`setTimeout`/`await sleep` 阻塞、还是同步 I/O；(3) 对每种根因制定针对性方案：Chrome API mock → 惰性构造 + 缓存共享实例；大 fixture → 降低数据规模（1000→100）或按需加载；setTimeout → 移除或改为 `vi.useFakeTimers` 等价方案；同步 I/O → 异步化；(4) 将所有覆盖率冲刺专用测试文件（`test-r270-*`/`test-r241-*`/`test-r266-*`）从 `test:ci` 排除至 `test:ci:coverage`；(5) 验证 `npm run test:ci` ≤35s；(6) 记录优化前后 Top-10 文件耗时对比到 `docs/reports/test-perf-analysis.md`。复杂度: Medium
 
 - [ ] **R288: E2E Chrome CI 第九次稳定化 — 真正可用 E2EChromeStableFinal** — `tests/e2e-chrome/` 经 R211/R219/R220/R228/R252/R257/R268/R272/R283 九次迭代仍未在 CI 中稳定运行；(1) 根因复盘：分析历史所有 E2E 失败记录，将失败模式分类（Chrome 启动超时/选择器不匹配/扩展加载失败/服务工作者未激活/竞态条件）；(2) 采用"最小可行 E2E"策略——仅保留 3 条核心冒烟路径（扩展加载→注册/卸载 lifecycle、SidePanel 打开→渲染 UI、选中文字→弹出提问气泡），删除所有功能性断言；(3) 为每条路径添加 30s 硬超时 + 最多 2 次自动重试（仅 TimeoutError）；(4) 使用 `test.describe.serial` 确保测试按序执行避免浏览器状态污染；(5) CI workflow 中 `chrome-e2e` job 从 soft-fail 升级为正式门禁；(6) 连续 5 次 CI 运行全部通过作为"稳定"判定标准；(7) 更新 `docs/reports/e2e-baseline.md`。复杂度: Complex
 

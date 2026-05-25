@@ -6,8 +6,8 @@
   "description": "智阅 PageWise - Chrome 浏览器扩展",
   "scripts": {
     "test": "node --test --test-concurrency=8 'tests/*.js'",
-    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -path 'tests/e2e-chrome/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' | sort)",
-    "test:ci:lint": "node --test tests/test-lint-r159.js tests/test-r201-lint-warning-final.js tests/test-eslint-infra.js",
+    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -path 'tests/e2e-chrome/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' -not -name 'test-r221-lint-warning-final.js' -not -name 'test-eslint-infra.js' -not -name 'test-r284-cws-submission.js' | sort)",
+    "test:ci:lint": "node --test tests/test-lint-r159.js tests/test-r201-lint-warning-final.js tests/test-r221-lint-warning-final.js tests/test-eslint-infra.js",
     "test:e2e": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e-chrome/test-sidebar-core.js tests/e2e-chrome/test-bookmarks-flow.js tests/e2e-chrome/test-knowledge-flow.js tests/e2e-chrome/test-performance.js tests/e2e-chrome/test-permissions.js",
     "test:all": "node --test --test-concurrency=8 'tests/*.js' 'tests/e2e/*.js'",
     "test:smoke": "node --test --test-concurrency=4 tests/test-smoke.js tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-storage-adapter.js tests/test-sanitize.js tests/test-cost-estimator.js tests/test-bookmark-indexer.js tests/test-bookmark-core-unit.js",

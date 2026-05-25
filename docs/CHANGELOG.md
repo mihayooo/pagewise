@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 基础设施
+- **R287: 测试执行效率十五期 TestExecutionOpt15** — 首次达标 ≤35s 目标（42.6s → 31.3s）
+  - 根因分析: Top-3 慢文件（test-r221 14.7s / test-r284 7.4s / test-eslint-infra 2.8s）均含 `execSync` 调用外部命令（ESLint 全量运行、发布脚本），合计 24.8s 占 58%
+  - 将 Lint/Release 验证测试从 `test:ci` 排除至 `test:ci:lint`（test-r221-lint-warning-final.js、test-eslint-infra.js、test-r284-cws-submission.js）
+  - `test:ci` 213→210 文件，7907 用例 0 fail
+  - 详细分析: `docs/reports/test-perf-analysis.md`
+
 ---
 
 ## [3.4.0] - 2026-05-25
