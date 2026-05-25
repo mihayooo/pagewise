@@ -4,9 +4,26 @@
      4|
      5|---
 
-## [Unreleased] - 2026-05-25
+## [Unreleased]
+
+---
+
+## [3.4.0] - 2026-05-25
 
 ### 功能
+- **R278: 跨浏览器兼容层 CrossBrowserCompat** — 为 Firefox/Edge 扩展发布做技术准备
+  - 新建 `lib/browser-compat.js` 浏览器 API 兼容层（统一 chrome.* → browser.* 命名空间，Promise 化回调 API）
+  - 抽象 `lib/storage-adapter.js` 存储适配层（chrome.storage.local → browser.storage.local，IndexedDB 统一封装）
+  - manifest v2/v3 差异处理: Firefox MV3 兼容（background.scripts vs service_worker，action vs browser_action）
+  - 测试 ≥25 用例（含存储适配/命名空间映射）
+
+- **R277: 运行时性能优化与内存治理 RuntimePerfOpt** — 长时间使用后性能劣化风险治理
+  - 新建 `lib/performance-monitor.js` 运行时性能监控模块（追踪 SidePanel 首屏渲染时间/知识库查询延迟/AI 响应时间/IndexedDB 事务耗时）
+  - 知识库 IndexedDB 查询优化: 大量条目（>5000）分页查询 + 游标遍历替代 getAll()（`lib/knowledge-base-cursor.js`）
+  - 内存泄漏排查: service-worker 中 AI 响应缓存增加 LRU 淘汰（上限 200 条）
+  - 性能基线: `docs/reports/performance-baseline.md` 核心指标（SidePanel 打开 <300ms/知识库搜索 <50ms/图谱渲染 <1s）
+  - 新建 `tests/test-performance-monitor.js` ≥20 用例
+
 - **R275: WCAG 2.1 AA 障碍功能合规实现 AccessibilityWCAG** — `lib/bookmark-accessibility.js` 补全 aria-selected/aria-expanded ARIA 属性支持，完整 WCAG 2.1 AA 合规
   - 新增 `getBookmarkSelectedAriaAttrs()` — 选中/未选中状态的 `aria-selected` 属性生成
   - 新增 `getBookmarkExpandedAriaAttrs()` — 展开/折叠状态的 `aria-expanded` 属性生成

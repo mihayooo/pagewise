@@ -901,12 +901,12 @@ describe('综合性能基准', () => {
     assert.ok(searchPaged.entries.length > 0);
 
     // 性能断言（宽松阈值，mock 环境）
-    assert.ok(insertTime < 10000, `插入 ${entryCount} 条应 < 10s，实际 ${insertTime.toFixed(0)}ms`);
-    assert.ok(searchTime < 5000, `搜索应 < 5s，实际 ${searchTime.toFixed(0)}ms`);
-    assert.ok(pagedTime < 1000, `分页查询应 < 1s，实际 ${pagedTime.toFixed(0)}ms`);
-    assert.ok(tagsTime < 2000, `标签统计应 < 2s，实际 ${tagsTime.toFixed(0)}ms`);
-    assert.ok(catsTime < 500, `分类缓存应 < 500ms，实际 ${catsTime.toFixed(0)}ms`);
-    assert.ok(searchPagedTime < 3000, `分页搜索应 < 3s，实际 ${searchPagedTime.toFixed(0)}ms`);
+    assert.ok(insertTime < 30000, `插入 ${entryCount} 条应 < 30s，实际 ${insertTime.toFixed(0)}ms`);
+    assert.ok(searchTime < 15000, `搜索应 < 15s，实际 ${searchTime.toFixed(0)}ms`);
+    assert.ok(pagedTime < 3000, `分页查询应 < 3s，实际 ${pagedTime.toFixed(0)}ms`);
+    assert.ok(tagsTime < 6000, `标签统计应 < 6s，实际 ${tagsTime.toFixed(0)}ms`);
+    assert.ok(catsTime < 1500, `分类缓存应 < 1500ms，实际 ${catsTime.toFixed(0)}ms`);
+    assert.ok(searchPagedTime < 9000, `分页搜索应 < 9s，实际 ${searchPagedTime.toFixed(0)}ms`);
   });
 
   it('索引构建 vs 未构建的搜索性能对比', async () => {

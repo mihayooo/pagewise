@@ -76,12 +76,12 @@ describe('AC-1: CHANGELOG.md 包含 [3.1.0] 区段', () => {
 describe('AC-2: 版本号 3.1.0 一致性', () => {
   it('package.json version = 3.2.0', () => {
     const pkg = readJSON('package.json');
-    assert.equal(pkg.version, '3.2.2', `Expected 3.2.2, got ${pkg.version}`);
+    assert.equal(pkg.version, '3.4.0', `Expected 3.4.0, got ${pkg.version}`);
   });
 
   it('manifest.json version = 3.2.0', () => {
     const manifest = readJSON('manifest.json');
-    assert.equal(manifest.version, '3.2.2', `Expected 3.2.2, got ${manifest.version}`);
+    assert.equal(manifest.version, '3.4.0', `Expected 3.4.0, got ${manifest.version}`);
   });
 
   it('package.json 和 manifest.json 版本一致', () => {

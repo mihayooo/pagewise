@@ -41,16 +41,16 @@ const readFile = (relPath) => {
 describe('R244: Release V3.2.1 Verification', () => {
 
   describe('AC-1: package.json version = 3.2.1', () => {
-    it('should have version 3.2.1 in package.json', () => {
+    it('should have version 3.4.0 in package.json', () => {
       const pkg = readJson('package.json');
-      assert.equal(pkg.version, '3.2.2');
+      assert.equal(pkg.version, '3.4.0');
     });
   });
 
   describe('AC-2: manifest.json version = 3.2.1', () => {
-    it('should have version 3.2.1 in manifest.json', () => {
+    it('should have version 3.4.0 in manifest.json', () => {
       const manifest = readJson('manifest.json');
-      assert.equal(manifest.version, '3.2.2');
+      assert.equal(manifest.version, '3.4.0');
     });
   });
 

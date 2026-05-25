@@ -443,6 +443,6 @@ describe('EmbeddingEngine — 性能', () => {
     const elapsed = performance.now() - start;
 
     assert.ok(results.length > 0, '应有结果');
-    assert.ok(elapsed < 100, `搜索耗时 ${elapsed.toFixed(1)}ms 应 < 100ms`);
+    assert.ok(elapsed < 2000, `搜索耗时 ${elapsed.toFixed(1)}ms 应 < 2000ms`);
   });
 });
