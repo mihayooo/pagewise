@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R287
+> 迭代轮次: R43 - R304
 > 最后更新: 2026-05-25
 
 ---
@@ -1368,3 +1368,18 @@
 - [x] **R298: 用户数据驱动迭代机制 DataDrivenIteration** — v3.4.0 已发布但从未收集真实用户行为数据，所有产品决策基于假设而非数据；R212 telemetry + R276 feedback-collector 已实现但从未验证真实环境采集链路；(1) 审查 `lib/telemetry.js` 核心采集点（选中即问/AI 回答/书签操作/知识库查询/搜索），确保 5 个核心动作全部触发记录；(2) 审查 `lib/feedback-collector.js` NPS 弹窗触发逻辑：首次使用 7 天后触发、低分引导帮助改进、高分引导 CWS 评价；(3) 新建 `lib/user-insight-analyzer.js` 分析遥测数据生成产品洞察：功能使用频率排名、核心路径完成率（选中→提问→获得回答→归档）、日活/周活趋势、错误率 Top-5；(4) 生成 `docs/reports/user-insight-template.md` 模板：指导如何从 chrome.storage.local 遥测数据提取可行动的产品改进清单；(5) 测试 ≥20 用例覆盖 insight-analyzer 核心逻辑。复杂度: Medium ✅
 
 - [x] **R299: E2E Chrome 核心场景扩展 E2ECoreScenarioExpand** — E2E 经 9 次迭代精简至仅 3 条冒烟路径（扩展加载/SidePanel/选中文字），但缺乏核心用户路径覆盖：(1) 在 R288 最小可行 E2E 稳定基础上，新增 3 条核心用户路径：书签采集→图谱渲染→节点点击详情、知识库搜索→结果列表→点击打开、设置页→主题切换→验证生效；(2) 每条路径 45s 硬超时 + 2 次自动重试（仅 TimeoutError），与 R288 保持一致策略；(3) `--test-concurrency=1` 串行执行避免浏览器状态污染；(4) 目标: `npm run test:e2e` ≥6 条路径全部通过（原 3 条 + 新增 3 条）；(5) 更新 `docs/reports/e2e-baseline.md` 记录新增路径和稳定性数据。复杂度: Medium
+
+## Phase AT: CWS 落地与产品价值深化 (R300-R304) — 5 轮
+
+> 飞轮迭代 R15，2026-05-25
+> 现状: 7398 pass / 0 fail / ~30s；Lint 0/0；254 个 lib 模块 (53,935 行)；VERSION 3.4.0；R43-R299 全部完成；技术债务清零；行覆盖率 ~28-30%（门禁 ≥28% 刚过线）；E2E 6 条路径；CWS 提交经 R83/R137/R244/R284 四次准备从未落地；REQUIREMENTS-BOOKMARK.md 中 R063 链接健康检查/R064 内容预览/R065 语义搜索已定义但未实现
+> 目标: 完成 Chrome Web Store 首次提交、提升测试覆盖安全裕量至 ≥32%、实现首个高级产品功能（语义搜索）、建立链接健康治理能力、v3.4.1 发布
+> 任务来源优先级: CWS 提交落地(用户触达) > 测试覆盖率安全裕量(质量防线) > 语义搜索(产品差异化) > 链接健康检查(数据质量) > v3.4.1 发布
+
+- [x] **R300: Chrome Web Store 正式提交 CWSProductionSubmit** — v3.4.0 已就绪但从未真正提交至 Chrome Web Store（R83/R137/R244/R284 四次准备均止步于预检）；(1) 审查 `manifest.json` 确保权限最小化（仅 bookmarks/storage/activeTab/tabs/sidePanel，移除所有未使用权限）、CSP 策略合规、图标 128x128 到位；(2) 验证 `scripts/publish-check.sh` 产出的 .zip 包大小 ≤5MB（Chrome Web Store 限制），若超限分析 lib/ 中可 Tree-shake 的冗余模块；(3) 审查 `docs/` 中 CWS 商店描述（概述 ≤132 字符、详细描述 ≤16000 字符、隐私实践声明）；(4) 验证 Service Worker 冷启动时间 ≤500ms（CWS 审核关注点）；(5) 生成 `docs/reports/cws-submission-checklist.md` 含所有审核项逐一勾选；(6) 测试 ≥10 用例验证 manifest 合规性/权限声明/图标完整性。复杂度: Medium
+
+- [ ] **R301: 测试覆盖率安全裕量巩固 CoverageSafetyMarginSolid** — 行覆盖率 ~28-30% 刚过门禁线，R296 将覆盖率冲刺测试排除出 test:ci 后安全裕量几乎为零，任何新模块新增都可能跌破门禁；(1) 运行 `npm run test:coverage` 获取精确基线（行/函数/分支/语句四维度）；(2) 分析 c8 报告中 Top-20 零覆盖高价值模块（>200 行纯逻辑，优先 ai-client-*.js / knowledge-base-crud.js / bookmark-graph-engine.js）；(3) 为 Top-10 模块编写边界用例（每模块 ≥5 用例，覆盖正常路径+错误路径+边界条件）；(4) 新增用例 ≥50，目标行覆盖率 ≥32%（4pp 安全裕量）、函数覆盖率 ≥55%；(5) 将 `coverage:gate --lines` 从 28 收紧至 30；(6) 更新 `docs/reports/coverage-baseline.md`。复杂度: Medium
+
+- [ ] **R302: 语义搜索实现 BookmarkSemanticSearch** — REQUIREMENTS-BOOKMARK.md R065 定义但未实现；R65 嵌入引擎 `lib/embedding-engine.js` 已存在但书签搜索仅用倒排索引关键词匹配，无法理解自然语言语义（如搜"异步编程"无法匹配"async/await 教程"）；(1) 新建 `lib/bookmark-semantic-search.js` 纯逻辑模块：基于 R65 嵌入引擎为书签生成向量表示，支持余弦相似度查询；(2) 构建混合搜索管线: 关键词倒排索引（精确匹配）+ 语义向量（模糊匹配）+ 融合排序（RRF Reciprocal Rank Fusion）；(3) 索引构建: 批量为现有书签生成嵌入向量，增量更新（新增书签自动入索引），索引持久化至 IndexedDB；(4) 搜索延迟目标 <500ms（含向量检索），大书签库（>1000 条）采用 HNSW 近似最近邻或 IVF 降级策略；(5) 查询示例: "React 性能优化"→匹配"React Fiber 架构解析"/"Virtual DOM diff 算法"等语义相关书签；(6) 测试 ≥30 用例覆盖索引构建/查询/混合排序/增量更新/降级策略。复杂度: Complex
+
+- [ ] **R303: 书签链接健康检查与死链治理 LinkHealthCheck** — REQUIREMENTS-BOOKMARK.md R063 定义但未实现；用户收藏夹中链接随时间腐化（平均 5%/年失效），死链书签占内存但无实际价值；(1) 新建 `lib/bookmark-link-checker.js` 纯逻辑模块: 批量 HEAD 请求检测链接状态（200/301/404/timeout），失败重试 1 次（避免 CDN 误判），请求间隔 200ms 防限流；(2) 后台调度: Service Worker 中注册周期性检查（chrome.alarms，每 7 天一次），每次检查 ≤100 条（按 lastChecked 升序，优先未检过的）；(3) 状态管理: 为每条书签记录 linkStatus (alive/redirect/broken/unchecked) + lastChecked + httpCode，持久化至 IndexedDB；(4) 用户通知: 发现 ≥5 条死链时生成"链接健康报告"通知（含死链列表+一键删除/存档），通过 `lib/bookmark-notifications.js` 展示；(5) 批量治理: 一键删除所有死链、将死链移入"待修复"集合、导出死链报告（JSON）；(6) 测试 ≥25 用例覆盖状态机流转/重试逻辑/调度策略/批量治理。复杂度: Medium
