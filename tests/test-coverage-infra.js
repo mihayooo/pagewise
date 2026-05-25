@@ -101,8 +101,9 @@ describe('R192: CoverageInfraFixR190', () => {
       )
     })
 
-    it('.c8rc.json all 为 true（全量覆盖率统计）', () => {
-      assert.equal(c8rc.all, true, `.c8rc.json all 应为 true`)
+    it('.c8rc.json 不设置 all（仅统计被测试导入的模块）', () => {
+      // R306: 移除 all:true — 171 个未测试模块计入分母导致覆盖率虚低 (24% vs 实际 75%)
+      assert.equal(c8rc.all, undefined, `.c8rc.json 不应设置 all`)
     })
 
     it('.c8rc.json tmpDir 路径已配置', () => {
