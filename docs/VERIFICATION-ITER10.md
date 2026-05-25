@@ -1,10 +1,8 @@
 # VERIFICATION.md — Iteration #10 Review
 
-> 任务: R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt  
-> 审查日期: 2026-05-21  
-> 审查人: Guard Agent  
-> 变更文件: 6 files, +225 / -13 lines  
-> 新文件: lib/first-run.js, tests/test-r238-first-run-experience.js  
+> R277: 运行时性能优化与内存治理 RuntimePerfOpt
+> 审查时间: 2026-05-25
+> 审查维度: 功能完整性 · 代码质量 · 测试覆盖 · 文档同步 · 安全质量
 
 ---
 
@@ -12,109 +10,155 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ⚠️ | 安装时间戳修复正确；i18n 扩展完整；但 first-run.js 集成模块未被任何生产代码导入，telemetry/feedback-collector 未实际接入用户界面 |
-| 代码质量 | ✅ | 纯 ES Module、依赖注入、工厂函数模式一致；无硬编码密钥/XSS 风险；模块行数合规（onboarding.js 240 行、first-run.js 236 行） |
-| 测试覆盖 | ⚠️ | 34 用例全部通过，覆盖 5 个子套件；但 R238-2 仅测试 5/10 个 telemetry 采集点的 trackFeature 调用，缺少 page_summarize/knowledge_save/screenshot_ask/bookmark_graph/onboarding_complete 的实际跟踪测试 |
-| 文档同步 | ⚠️ | CHANGELOG.md 和 IMPLEMENTATION.md 已更新；但 TODO.md R238 仍标记为 `[ ]` 未完成（IMPLEMENTATION.md 声称已标记为完成） |
+| 功能完整性 | ❌ | 6 项子任务仅完成 3 项，3 项关键交付缺失 |
+| 代码质量 | ⚠️ | 已实现部分质量尚可，但存在 API 命名不一致和死代码 |
+| 测试覆盖 | ⚠️ | performance-monitor 测试 32 用例达标，但 CRUD 新增功能和视觉器降级均无测试 |
+| 文档同步 | ❌ | TODO.md 未勾选、CHANGELOG 无 R277 条目、performance-baseline.md 未创建 |
+| 安全质量 | ✅ | 无硬编码密钥、无 XSS 风险、IndexedDB 使用安全 |
 
 ---
 
-## 发现的问题
+## 逐项功能验收
 
-### P1: first-run.js 集成模块未被生产代码导入（严重）
+### (1) 性能监控模块 `lib/performance-monitor.js` — ✅ 已完成
 
-**问题**: `lib/first-run.js` 作为"桥接 onboarding → telemetry → feedback 全链路"的集成模块，但 `sidebar/sidebar.js`、`popup/`、`background/service-worker.js`、`options/` 均未 import 它。该模块目前仅作为测试对象存在。
+- 新建 `lib/performance-monitor.js`（328 行），覆盖 4 个核心指标:
+  - `SIDEPANEL_RENDER` (阈值 300ms)
+  - `KNOWLEDGE_QUERY` (阈值 50ms)
+  - `AI_RESPONSE` (阈值 5000ms)
+  - `INDEXEDDB_TXN` (阈值 100ms)
+- API: `start/end/measure/measureAsync/getStats/getAllStats/getReport/getAlerts/snapshot/reset`
+- FIFO 采样淘汰（默认 maxSamples=200）
+- 线性插值百分位计算（p50/p95/p99）
+- 阈值告警分级: warning / error / critical
+- 内存快照（Node.js `process.memoryUsage`）
+- 全局单例模式 `getMonitor()` / `resetMonitor()`
+- **问题**: `PerformanceMonitor` 仅自包含，未被任何业务模块 import/集成（sidepanel、knowledge-base、ai-client 均未使用）
 
-**影响**:
-- `telemetry.trackFeature()` 从未在真实用户操作中被调用（sidebar.js 不导入 telemetry）
-- `feedback.shouldShowPrompt()` 从未在 UI 中被检查（sidebar.js 不导入 feedback-collector）
-- 用户完成 onboarding 后，`onboarding_complete` 遥测采集点不会被记录
-- NPS 反馈弹窗永远不会弹出（无代码检查是否需要弹出）
+### (2) 书签图谱渲染优化 — ⚠️ 部分完成
 
-**证据**:
-```
-$ grep -rn 'first-run\|firstRun\|FirstRun' sidebar/ popup/ background/ options/ --include='*.js'
-(no output)
+**已完成:**
+- `bookmark-visualizer.js`: 新增 `_degraded` / `_degradeFrameSkip` / `_tickCount` 字段
+- 大图谱降级策略: `graphData.nodes.length > 500` 时激活，每 3 tick 渲染一次（帧率降为 ~20fps）
+- `bookmark-visualizer-renderer.js`: `renderFrame` 接收 `degraded` 参数，降级模式下非高亮节点标签隐藏
+- `destroy()` 清理 `_dirtyNodes` 和 `_degraded` 状态
 
-$ grep -rn 'shouldShowFeedback\|feedback-collector' sidebar/sidebar.js
-(no output)
+**未完成:**
+- ❌ **脏区域检测（仅重绘变化节点）**: `_dirtyNodes = new Set()` 已声明，但从未被写入任何值，`renderFrame` 也未使用脏区域做增量渲染。当前仍是每帧全量 `clearRect` + 全量重绘，`_dirtyNodes` 为死代码
+- ❌ 边标签隐藏策略未实现 — 需求说"隐藏边标签"但代码仅隐藏了非高亮节点标签，边本身仍全部绘制
 
-$ grep -rn 'trackFeature' sidebar/sidebar.js
-(no output)
-```
+### (3) 知识库 IndexedDB 查询优化 — ✅ 已完成（有隐患）
 
-**建议**: 在 sidebar.js 的 `init()` 方法中导入并调用 `first-run.js`，或直接导入 telemetry/feedback-collector。至少应在 sidebar 初始化时：
-1. 检查 `firstRun.shouldShowFeedback()` → 弹出 NPS
-2. 在用户执行核心动作时调用 `firstRun.trackFeature()`
+**已完成:**
+- `knowledge-base-core.js`: DB version 2→3，升级路径添加 `(type+updatedAt)` 复合索引
+- `knowledge-base-crud.js`: 新增 `getEntriesCursorPaged()` 方法（101 行），支持:
+  - 按 `category` 过滤（利用复合索引 `type_updatedAt`）
+  - 按 `updatedAfter` 时间过滤
+  - 游标分页遍历（替代 `getAll()`），降低内存峰值
+  - `count()` + `cursor` 两阶段查询
 
-### P2: TODO.md R238 未标记完成（中等）
+**隐患:**
+- ⚠️ **索引命名不一致**: 复合索引名 `type_updatedAt` 实际对应字段 `['category', 'updatedAt']`，`type` 与 `category` 混淆，未来维护易误读
+- ⚠️ **`updatedAt` 独立索引不存在**: `getEntriesCursorPaged` 当 `category` 为 null 时回退到 `indexName = 'updatedAt'`，但数据库 schema 未创建 `updatedAt` 独立索引（仅有 `createdAt`），运行时将抛出 `NotFoundError`
+- ⚠️ **DB version 升级风险**: version 2→3 会影响所有现有用户的数据库，触发 `onupgradeneeded`，需确保旧数据无 `updatedAt` 字段时复合索引不报错
 
-**问题**: `docs/TODO.md` 第 990 行 R238 仍为 `- [ ]`，但 `docs/IMPLEMENTATION.md` 第 30 行声称 "docs/TODO.md — R238 标记完成"。
+### (4) 内存泄漏排查 — ❌ 未完成
 
-**证据**:
-```
-$ grep -n 'R238' docs/TODO.md
-990:- [ ] **R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt**
-```
+- ❌ **service-worker AI 响应缓存 LRU**: `background/service-worker.js` 无任何修改，未添加 LRU 淘汰（上限 200 条）
+- ❌ **SidePanel 关闭时释放 Canvas/DOM**: `sidebar/sidebar.js` 无任何修改，未添加关闭时的 Canvas/DOM 引用释放逻辑
 
-**建议**: 将 `- [ ]` 改为 `- [x]`。
+### (5) 性能基线文档 — ❌ 未完成
 
-### P3: R238-2 telemetry 测试覆盖不完整（低）
+- ❌ `docs/reports/performance-baseline.md` 文件不存在
+- 需记录: SidePanel 打开 <300ms / 知识库搜索 <50ms / 图谱渲染 <1s for 200 nodes
 
-**问题**: `R238-2: Telemetry 核心动作采集点覆盖` 套件中，仅对 5/10 个采集点执行了 `trackFeature` 调用并验证计数（ask_ai, ai_answer, bookmark_op, knowledge_query, search）。剩余 5 个（page_summarize, knowledge_save, screenshot_ask, bookmark_graph, onboarding_complete）仅验证了常量定义为 `typeof string`，未验证实际调用。
+### (6) 性能监控模块测试 — ✅ 已完成
 
-**建议**: 补充 5 个 `trackFeature` 测试用例，每个采集点至少验证一次调用和计数。
+- `tests/test-performance-monitor.js`: 32 个 `it()` 用例（≥20 达标）
+- 覆盖: 构造/配置(6) + 计时器操作(7) + 指标统计(5) + 阈值告警(4) + 快照与导出(4) + 常量验证(2) + 百分位计算(3) + 全局单例(1)
+- 测试质量良好，边界场景覆盖合理
 
-### P4: IMPLEMENTATION.md 设计决策表述不准确（低）
+---
 
-**问题**: IMPLEMENTATION.md 第 37 行写道：
-> `onboardingCompleted: false` 确保更新后仍可触发引导（但 `shouldShowOnboarding` 只检查 key 是否存在，更新时不会覆盖已设的 true）
+## 跨文件一致性问题
 
-实际上 `onboardingCompleted: false` 仅在 `details.reason === 'install'` 时写入，`update` 不会触发此代码路径。该描述容易误导读者认为更新时也会写入 false。
+| # | 文件 | 问题 | 严重度 |
+|---|------|------|--------|
+| 1 | `knowledge-base-crud.js:320` | `getEntriesCursorPaged` 回退 `indexName='updatedAt'` 但该索引不存在 | 🔴 高 — 运行时崩溃 |
+| 2 | `knowledge-base-core.js:87` | 复合索引 `(type+updatedAt)` 实际使用字段 `category` 而非 `type` | 🟡 中 — 命名误导 |
+| 3 | `bookmark-visualizer.js:67` | `_dirtyNodes` 声明但从未使用（死代码） | 🟡 中 — ESLint no-unused-vars |
+| 4 | `bookmark-visualizer.js` | 性能监控模块未集成到任何业务代码 | 🟡 中 — 功能孤立 |
+| 5 | `lib/` 全局 | `performance-monitor.js` 未被任何其他 lib 模块 import | 🟡 中 — 模块孤岛 |
 
-**建议**: 修正为 "仅在首次安装时写入，更新事件不触发此代码路径"。
+---
 
-### P5: 无安全/质量问题（确认通过）
+## 测试覆盖缺口
 
-- ✅ 无硬编码密钥或 API Key
-- ✅ 无 XSS 风险（纯数据模块，无 DOM 操作）
-- ✅ 无 eval() 或动态代码执行
-- ✅ storage 操作使用 try-catch 保护
-- ✅ TELEMETRY_FEATURES 使用 Object.freeze 冻结
-- ✅ 模块行数合规：onboarding.js 240 行 ≤ 400，first-run.js 236 行 ≤ 400
+| 新增功能 | 测试状态 | 缺失测试 |
+|----------|----------|----------|
+| `performance-monitor.js` | ✅ 32 用例 | — |
+| `getEntriesCursorPaged()` | ❌ 无测试 | cursor 分页、category 过滤、updatedAfter 过滤、空数据、分页边界 |
+| 复合索引 `type_updatedAt` | ❌ 无测试 | 索引创建、升级路径、查询使用复合索引 |
+| 图谱降级模式 (>500 节点) | ❌ 无测试 | 降级激活、帧率跳过、标签隐藏、恢复正常 |
+| `_dirtyNodes` 脏区域 | ❌ 无测试 | （实现未完成，无可测代码） |
+
+---
+
+## 文档同步状态
+
+| 文档 | 预期变更 | 实际状态 |
+|------|----------|----------|
+| `docs/TODO.md` | R277 行改为 `- [x]` | ❌ 仍为 `- [ ]` |
+| `CHANGELOG.md` | 添加 R277 条目到对应版本区段 | ❌ 无任何 R277 相关内容 |
+| `docs/reports/performance-baseline.md` | 新建文件记录性能基线 | ❌ 文件不存在 |
+| `docs/reports/2026-05-25-R10.md` | 迭代报告反映 R277 | ❌ 报告内容为 R276 的数据 |
+
+---
+
+## 安全质量
+
+| 检查项 | 结果 |
+|--------|------|
+| 硬编码密钥 | ✅ 无 |
+| XSS 风险 | ✅ 无（IndexedDB 纯数据操作） |
+| 注入攻击 | ✅ 无（IDBKeyRange 参数化） |
+| 权限提升 | ✅ 无 |
+| 敏感数据泄露 | ✅ 无（performance-monitor 仅记录耗时） |
 
 ---
 
 ## 返工任务清单
 
-| # | 优先级 | 任务 | 预计工作量 |
-|---|--------|------|-----------|
-| 1 | **P1** | 在 sidebar.js 中集成 first-run.js（导入、初始化、在 init() 中检查 feedback、在核心动作处调用 trackFeature） | 30min |
-| 2 | **P2** | TODO.md R238 标记为 `[x]` | 1min |
-| 3 | **P3** | test-r238 补充 5 个 telemetry 采集点的 trackFeature 调用测试（page_summarize/knowledge_save/screenshot_ask/bookmark_graph/onboarding_complete） | 10min |
-| 4 | **P4** | IMPLEMENTATION.md 修正 install date 写入时机描述 | 5min |
+### P0 — 阻塞发布（必须修复）
 
----
+| # | 任务 | 说明 | 涉及文件 |
+|---|------|------|----------|
+| 1 | **修复 `updatedAt` 索引缺失** | `getEntriesCursorPaged` 在无 category 时回退到 `indexName='updatedAt'`，但 DB schema 未创建该索引。需在 `onupgradeneeded` v3 路径中添加 `store.createIndex('updatedAt', 'updatedAt', { unique: false })`，或修改回退逻辑使用 `createdAt` | `knowledge-base-core.js` |
+| 2 | **Service-worker AI 缓存 LRU** | R277 明确要求 "service-worker 中 AI 响应缓存增加 LRU 淘汰（上限 200 条）"，当前未实现 | `background/service-worker.js` |
+| 3 | **SidePanel 关闭释放引用** | R277 明确要求 "关闭 SidePanel 时释放 Canvas/DOM 引用"，当前未实现 | `sidebar/sidebar.js` |
 
-## 已验证通过的变更
+### P1 — 应修复（功能完整性）
 
-| 验证项 | 结果 | 详情 |
-|--------|------|------|
-| service-worker.js 安装时间戳 | ✅ | `onInstalled` + `install` reason → `pagewise_install_date` + `onboardingCompleted: false` 正确写入 |
-| onboarding.js i18n 支持 | ✅ | `ONBOARDING_STEP_I18N` 映射、`ONBOARDING_STEP_DEFAULTS` 回退、`getLocalizedStepConfig()` + `options.t` 注入机制完整 |
-| locale 文件完整性 | ✅ | zh-CN.json/en-US.json 均包含 4 步标题/描述 + features + privacy + sampleQuestions（完整双语） |
-| i18n key 一致性 | ✅ | 步骤 ID（kebab-case）与 i18n key（camelCase）通过 `ONBOARDING_STEP_I18N` 正确映射 |
-| 7 天 NPS 计时逻辑 | ✅ | 6天23小时→不弹出，7天→弹出，30天→仍可弹出，提交后→不弹出，跳过后→不弹出 |
-| first-run.js 模块设计 | ✅ | 纯 ES Module、依赖注入、Object.freeze、JSDoc 完整、工厂函数模式 |
-| 测试通过率 | ✅ | 34 pass / 0 fail (test-r238)；63 pass / 0 fail (test-onboarding + test-telemetry + test-feedback-collector) |
-| 模块行数合规 | ✅ | onboarding.js 240 行、first-run.js 236 行，均 ≤ 400 行上限 |
-| CHANGELOG.md 更新 | ✅ | `[3.2.0]` 区段包含完整 R238 变更记录 |
-| IMPLEMENTATION.md 更新 | ✅ | 详细记录问题分析、修改内容、设计决策、验证结果 |
+| # | 任务 | 说明 | 涉及文件 |
+|---|------|------|----------|
+| 4 | **性能基线文档** | 创建 `docs/reports/performance-baseline.md`，记录 SidePanel 打开 <300ms / 知识库搜索 <50ms / 图谱渲染 <1s for 200 nodes 基线指标 | 新建文件 |
+| 5 | **脏区域检测实现或移除** | `_dirtyNodes` 仅声明未使用，要么实现完整的脏区域增量渲染，要么移除死代码避免 lint 警告 | `bookmark-visualizer.js` |
+| 6 | **PerformanceMonitor 集成** | 监控模块创建后未被任何业务代码使用，需在 sidepanel / knowledge-base / ai-client 中实际集成 `start/end` 调用 | 多个文件 |
+| 7 | **补全 CRUD 测试** | 为 `getEntriesCursorPaged` 补充单元测试（cursor 分页、category 过滤、索引选择、空数据、边界） | 新建测试文件 |
+| 8 | **补全图谱降级测试** | 为 >500 节点降级策略补充测试（降级激活、帧率跳过、标签隐藏条件、destroy 清理） | 测试文件 |
+
+### P2 — 文档同步
+
+| # | 任务 | 说明 |
+|---|------|------|
+| 9 | TODO.md R277 行改为 `- [x]` | 标记任务完成 |
+| 10 | CHANGELOG.md 补充 R277 条目 | 记录性能监控模块、图谱降级、索引优化等变更 |
+| 11 | 迭代报告 R10 更新 | 反映 R277 实际变更（当前报告内容为 R276） |
 
 ---
 
 ## 总结
 
-R238 在**代码层面**完成了 onboarding i18n 扩展和 service-worker 安装时间戳修复，模块设计清晰、测试基本覆盖。但在**集成层面**存在关键缺陷：新建的 `first-run.js` 集成模块未被任何生产代码导入，导致 telemetry 采集和 feedback 弹窗在真实用户场景中不可用。这恰好是对原始需求"从未在真实用户场景验证"问题的回避而非解决。
+R277 迭代实现了约 **40%** 的需求。新增的 `performance-monitor.js` 模块和 32 个测试质量良好，IndexedDB 游标分页查询设计合理，图谱降级策略方向正确。但存在 **3 项关键交付完全缺失**（service-worker LRU 缓存、SidePanel Canvas 释放、性能基线文档），**1 个高风险 bug**（`updatedAt` 索引不存在导致运行时崩溃），以及 **脏区域检测为空壳实现**。
 
-**判定**: ⚠️ 有条件通过 — 需完成 P1（sidebar.js 集成 first-run.js）后方可关闭 R238。
+**判定: ❌ 需返工**，完成 P0 和 P1 任务后方可标记 R277 完成。
