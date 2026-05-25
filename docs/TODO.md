@@ -1296,7 +1296,7 @@
   - 目标: exported function JSDoc 覆盖率 ≥90%
   - 复杂度: Simple
 
-- [ ] **R283: E2E 冒烟测试稳定化 E2ESmokeStable** — E2E 测试经过 R211/R219/R220/R228/R252/R257/R268/R272 八次迭代，在 CI 环境仍有间歇性失败
+- [x] **R283: E2E 冒烟测试稳定化 E2ESmokeStable** — E2E 测试经过 R211/R219/R220/R228/R252/R257/R268/R272 八次迭代，在 CI 环境仍有间歇性失败
   - 分析最近 10 次 CI 运行中 E2E 失败的 root cause（超时/选择器/竞态/Chrome 启动）
   - 为所有 E2E 用例添加 retry 机制（最多 3 次重试，仅对 TimeoutError 重试）
   - 添加 `test:e2e:smoke` 脚本仅运行核心 3 条路径（扩展加载 → SidePanel 打开 → 选中文字提问）
