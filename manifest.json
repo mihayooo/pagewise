@@ -14,7 +14,8 @@
     "sidePanel",
     "tabs",
     "activeTab",
-    "bookmarks"
+    "bookmarks",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",

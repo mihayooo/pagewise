@@ -1,7 +1,7 @@
 # TODO — BookmarkGraph 飞轮迭代计划
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
-> 迭代轮次: R43 - R304
+> 迭代轮次: R43 - R309
 > 最后更新: 2026-05-25
 
 ---
@@ -1383,3 +1383,22 @@
 - [x] **R302: 语义搜索实现 BookmarkSemanticSearch** — REQUIREMENTS-BOOKMARK.md R065 定义但未实现；R65 嵌入引擎 `lib/embedding-engine.js` 已存在但书签搜索仅用倒排索引关键词匹配，无法理解自然语言语义（如搜"异步编程"无法匹配"async/await 教程"）；(1) 新建 `lib/bookmark-semantic-search.js` 纯逻辑模块：基于 R65 嵌入引擎为书签生成向量表示，支持余弦相似度查询；(2) 构建混合搜索管线: 关键词倒排索引（精确匹配）+ 语义向量（模糊匹配）+ 融合排序（RRF Reciprocal Rank Fusion）；(3) 索引构建: 批量为现有书签生成嵌入向量，增量更新（新增书签自动入索引），索引持久化至 IndexedDB；(4) 搜索延迟目标 <500ms（含向量检索），大书签库（>1000 条）采用 HNSW 近似最近邻或 IVF 降级策略；(5) 查询示例: "React 性能优化"→匹配"React Fiber 架构解析"/"Virtual DOM diff 算法"等语义相关书签；(6) 测试 ≥30 用例覆盖索引构建/查询/混合排序/增量更新/降级策略。复杂度: Complex
 
 - [x] **R303: 书签链接健康检查与死链治理 LinkHealthCheck** — REQUIREMENTS-BOOKMARK.md R063 定义但未实现；用户收藏夹中链接随时间腐化（平均 5%/年失效），死链书签占内存但无实际价值；(1) 新建 `lib/bookmark-link-checker.js` 纯逻辑模块: 批量 HEAD 请求检测链接状态（200/301/404/timeout），失败重试 1 次（避免 CDN 误判），请求间隔 200ms 防限流；(2) 后台调度: Service Worker 中注册周期性检查（chrome.alarms，每 7 天一次），每次检查 ≤100 条（按 lastChecked 升序，优先未检过的）；(3) 状态管理: 为每条书签记录 linkStatus (alive/redirect/broken/unchecked) + lastChecked + httpCode，持久化至 IndexedDB；(4) 用户通知: 发现 ≥5 条死链时生成"链接健康报告"通知（含死链列表+一键删除/存档），通过 `lib/bookmark-notifications.js` 展示；(5) 批量治理: 一键删除所有死链、将死链移入"待修复"集合、导出死链报告（JSON）；(6) 测试 ≥25 用例覆盖状态机流转/重试逻辑/调度策略/批量治理。复杂度: Medium
+
+---
+
+## Phase AU: CI 红灯清零与质量防线收尾 (R305-R309) — 5 轮
+
+> 飞轮迭代 R18，2026-05-25
+> 现状 (实测): 8078 pass / **8 fail** / ~84s；Lint **1 warning**（unused `limit` in bookmark-semantic-search-hybrid.js:88）；行覆盖率 **24.29%**（门禁 ≥28% **失守**）；254 个 lib 模块 (54,653 行)；VERSION 3.4.0；R43-R303 全部完成但遗留 8 个测试红灯；`user-insight-analyzer.js` 510 行超过 400 行限制（R301 新增）；manifest.json 缺少 `contextMenus` 权限声明（lib/context-menu.js 实际使用）；语义搜索 IVF 性能 589ms（目标 <100ms）；20+ 个测试文件通过 test:ci 排除清单规避但仍在 test:ci:release 中红灯
+> 目标: 清零 8 个测试红灯恢复 0 fail、修复 Lint 1 warning 恢复 0/0、行覆盖率回升至 ≥28% 门禁通过、模块尺寸合规 ≤400 行、语义搜索性能达标、v3.4.1 发布
+> 任务来源优先级: 修复失败测试(红灯清零) > Lint 清零 > 覆盖率门禁恢复 > 模块尺寸合规 > 语义搜索性能 > 发布
+
+- [x] **R305: 测试红灯批量清零 TestFailureFlushR305** — 当前 8 个测试失败分 4 类根因需一次性清零：(1) Lint 1 warning 修复：`lib/bookmark-semantic-search-hybrid.js:88` `_ivfSearch(ctx, queryVec, limit)` 参数 `limit` 未使用，重命名为 `_limit` 消除 warning（或在函数体内实际使用 limit 约束 IVF 返回数量）；此修复可恢复 test-lint-r159 / test-r201 / test-r221 共 3 个失败；(2) 模块尺寸修复：`lib/user-insight-analyzer.js` 510 行超过 400 行限制，将报告生成逻辑（generateReport / formatMetrics / buildRecommendations）拆分至 `lib/user-insight-report.js`，原文件降至 ≤400 行并 re-export 保持 API 兼容；恢复 test-r244 AC-6；(3) Manifest 权限修复：`manifest.json` permissions 数组添加 `"contextMenus"`（`lib/context-menu.js`、`lib/browser-compat.js`、`lib/bookmark-store-prep-checks.js` 三模块使用 chrome.contextMenus API）；恢复 test-r284 AC-5；(4) 语义搜索性能修复：`lib/bookmark-semantic-search-hybrid.js` IVF 搜索 nprobe=3 全量余弦计算耗时 589ms > 100ms，优化方案——IVF 质心预计算 L2 范数缓存 + 候选集限制为 nprobe 质心 Top-K 邻居 + 提前终止（early termination when accumulated scores sufficient）；恢复 test-semantic-search 性能断言；(5) 目标: `npm run test:ci` ≥8078 pass / **0 fail** + `npm run test:ci:lint` 0 fail + `npm run test:ci:release` 0 fail。复杂度: Medium
+
+- [ ] **R306: 行覆盖率门禁回升 CoverageGateRecovery** — 当前行覆盖率 **24.29%** 已跌破 28% 门禁线（R301 目标 ≥32% 完全未达），根因分析: R305 拆分 user-insight-analyzer.js 后模块更小但覆盖行数不变（覆盖率分母不变分子不变），真正原因是 `test:ci` 排除清单过度膨胀（20+ 文件排除）导致大量已覆盖模块的测试不计入 c8 统计；(1) 审查 `test:ci` 排除清单，分类每个排除文件为三类：(a) 真正需要排除的 CI 外文件（e2e、lint、coverage-boost）、(b) 被错误排除的正常测试（应移回 test:ci）、(c) 需要合并到主测试的冗余文件；(2) 将 (b) 类文件从排除清单移除，让 `npm run test:ci` 包含更多正常测试；(3) 运行 `npm run test:coverage` 验证覆盖率回升；(4) 若仍 <28%，为 R305 新增的拆分模块（user-insight-report.js）补充 ≥5 用例；(5) 验证 `npm run coverage:gate` 三项门禁全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(6) 更新 `docs/reports/coverage-baseline.md`。复杂度: Medium
+
+- [ ] **R307: 语义搜索 IVF 性能深度优化 SemanticSearchPerfOpt** — R305 仅做了快速修复（缓存范数/限制候选集），但 IVF 搜索在 1000 条数据下仍需系统性优化至 <100ms（当前 589ms → 目标 6x 提速）；(1) 性能剖析: 用 `performance.now()` 对 `_ivfSearch` 的 3 个阶段（质心距离计算/簇内检索/排序合并）分别计时，确认瓶颈阶段；(2) 质心距离计算优化: 预计算所有质心的 L2 范数并缓存至 IVF 索引结构，查询时仅需 dot product；(3) 簇内检索优化: 将 brute-force 遍历改为 TypedArray（Float32Array）操作，利用 SIMD 友好内存布局；若单簇 >200 条，子簇内采用跳表剪枝；(4) 融合排序优化: RRF 合并改为单次堆排序替代两次独立排序+归并；(5) 大规模降级: >5000 条时自动切换 PQ（Product Quantization）压缩向量，将 128 维→8 维子空间量化，内存减少 16x；(6) 新增 ≥15 用例覆盖 IVF 参数调优（nprobe/cluster count 对精度-速度 tradeoff）；(7) 性能基线: 1000 条 <50ms、5000 条 <200ms、10000 条 <500ms。复杂度: Complex
+
+- [ ] **R308: TODO.md 存档与项目文档瘦身 ProjectDocsHygiene** — TODO.md 已膨胀至 1386 行（R43-R303 全部 [x] 完成），每次迭代 Plan Agent 需读取全文浪费 token；CHANGELOG.md 71KB、IMPLEMENTATION.md 110KB 同样臃肿；(1) 将 TODO.md 中 R43-R303 全部已完成任务迁移至 `docs/TODO-ARCHIVE.md`（保留 Phase AU R305-R309 活跃任务）；(2) TODO.md 仅保留当前活跃 Phase（≤50 行），添加指向 ARCHIVE 的链接；(3) 审查 CHANGELOG.md，将 v1.0-v3.1 历史记录压缩为一行摘要（保留 [Unreleased] 和 [3.4.0] 完整内容）；(4) 更新 `docs/ROADMAP.md` 中版本状态表（当前仍显示 v3.1.0 / R209，需更新至 v3.4.0 / R303）；(5) 清理 docs/ 下 ≥10 个过期的 DESIGN-ITER*.md / VERIFICATION-ITER*.md 文件（仅保留最近 3 轮）；(6) 输出清理报告：文件数量变化、总大小变化。复杂度: Simple
+
+- [ ] **R309: 全量回归与 v3.4.1 发布 ReleaseV341** — R305-R308 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥8078 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s（若 R306 恢复排除文件导致超时，调整排除策略）；(5) 版本号 bump 至 3.4.1（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.1]` 区段（R305-R308 变更摘要）；(7) `npm run test:e2e:smoke` 通过（6 条路径）；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`。复杂度: Simple
