@@ -1,239 +1,200 @@
-# 需求文档 — 迭代 17: 覆盖率门禁三项达标冲刺 (CoverageGatePass)
+# 需求文档 — R302: 语义搜索实现 BookmarkSemanticSearch
 
-> **需求编号**: R245
-> **创建日期**: 2026-05-21
-> **状态**: 📋 待开发
-> **复杂度**: Medium
-> **飞轮迭代**: R17
+> 迭代 17 | 2026-05-25
+> 基于 REQUIREMENTS-BOOKMARK.md R065 + TODO.md R302
 
 ---
 
-## 1. 背景与问题
+## 背景
 
-R243 完成了覆盖率门禁硬化，将 `coverage:gate` 阈值从虚高值收紧至实测基线附近（lines 28 / functions 50 / branches 75）。然而 R244 发布 v3.2.1 时的实测数据显示，**三项门禁中有两项未通过**：
+R65 已构建 `lib/bookmark-semantic-search.js`（263 行）和 `lib/bookmark-semantic-search-hybrid.js`（218 行），实现基于 TF-IDF 余弦相似度的语义搜索基本框架。然而该实现存在以下不足：
 
-| 维度 | 实测值 (R241 后) | 门禁阈值 | 差距 | 状态 |
-|------|-----------------|---------|------|------|
-| **行覆盖率** | 24.89% (12,737/51,171) | ≥ 28% | **−3.11pp** (需新增覆盖 ~1,590 行) | ❌ 未通过 |
-| **函数覆盖率** | 49.79% (471/946) | ≥ 50% | **−0.21pp** (需新增覆盖 ~2 个函数) | ❌ 未通过 |
-| **分支覆盖率** | 75.83% (1,970/2,599) | ≥ 75% | +0.83pp 余量 | ✅ 通过 |
+1. **融合排序过于简单**：当前 `hybridSearch` 使用固定权重 ratio=0.6 关键词 + 0.4 语义的线性加权，结果归一化依赖单批次 max score，跨批次不可比
+2. **无索引持久化**：向量索引仅存于内存（`_documentVectors` Map），扩展重启后需全量重建
+3. **大规模性能未优化**：当前对全部文档向量线性扫描（O(n)），>1000 条书签时延迟不可控
+4. **语义理解边界**：中文 bigram 分词对跨语言/同义词场景（如"异步编程"→"async/await 教程"）覆盖不足
 
-**根因分析**: 历史 R205/R216/R222/R225/R230/R236/R241 七次覆盖率冲刺均未实现持续达标，根因始终相同——**~38,000 行零覆盖模块在测试中从未被 `import` 加载**，导致 c8 (V8 native coverage) 无法插桩这些模块。仅靠提升已有模块的边界用例覆盖无法突破瓶颈，必须将零覆盖模块纳入测试范围。
-
-**本轮目标**: 务实聚焦——行覆盖率突破 28%（+3.11pp, ~1,590 行）、函数覆盖率突破 50%（+0.21pp, ~2 个函数），使三项门禁全部通过。
+本次迭代（R302）在 R65 基础上实现四维升级：RRF 融合排序、IndexedDB 持久化、ANN 降级策略、语义查询增强。
 
 ---
 
-## 2. 用户故事
+## 1. 用户故事
 
-**作为** PageWise 项目的质量保障工程师，
-**我希望** 覆盖率门禁（行 ≥28%、函数 ≥50%、分支 ≥75%）三项全部通过，
-**以便** CI 流水线能真正阻断覆盖率退化，杜绝历史反复出现的"声称达标实测未过"问题。
+**US-1**: 作为收藏了 500+ 技术书签的开发者，我想用自然语言（如"异步编程"、"React 性能优化"）搜索书签，这样我不需要记住书签的精确标题就能找到相关内容。
 
----
-
-## 3. 验收标准
-
-### AC-1: 行覆盖率 ≥28%（门禁通过）
-
-**Given** 当前行覆盖率 24.89%（12,737/51,171），门禁阈值 ≥28%
-**When** 为 Top-10 零覆盖纯逻辑模块编写测试并通过 `import` 加载目标模块（确保 c8 可插桩）
-**Then** 实测行覆盖率应 **≥28%**（新增覆盖 ≥1,590 行）
-
-**验证方式**:
-1. 执行 `npm run test:coverage`
-2. 读取 `coverage/coverage-summary.json` 中 `total.lines.pct`
-3. 断言 `pct >= 28.0`
-4. 同步验证 `npm run coverage:gate` 退出码为 0
-
-### AC-2: 函数覆盖率 ≥50%（门禁通过）
-
-**Given** 当前函数覆盖率 49.79%（471/946），门禁阈值 ≥50%
-**When** 定位未被调用的关键函数（按函数体行数降序），为 ≥2 个函数新增直接调用测试
-**Then** 实测函数覆盖率应 **≥50%**（新增覆盖 ≥2 个函数）
-
-**验证方式**:
-1. 执行 `npm run test:coverage`
-2. 读取 `coverage/coverage-summary.json` 中 `total.functions.pct`
-3. 断言 `pct >= 50.0`
-
-### AC-3: 分支覆盖率维持 ≥75%
-
-**Given** 当前分支覆盖率 75.83%，门禁阈值 ≥75%，余量仅 0.83pp
-**When** 新增测试用例引入新的代码分支覆盖
-**Then** 分支覆盖率不得退化至 <75%
-
-**验证方式**:
-1. 执行 `npm run test:coverage`
-2. 读取 `coverage/coverage-summary.json` 中 `total.branches.pct`
-3. 断言 `pct >= 75.0`
-
-### AC-4: 新增测试用例 ≥40 个
-
-**Given** 当前 7,551 个测试用例全部通过
-**When** 为零覆盖模块和未覆盖函数编写新测试
-**Then** 新增用例数 ≥40，且全部通过（新增后总数 ≥7,591）
-
-**验证方式**:
-1. 执行 `npm run test:ci`，解析输出的 pass 计数
-2. 断言 pass ≥ 7,591 且 fail = 0
-
-### AC-5: 覆盖率基线文档更新
-
-**Given** `docs/reports/coverage-baseline.md` 记录了 R243 的基线快照（行 24.89%、函数 49.79%、分支 75.83%）
-**When** R245 完成覆盖率提升后
-**Then** 更新 `docs/reports/coverage-baseline.md`：
-1. 基线快照表中的行/函数覆盖率数据刷新为 R245 实测值
-2. 门禁阈值映射表更新（若 `coverage:gate --lines` 收紧至 30，则同步记录）
-3. 历史门禁阈值演进表追加 R245 行
-4. 测量环境和用例数更新
-
-**验证方式**: 读取 `docs/reports/coverage-baseline.md`，断言基线数据为 R245 实测值。
-
-### AC-6: 覆盖率门禁阈值可能收紧
-
-**Given** R245 完成后行覆盖率确认稳定 ≥28%
-**When** 若实测行覆盖率 ≥30%
-**Then** 将 `coverage:gate --lines` 从 28 收紧至 30，为后续迭代建立更高基线；若实测在 28%-30% 之间则维持 28 不变
-
-**验证方式**: 读取 `package.json` 中 `coverage:gate` 脚本，确认阈值与实测值对齐。
+**US-2**: 作为日常使用 PageWise 的用户，我希望重启扩展后书签搜索依然秒开，而不是每次都要等索引重建。
 
 ---
 
-## 4. 技术约束
+## 2. 验收标准
+
+| # | 验收标准 | 可验证行为 |
+|---|---------|-----------|
+| AC1 | **语义查询理解** | 查询"异步编程"能匹配标题为"async/await 教程"、"Promise 链式调用指南"的书签（Top-10 中出现 ≥2 条语义相关结果）；查询"React 性能优化"能匹配"React Fiber 架构解析"、"Virtual DOM diff 算法"等书签 |
+| AC2 | **RRF 混合排序** | `hybridSearch()` 采用 Reciprocal Rank Fusion（`score = Σ 1/(k+rank_i)`，k=60）融合关键词和语义两个排序列表；结果中 `matchType` 为 `'hybrid'` 的条目同时命中两种信号 |
+| AC3 | **索引持久化** | 向量索引序列化至 IndexedDB（库名 `bookmark-semantic-index`），扩展重启后从 IndexedDB 恢复索引（`loadIndex()`），无需全量重建；`saveIndex()` / `loadIndex()` 双向对称 |
+| AC4 | **增量更新** | `addBookmark()` 自动计算向量并入索引，`removeBookmark()` 清除向量；增量操作同步更新 IndexedDB 持久化 |
+| AC5 | **大规模降级** | 书签数量 >1000 时自动切换降级策略（IVF 聚类分区 + 候选集缩小），搜索延迟 <500ms（含向量检索）；≤1000 条保持精确全量扫描 |
+| AC6 | **测试覆盖** | 新增 `tests/test-r302-semantic-search-upgrade.js` ≥30 用例，覆盖：索引构建(5)、语义查询(5)、RRF 排序(5)、IndexedDB 持久化(4)、增量更新(4)、降级策略(4)、边界条件(3) |
+
+---
+
+## 3. 技术约束
+
+### 3.1 架构约束
 
 | 约束 | 说明 |
 |------|------|
-| **c8 插桩前提** | 新增测试文件必须通过 `import`（ES Module import）加载目标模块，而非仅 mock 模块接口。只有被 import 加载的模块才会被 c8 V8 coverage 引擎插桩统计 |
-| **零 Chrome API 依赖优先** | 优先选择无 `chrome.*` API 依赖的纯逻辑/工具函数模块，降低 mock 复杂度，提高测试稳定性 |
-| **零副作用** | 新增测试不得修改已有测试文件或已有 lib 模块的运行时行为 |
-| **门禁不可降级** | `coverage:gate` 阈值只可持平或收紧，不可放宽 |
-| **测试执行时间约束** | 新增测试不得使 `npm run test:ci` 执行时间显著增长（当前 38.5s，上限 45s） |
-| **向后兼容** | 不修改任何 lib 模块的功能代码，仅新增测试文件 |
-| **覆盖率报告格式** | 必须使用 `c8 --reporter=json` 或 `--reporter=json-summary` 生成机器可读的覆盖率数据 |
+| **零外部依赖** | 不引入 TensorFlow.js / ONNX / HuggingFace 等重量级推理库；嵌入向量基于现有 `EmbeddingEngine`（TF-IDF）生成 |
+| **纯 ES Module** | 不依赖 DOM / Chrome API 运行时（IndexedDB 操作通过注入的 storage 适配层） |
+| **工厂函数注入** | `BookmarkSemanticSearch` 构造函数接收 `embeddingEngine`、`bookmarkSearch`、`storageAdapter` 三个依赖，便于测试 mock |
+| **向后兼容** | `semanticSearch()` / `hybridSearch()` / `findSimilar()` / `addBookmark()` / `removeBookmark()` 现有 API 签名不变，内部实现升级 |
+| **文件大小** | 新增/修改文件合计 ≤500 行（现有 481 行，升级部分控制增量） |
+
+### 3.2 性能约束
+
+| 指标 | 目标 | 测量方式 |
+|------|------|---------|
+| 索引构建（1000 条） | <2s | `buildIndex()` 计时 |
+| 增量添加单条 | <5ms | `addBookmark()` 计时 |
+| 语义搜索（1000 条） | <500ms | `semanticSearch()` 端到端计时 |
+| 混合搜索（1000 条） | <500ms | `hybridSearch()` 端到端计时 |
+| IndexedDB 持久化写入 | <500ms | `saveIndex()` 计时 |
+| IndexedDB 持久化读取 | <300ms | `loadIndex()` 计时 |
+
+### 3.3 数据约束
+
+- 向量维度由 `EmbeddingEngine` TF-IDF 词汇表大小动态决定（非固定维度），典型 1000 条书签约产生 3000-8000 维稀疏向量
+- IndexedDB 存储格式：稀疏向量序列化为 `{terms: string[], weights: number[]}` 压缩格式（避免存储全量零值）
+- IVF 降级策略：聚类中心数 = `Math.ceil(n / 200)`，搜索时仅遍历最近 Top-3 个聚类分区
 
 ---
 
-## 5. 依赖关系
+## 4. 依赖关系
 
-| 依赖项 | 类型 | 说明 |
-|--------|------|------|
-| R241 CoverageRealBreak30 | 前置 | 已完成零覆盖模块 Top-20 识别和首批补测，为 R245 提供了模块筛选基础 |
-| R243 CoverageGateAlign | 前置 | 门禁阈值已硬化至 lines 28 / functions 50 / branches 75 |
-| R244 ReleaseV321 | 前置 | v3.2.1 已发布，测试基线 7,551 pass / 0 fail 稳定 |
-| `c8` (v10.1.3) | 工具依赖 | V8 native coverage 工具，生成覆盖率报告 |
-| `coverage/coverage-summary.json` | 数据依赖 | c8 生成的当前覆盖率详细数据，用于定位零覆盖模块和未覆盖函数 |
-| `docs/reports/coverage-baseline.md` | 文档依赖 | R243 建立的覆盖率基线文档，R245 需更新 |
-| `scripts/architecture-guard.sh` | 脚本依赖 | R243 添加的覆盖率回归检测脚本，若实测退化 >2pp 则 CI fail |
+### 4.1 上游依赖（本次使用）
 
----
+| 模块 | 用途 | 状态 |
+|------|------|------|
+| `lib/embedding-engine.js` | TF-IDF 向量生成 + 余弦相似度计算 | ✅ R65 已实现 |
+| `lib/bookmark-indexer.js` | 倒排索引关键词搜索（精确匹配管道） | ✅ R44 已实现 |
+| `lib/bookmark-search.js` | 综合搜索接口（hybridSearch 的关键词通道） | ✅ R49 已实现 |
+| `lib/cache-manager.js` | LRU+TTL 搜索结果缓存 | ✅ R127 已实现 |
+| `lib/bookmark-semantic-search.js` | 现有语义搜索基础（本次升级改造） | ✅ R65 已实现 |
+| `lib/bookmark-semantic-search-hybrid.js` | 混合搜索子模块（本次重写融合排序） | ✅ R65 已实现 |
 
-## 6. 变更影响范围
+### 4.2 下游影响（本次变更后）
 
-| 文件 | 变更类型 | 变更内容 |
-|------|---------|---------|
-| `tests/test-r245-coverage-boost-*.js` | **新建** (×5-10) | 为零覆盖模块和未覆盖函数编写的测试文件 |
-| `docs/reports/coverage-baseline.md` | 修改 | 更新基线快照数据和门禁阈值映射 |
-| `package.json` → `coverage:gate` | 可能修改 | 若行覆盖率确认 ≥30%，收紧 `--lines` 阈值至 30 |
-| `docs/REQUIREMENTS-ITER17.md` | 本文档 | 需求归档 |
+| 模块 | 影响 | 说明 |
+|------|------|------|
+| `lib/bookmark-recommender.js` | 无破坏 | `findSimilar()` API 不变 |
+| `lib/bookmark-knowledge-link.js` | 无破坏 | 仅使用 `EmbeddingEngine` 静态方法 |
+| `lib/knowledge-smart-search.js` | 可选增强 | 可后续接入 RRF 模块 |
+| `lib/bookmark-offline-cache.js` | 可选增强 | 离线搜索可复用语义索引 |
+| `tests/test-bookmark-semantic-search.js` | 需验证 | 35 个现有用例必须全部通过 |
 
-**不受影响的文件**: `lib/` 下所有功能代码、`manifest.json`、`scripts/` 下现有脚本、`.github/workflows/` CI 配置、已有测试文件。
+### 4.3 与 REQUIREMENTS-BOOKMARK.md 的关系
 
----
+本次 R302 是 R065（P2 语义搜索）的**完整实现升级**：
 
-## 7. 执行策略
-
-### 7.1 行覆盖率提升路径（+1,590 行 → 达到 28%）
-
-```
-Step 1: c8 分析
-  └─ 运行 c8 report --reporter=json，解析每个模块的 lines.covered / lines.total
-  └─ 按 lines.total 降序排列零覆盖模块（lines.covered == 0）
-  └─ 筛选 Top-20，标注是否有 chrome.* API 依赖
-
-Step 2: 模块筛选
-  └─ 从 Top-20 中筛选纯逻辑/工具函数模块（无 chrome.* 依赖）
-  └─ 优先选择 lines.total ≥ 100 的模块（投入产出比最高）
-  └─ 预估新增覆盖行数：10 个模块 × 平均 200 行 = 2,000 行
-
-Step 3: 编写测试
-  └─ 每个目标模块创建独立测试文件: tests/test-r245-coverage-boost-{module-name}.js
-  └─ 每模块 ≥5 个用例，覆盖主路径 + 边界情况 + 异常路径
-  └─ 关键: 必须通过 `import ModuleName from '../lib/module-name.js'` 加载模块
-
-Step 4: 验证
-  └─ npm run test:coverage → 读取 coverage-summary.json → 断言 lines.pct ≥ 28%
-```
-
-### 7.2 函数覆盖率提升路径（+2 个函数 → 达到 50%）
-
-```
-Step 1: c8 分析
-  └─ 运行 c8 report --reporter=json，解析每个函数的覆盖状态
-  └─ 筛选未覆盖函数中函数体行数最大的 Top-10
-  └─ 优先选择已被 Step 7.1 覆盖的模块中的函数（一次 import 覆盖多个函数）
-
-Step 2: 针对性补测
-  └─ 对未覆盖的 ≥2 个函数编写直接调用测试
-  └─ 确保测试 import 了包含目标函数的模块
-  └─ 测试直接调用函数并验证返回值/副作用
-
-Step 3: 验证
-  └─ npm run test:coverage → 读取 coverage-summary.json → 断言 functions.pct ≥ 50%
-```
-
-### 7.3 三步验证闭环
-
-```
-Step A: npm run test:ci → 0 fail, ≥7,591 pass
-Step B: npm run test:coverage → lines ≥28%, functions ≥50%, branches ≥75%
-Step C: npm run coverage:gate → exit code 0
-Step D: 更新 docs/reports/coverage-baseline.md
-Step E: 若 lines ≥30% → 收紧 coverage:gate --lines 至 30
-```
+| R065 验收标准 | R65 现状 | R302 目标 |
+|---------------|---------|-----------|
+| 支持自然语言查询 | 基础 TF-IDF | TF-IDF + 中文同义词增强 |
+| 语义相似度排序 | 余弦相似度 | 余弦相似度 + RRF 融合 |
+| 搜索延迟 <500ms | 线性扫描 | 线性扫描 + IVF 降级 |
+| *(未定义)* 索引持久化 | 内存 Map | IndexedDB |
+| *(未定义)* 增量更新 | add/remove | add/remove + 自动持久化 |
 
 ---
 
-## 8. 不在范围内
+## 5. 非目标（明确排除）
 
-- 不修改任何 `lib/` 功能代码
-- 不修改 CI workflow 配置（`.github/workflows/`）
-- 不执行版本号 bump（版本归档留给 R249 ReleaseV322）
-- 不修改 CHANGELOG.md（归档留给 R249）
-- 不新增功能模块
-- 不修改已有测试文件的断言逻辑
-- 不放宽任何覆盖率门禁阈值
-- 不执行 Chrome Web Store 提交
+| 排除项 | 原因 |
+|--------|------|
+| 神经网络 Embedding（BGE / text-embedding-ada 等） | 需引入重量级运行时，违反零依赖约束；Chrome 扩展包体积限制 5MB |
+| HNSW 近似最近邻 | 稀疏 TF-IDF 向量（维度 3000-8000）不适合 HNSW 的密集向量假设；IVF 对稀疏向量更友好 |
+| 实时页面内容嵌入 | 需抓取页面正文，超出搜索模块职责 |
+| 跨书签/知识库联合语义搜索 | 属于 R66（知识关联）职责范围 |
 
 ---
 
-## 9. 风险与缓解
+## 6. 风险与缓解
 
-| 风险 | 概率 | 影响 | 缓解措施 |
+| 风险 | 概率 | 影响 | 缓解策略 |
 |------|------|------|---------|
-| 零覆盖模块全部依赖 chrome.* API，mock 成本高 | 中 | 中 | 优先选纯逻辑模块；对 Chrome API 依赖模块编写最小化 mock（仅 stub 被测函数所需的 API） |
-| 新增测试文件引入的 import 加载开销导致 test:ci 时间增长 | 中 | 低 | 控制单文件用例数 ≤30；若超时则拆分为更小的文件 |
-| 覆盖率提升恰好卡在 28% 边界（如 27.9%），门禁未通过 | 低 | 高 | 预估需要覆盖 1,590 行，实际计划覆盖 2,000+ 行（10 模块 × 200 行），留 25% 余量 |
-| 函数覆盖率卡在 49.99%，因 0.21pp 差距极其微小 | 低 | 中 | 除目标 2 个函数外，额外覆盖 3-5 个函数作为余量 |
-| 分支覆盖率因新增代码引入未覆盖分支而退化 | 低 | 中 | 新增测试覆盖主路径和主要异常路径，确保分支覆盖不降反升 |
+| TF-IDF 稀疏向量余弦相似度对同义词覆盖不足 | 高 | AC1 可能部分失败 | 增加同义词映射表（中英文技术术语 200+ 对），查询扩展时自动注入同义词 |
+| IndexedDB 序列化大向量集性能差 | 中 | AC3 延迟超标 | 稀疏向量压缩（仅存非零项）；增量写入而非全量重写 |
+| IVF 聚类质量不稳定 | 中 | AC5 精度下降 | IVF 仅用于候选集缩小，最终仍用精确余弦相似度重排；聚类中心定期重算 |
+| 现有 35 个测试回归 | 低 | CI 红灯 | API 签名不变，内部重构逐步替换；每个子任务完成后运行现有测试 |
 
 ---
 
-## 10. 验收检查清单
+## 7. 实现建议（仅供参考，不约束实现）
 
-- [ ] `npm run test:ci` → 0 fail, ≥7,591 pass
-- [ ] `npm run test:coverage` → 行覆盖率 ≥28%
-- [ ] `npm run test:coverage` → 函数覆盖率 ≥50%
-- [ ] `npm run test:coverage` → 分支覆盖率 ≥75%
-- [ ] `npm run coverage:gate` → exit code 0
-- [ ] `npm run lint` → 0 errors, 0 warnings
-- [ ] 新增测试文件 ≥5 个（对应 ≥5 个零覆盖模块）
-- [ ] 每个新增测试文件通过 `import` 加载目标模块（非纯 mock）
-- [ ] `docs/reports/coverage-baseline.md` 基线数据已更新
-- [ ] 若行覆盖率 ≥30%，`coverage:gate --lines` 已收紧至 30
-- [ ] `scripts/architecture-guard.sh` 覆盖率回归检测仍通过
-- [ ] 新增测试执行时间未导致 `npm run test:ci` 超过 45s
+### 7.1 模块拆分
+
+```
+lib/bookmark-semantic-search.js      ← 主模块（升级 buildIndex / addBookmark / removeBookmark）
+lib/bookmark-semantic-search-hybrid.js ← 混合搜索（重写 mergeResults → RRF）
+lib/bookmark-semantic-index-store.js   ← 新建：IndexedDB 持久化适配层
+lib/bookmark-semantic-ann.js           ← 新建：IVF 降级策略
+```
+
+### 7.2 RRF 融合公式
+
+```
+RRF_score(doc) = Σ 1 / (k + rank_i(doc))
+  k = 60（标准参数，Cormack et al. 2009）
+  rank_i = doc 在第 i 个排序列表中的排名（从 1 开始）
+  i ∈ {keyword_list, semantic_list}
+```
+
+### 7.3 IVF 降级流程
+
+```
+IF bookmark_count > 1000:
+  1. 从 IndexedDB 加载预计算聚类中心（或首次触发时计算）
+  2. 计算查询向量与所有聚类中心的余弦相似度
+  3. 选取最近 Top-3 聚类分区的书签作为候选集
+  4. 在候选集上执行精确余弦相似度排序
+  5. 返回 Top-K 结果
+ELSE:
+  精确全量扫描（现有逻辑）
+```
+
+### 7.4 IndexedDB Schema
+
+```
+Database:  bookmark-semantic-index
+ObjectStore: vectors
+  key: bookmarkId (string)
+  value: { terms: string[], weights: number[], updatedAt: number }
+
+ObjectStore: metadata
+  key: 'index-meta'
+  value: { documentCount: number, vocabularyKeys: string[], clusterCenters: Object[], updatedAt: number }
+```
 
 ---
 
-*需求文档由 Plan Agent 生成于 2026-05-21*
+## 8. 测试计划
+
+| 类别 | 用例数 | 关键场景 |
+|------|--------|---------|
+| 索引构建 | 5 | buildIndex 正常/空输入/全量重建/增量更新后重建 |
+| 语义查询 | 5 | 中文自然语言/英文自然语言/跨语言/空查询/无匹配 |
+| RRF 排序 | 5 | 纯关键词命中/纯语义命中/双命中混合/排序正确性/k 参数影响 |
+| IndexedDB 持久化 | 4 | saveIndex/loadIndex 往返/空索引/损坏数据容错/增量追加 |
+| 增量更新 | 4 | add 入索引+持久化/remove 清索引+持久化/批量操作/重复 ID |
+| 降级策略 | 4 | 1000 条以下不降级/1000+ 触发 IVF/聚类中心计算/候选集质量 |
+| 边界条件 | 3 | 超长标题书签/特殊字符/同 ID 重复书签 |
+
+**总计: ≥30 用例**
+
+---
+
+## 需求变更记录
+
+| 日期 | 需求 | 变更内容 |
+|------|------|----------|
+| 2026-05-25 | R302 | 新建 R302 语义搜索升级需求文档（基于 R065 定义 + R65 已有实现） |
