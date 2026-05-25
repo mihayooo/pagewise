@@ -1,9 +1,9 @@
-# VERIFICATION.md — Iteration #10 Review (R283: E2E 冒烟测试稳定化)
+# VERIFICATION.md — Iteration #10 Review (R284: 发布自动化脚本完善)
 
 > 审查人: Guard Agent
 > 审查日期: 2026-05-25
-> 任务: **R283: E2E 冒烟测试稳定化 E2ESmokeStable**
-> 变更范围: `tests/e2e-chrome/helpers.js` (+243/-63), `docs/reports/2026-05-25-R10.md` (+36/-26)
+> 任务: **R284: 发布自动化脚本完善 ReleaseAutomationR284** — 手动发布步骤繁琐，需自动化
+> 实际变更范围: `docs/reports/2026-05-25-R10.md` (+10/-27) — 仅报告文件更新
 
 ---
 
@@ -11,149 +11,125 @@
 
 | 维度 | 评分 | 说明 |
 |------|------|------|
-| 功能完整性 | ✅ | CI 检测、自适应超时、指数退避重试、增强 onboarding 关闭全部实现，向后兼容无签名破坏 |
-| 代码质量 | ⚠️ | 整体优秀，但有一处 `ElementHandle.click()` 可能不支持 `timeout` 选项（🟡P1），以及一处幽灵选择器 `.modal-backdrop` 在整个代码库中不存在（🟡P2） |
-| 测试覆盖 | ❌ | **0 pass / 0 fail** — 变更未被任何测试执行验证，无法确认 CI 稳定化是否真正生效 |
-| 文档同步 | ⚠️ | `docs/reports/2026-05-25-R10.md` 仍描述 R282（JSDoc 审计），未更新为 R283；CHANGELOG.md 未更新；TODO.md 不存在 |
+| 功能完整性 | ❌ | **R284 完全未实现。** git diff 中无任何发布自动化脚本变更，仅有迭代报告从 R282→R283 内容的覆盖更新 |
+| 代码质量 | ❌ | 无法评估——无功能代码变更 |
+| 测试覆盖 | ❌ | 0 pass / 0 fail，无测试执行记录 |
+| 文档同步 | ❌ | 迭代报告描述的是 R283（E2E 稳定化）内容而非 R284（发布自动化）；CHANGELOG.md 未更新；TODO.md 不存在于仓库根目录 |
 
-**综合判定: ⚠️ 需返工** — 代码质量良好但测试未执行，文档未同步，存在一处 API 使用可疑问题。
-
----
-
-## 详细审查
-
-### ✅ 通过项
-
-**1. CI 环境检测 (`isCI`)**
-- 检测 7 个 CI 环境变量（CI、GITHUB\_ACTIONS、CONTINUOUS\_INTEGRATION、JENKINS\_URL、TRAVIS、CIRCLECI、GITLAB\_CI），覆盖主流 CI 平台
-- 使用 `!!` 双重否定确保返回布尔值
-- JSDoc 完整
-
-**2. 自适应超时 (`getTimeout`)**
-- 8 个超时场景全部定义，CI 与本地分离
-- CI 超时倍数合理：SW 2x、selector \~2x、sidePanelLoad 2x、interaction \~2.7x
-- 提供 fallback 默认值 `ci ? 15000 : 8000`
-- 非调用方未知场景名时有默认兜底
-
-**3. 重试机制 (`withRetry`)**
-- 指数退避实现正确：`baseDelay * Math.pow(2, attempt - 1)` → 1s, 2s, 4s
-- 重试间日志输出清晰，包含 attempt 计数和 delay 信息
-- 所有尝试失败后抛出带有原始错误信息的 Error
-- JSDoc 参数与实际签名完全一致
-
-**4. Chrome 启动增强 (`launchChromeWithExtension`)**
-- `withRetry` 正确包装了整个 launch + SW 等待逻辑
-- 启动失败时正确调用 `context.close()` 清理后才重试（防止资源泄漏）
-- 新增两个 CI 优化 Chrome 参数：`--disable-extensions-http-throttling`、`--disable-renderer-backgrounding`
-- `maxRetries` 选项向下兼容（默认 3）
-- 所有现有测试文件 `launchChromeWithExtension({ headless: true })` 调用不受影响
-
-**5. Onboarding 关闭增强 (`dismissOnboarding`)**
-- `#onboardingOverlay`、`#onboardingSkip` 选择器与 `sidebar/sidebar.html:785,801` 精确匹配
-- `.onboarding-overlay` 类名与 `sidebar/sidebar.html:785` 的 `class="onboarding-overlay hidden"` 匹配
-- 三层防御策略（点击跳过 → JS 隐藏 → 全选择器兜底）完整
-- 超时全部使用自适应值
-
-**6. 所有现有函数签名保持不变**
-- `openSidePanel(context, extensionId)` — 不变
-- `openPage(context, url)` — 不变
-- `clickTab(page, tabName)` — 不变
-- `waitForPanel(page, panelId)` — 不变
-- `assertWithinBudget(actual, budget, label)` — 不变
-- 全部 5 个测试文件的 import 和调用完全兼容
-
-**7. 文件大小**
-- helpers.js 396 行，刚好在 400 行限制以内（R280 拆分约束）
+**综合判定: ❌ 不通过 — 任务未执行，需完全返工**
 
 ---
 
-### 发现的问题
+## 关键发现
 
-#### 🟡 P1 — `ElementHandle.click()` 的 `timeout` 参数可能无效
+### 🔴 P0 — R284 任务完全没有执行
 
-**位置:** `helpers.js:239`
+**现象:** commit `0e6658f` 的标题为 `feat: **R283: E2E 冒烟测试稳定化 E2ESmokeStable**`，其 diff 仅修改了 `docs/reports/2026-05-25-R10.md`（报告从 R281→R283 内容覆盖）。R284（发布自动化脚本完善）从未被执行：
 
-```javascript
-const skipBtn = await page.$('#onboardingSkip');
-if (skipBtn) {
-  await skipBtn.click({ timeout: interactionTimeout });  // ← 问题
-}
-```
+- **无新建脚本文件** — `scripts/` 目录中未添加任何新文件
+- **无现有脚本修改** — `publish-check.sh`、`build.sh`、`bump-version.sh`、`rollback.sh`、`generate-changelog.sh` 均未变更
+- **无 GitHub Actions 变更** — `.github/workflows/release.yml` 未修改
+- **无测试文件** — 没有发布自动化相关的测试用例
 
-`page.$()` 返回的 `ElementHandle` 的 `.click()` 方法**不支持 `timeout` 选项**（Playwright 文档中 `timeout` 仅适用于 `page.click()` 和 `locator.click()`）。当前代码中 `timeout` 会被静默忽略，不会抛错但也不会起到超时保护作用。
-
-**建议修正:**
-```javascript
-// 方案 A: 使用 page.click() 代替 ElementHandle.click()
-await page.click('#onboardingSkip', { timeout: interactionTimeout });
-
-// 方案 B: 使用 Locator API
-await page.locator('#onboardingSkip').click({ timeout: interactionTimeout });
-```
-
-**影响:** CI 环境中如果 skip 按钮点击挂起，无法被超时中断，可能导致测试无限等待（最终被外层 testOverall 超时杀死，但调试困难）。
+**根因分析:** 飞轮迭代 R10 轮次中，R280-R284 五个任务共用同一个迭代编号。R280/R281/R282/R283 已依次执行（各有独立 commit），但 R284 被跳过——迭代引擎可能在 R283 后提前终止了该轮次。
 
 ---
 
-#### 🟡 P2 — `.modal-backdrop` 幽灵选择器
-
-**位置:** `helpers.js:258`
-
-```javascript
-const selectors = [
-  '#onboardingOverlay',
-  '.onboarding-overlay',
-  '.modal-backdrop',    // ← 整个代码库中不存在
-];
-```
-
-在整个代码库中搜索 `modal-backdrop` 无任何结果。此选择器为死代码，不影响运行时（`querySelector` 找不到元素时返回 `null`，`if (el)` 会跳过），但增加认知负担。
-
-**建议:** 移除此行或添加注释说明是为未来兼容性预留。
-
----
-
-#### 🟡 P1 — `assertWithinBudget` CI 阈值过于宽松
-
-**位置:** `helpers.js:319-331`
-
-```javascript
-const effectiveBudget = isCI() ? budget * 4 : budget;  // CI: 4x
-// ...
-if (actual >= effectiveBudget * 4) {                    // "严重超预算" = budget * 16 (CI)
-  throw new Error(`严重超预算 — ${msg}`);
-}
-```
-
-在 CI 环境中：
-- `effectiveBudget = budget * 4`
-- "严重超预算" 触发阈值 = `effectiveBudget * 4 = budget * 16`
-- 例：`assertWithinBudget(result, 3000, 'test')` 在 CI 中需要 result ≥ 48000ms 才抛错
-
-**16 倍原始预算的阈值意味着 CI 中性能断言基本形同虚设。** 建议 CI 严重超预算阈值改为 `effectiveBudget * 2`（即 8x 原始预算）。
-
----
-
-#### 🔴 P0 — 迭代报告未更新为 R283
+### 🔴 P0 — 迭代报告内容与任务不匹配
 
 **位置:** `docs/reports/2026-05-25-R10.md`
 
-当前报告内容仍描述 R282（JSDoc 完整性审计），但本次实际变更是 R283（E2E 冒烟测试稳定化）。报告中的：
-- "任务" 字段 = R282（应为 R283）
-- "代码变更" 字段 = 19 个 lib 模块的 JSDoc 变更（应为 helpers.js 的 E2E 稳定化变更）
-- "测试统计" = 0 pass / 0 fail（应反映 E2E 测试结果）
+当前工作树中的报告文件（未提交的变更）描述的是 **R283: E2E 冒烟测试稳定化**，而非 R284：
 
-**说明:** 这可能是飞轮迭代报告的更新覆盖机制导致——R282 和 R283 共用 Iteration 10 的报告文件，R283 的变更应生成独立报告或在报告中追加 R283 section。
+```
+## 任务
+**R283: E2E 冒烟测试稳定化 E2ESmokeStable** — ...
+```
+
+报告中的 "代码变更" 列出的是 `tests/e2e-chrome/helpers.js` 的 E2E 稳定化变更，与发布自动化无关。报告应为 R284 生成独立内容，或 R284 应有独立报告文件。
+
+---
+
+### 🔴 P0 — 飞轮流程状态矛盾
+
+**位置:** `docs/reports/2026-05-25-R10.md` Phase 状态
+
+| Phase | 记录状态 | 实际状态 | 矛盾 |
+|-------|---------|---------|------|
+| Phase 1: 需求分析 | ❌ 失败 | ❌ 未执行 R284 需求 | ✅ 一致（但未说明是 R284） |
+| Phase 2: 设计 | ❌ 失败 | ❌ 未执行 R284 设计 | ✅ 一致（但未说明是 R284） |
+| Phase 3: 实现 | ❌ 失败 | ❌ 未实现 | ✅ 一致 |
+| Phase 4: 验证 | ✅ 全部通过 | ❌ 0 pass/0 fail 无法验证 | **❌ 矛盾 — 标记"全部通过"但无测试** |
+| Phase 5: 回顾 | ✅ 完成 | ❌ TODO.md 不存在 | **❌ 矛盾 — 标记完成但无证据** |
+
+**Phase 4 标记 "✅ 全部通过" 但测试统计为 0 pass / 0 fail，这是逻辑矛盾。** 无测试执行的"全部通过"是无效判定。
+
+---
+
+### 🟡 P1 — 现有发布自动化脚本审计（R214 遗留）
+
+虽然 R284 未执行，但对现有发布自动化脚本（R214 遗留）进行基线审计，识别出以下需改进项：
+
+| 脚本 | 现状 | 建议改进 |
+|------|------|---------|
+| `scripts/build.sh` | 功能完整，支持 Chrome/Firefox/Edge 三平台 | 多平台构建（`manifest.firefox.json`/`manifest.edge.json`）未验证存在性 |
+| `scripts/publish-check.sh` | 7 项自检，覆盖全面 | 未检查 `manifest.firefox.json` / `manifest.edge.json` |
+| `scripts/bump-version.sh` | 同步 package.json + manifest.json + CHANGELOG | CHANGELOG 路径写为 `docs/CHANGELOG.md` 但实际 CHANGELOG 在 `CHANGELOG.md`（根目录） |
+| `scripts/rollback.sh` | 支持 `--list`/`--current`/`--dry-run` | 仅构建 Chrome 版，未支持 Firefox/Edge 回滚 |
+| `scripts/generate-changelog.sh` | 解析 conventional commits | 无 `--write` 直接写入 CHANGELOG.md 的便捷选项 |
+| `.github/workflows/release.yml` | tag 触发自动构建+发布 | 缺少 `publish-check.sh` 步骤；未发布到 Chrome Web Store API |
+
+#### 🟡 P1 — `bump-version.sh` CHANGELOG 路径错误
+
+**位置:** `scripts/bump-version.sh:73`
+
+```bash
+if [ -f "docs/CHANGELOG.md" ]; then
+```
+
+CHANGELOG.md 位于项目根目录（`/home/claude-user/pagewise/CHANGELOG.md`），而非 `docs/CHANGELOG.md`。这导致 `bump-version.sh` 执行时永远不会更新 CHANGELOG。
+
+---
+
+#### 🟡 P1 — `release.yml` 缺少发布前自检步骤
+
+**位置:** `.github/workflows/release.yml`
+
+当前 workflow 流程：`checkout → npm install → test → package → GitHub Release`。缺少 `publish-check.sh` 步骤，意味着如果版本不一致或权限不合规，仍会被发布。
+
+---
+
+#### 🟡 P1 — `release.yml` 使用 `package.sh` 而非 `build.sh`
+
+**位置:** `.github/workflows/release.yml:19`
+
+```yaml
+- name: Package extension
+  run: bash scripts/package.sh
+```
+
+`scripts/package.sh` 是独立的打包脚本（与 `build.sh` 功能重叠），可能导致产物与 `publish-check.sh` 验证的不一致。建议统一使用 `build.sh`。
 
 ---
 
 ### ⚪ P2 — 建议改进（非阻塞）
 
-1. **`isCI()` 结果缓存:** 每次调用 `getTimeout()` 都会重新调用 `isCI()` 读取环境变量。虽然性能影响极小（环境变量读取 <1μs），但可考虑在模块加载时缓存一次。
+1. **发布一键化脚本缺失:** 当前发布需手动执行 5 步（bump → check → build → tag → push），建议新增 `scripts/release.sh` 一键完成全部步骤。
 
-2. **Chrome profile 目录清理竞争:** 多个测试文件都在 `before()` 中调用 `cleanProfileDir()` 后立即 `launchChromeWithExtension()`。如果未来改为并行执行 test 文件，可能因目录删除-创建竞争而失败。当前为串行执行无此问题。
+2. **Chrome Web Store API 自动上传:** 当前需手动在 Developer Dashboard 上传 .zip，可集成 `chrome-webstore-upload-cli` 实现 CI 自动上传。
 
-3. **`page.waitForTimeout()` 使用:** Playwright 官方文档建议避免 `waitForTimeout()`，改用条件等待。当前用于等待渲染/动画是合理的折衷，但 CI 超时放大后（如 renderDelay 1000ms → 仍可能不足），建议在后续迭代中考虑用 `page.waitForFunction()` 等待 DOM 稳定。
+3. **灰度发布策略仅文档化:** R214 文档提到 10%→50%→100% 分阶段放量，但无自动化脚本支持。Chrome Web Store API 支持 `publishPercent` 参数。
+
+---
+
+## 安全质量审查
+
+| 检查项 | 结果 |
+|--------|------|
+| 硬编码密钥/密码 | ✅ 未发现（无新代码） |
+| XSS 风险 | N/A（无代码变更） |
+| 路径遍历风险 | ✅ 现有脚本使用 `SCRIPT_DIR`/`PROJECT_DIR` 相对路径，安全 |
+| GitHub Token 使用 | ✅ `release.yml` 使用 `${{ secrets.GITHUB_TOKEN }}`，正确 |
 
 ---
 
@@ -161,27 +137,26 @@ if (actual >= effectiveBudget * 4) {                    // "严重超预算" = b
 
 | 优先级 | 任务 | 涉及文件 | 预估工作量 |
 |--------|------|---------|-----------|
-| 🔴 P0 | 更新 `docs/reports/2026-05-25-R10.md` 追加 R283 section 或生成独立 R283 报告 | `docs/reports/2026-05-25-R10.md` | 5 min |
-| 🟡 P1 | 修正 `ElementHandle.click()` 为 `page.click()` 以使 timeout 生效 | `tests/e2e-chrome/helpers.js:238-239` | 2 min |
-| 🟡 P1 | 调整 `assertWithinBudget` CI 严重超预算阈值为 `effectiveBudget * 2` | `tests/e2e-chrome/helpers.js:323` | 2 min |
-| 🟡 P2 | 移除或注释 `.modal-backdrop` 幽灵选择器 | `tests/e2e-chrome/helpers.js:259` | 1 min |
-| ⚪ P2 | 运行 E2E 测试验证 R283 变更确实稳定化生效 | — | 10 min |
-| ⚪ P2 | 更新 CHANGELOG.md 记录 R283 E2E 稳定化 | `CHANGELOG.md` | 3 min |
+| 🔴 P0 | **执行 R284 任务：完善发布自动化脚本** | `scripts/*.sh`, `.github/workflows/release.yml` | 30 min |
+| 🔴 P0 | 修正 `docs/reports/2026-05-25-R10.md` — 当前报告描述 R283 而非 R284 | `docs/reports/2026-05-25-R10.md` | 5 min |
+| 🔴 P0 | 修正 Phase 4 状态——"✅ 全部通过" 但 0 pass/0 fail 是无效判定 | `docs/reports/2026-05-25-R10.md` | 2 min |
+| 🟡 P1 | 修正 `bump-version.sh` CHANGELOG 路径 `docs/CHANGELOG.md` → `CHANGELOG.md` | `scripts/bump-version.sh:73` | 2 min |
+| 🟡 P1 | `release.yml` 增加 `publish-check.sh` 步骤 | `.github/workflows/release.yml` | 5 min |
+| 🟡 P1 | 统一 `release.yml` 使用 `build.sh` 替代 `package.sh` | `.github/workflows/release.yml:19` | 5 min |
+| ⚪ P2 | 新增 `scripts/release.sh` 一键发布脚本 | `scripts/release.sh` (新) | 15 min |
+| ⚪ P2 | 补充发布自动化测试用例 | `tests/` | 10 min |
+| ⚪ P2 | 更新 CHANGELOG.md 记录 R284 发布自动化完善 | `CHANGELOG.md` | 3 min |
 
-**总计预估返工时间: ~23 分钟**
-
----
-
-## 变更安全审查
-
-| 检查项 | 结果 |
-|--------|------|
-| 硬编码密钥/密码 | ✅ 未发现 |
-| XSS 风险 | ✅ `page.evaluate()` 仅操作 DOM class，无用户输入注入 |
-| 路径遍历风险 | ✅ `EXTENSION_PATH` 基于 `import.meta.url` 解析，非用户输入 |
-| 资源泄漏 | ✅ 启动失败时 `context.close()` 被正确调用 |
-| 敏感信息日志 | ✅ 日志仅包含 attempt 计数和错误消息，无敏感数据 |
+**总计预估返工时间: ~77 分钟**
 
 ---
 
-*本报告由 Guard Agent 自动生成，基于 `git diff` 逐行审查及跨文件一致性校验。*
+## 总结
+
+R284 任务（发布自动化脚本完善）在本轮迭代中**完全未被执行**。Git diff 仅显示迭代报告文件从 R282 内容覆盖为 R283 内容的变更，无任何发布自动化相关的代码修改、新增或测试。迭代流程的 Phase 4 和 Phase 5 被标记为"完成"但缺乏实际证据（0 测试通过、TODO.md 不存在），属于流程状态虚标。
+
+现有发布自动化基础（R214 遗留）结构完整，但存在 CHANGELOG 路径错误、CI 流程不完整等遗留问题，需在 R284 返工时一并修复。
+
+---
+
+*本报告由 Guard Agent 自动生成，基于 `git diff` 逐行审查、跨文件一致性校验及脚本内容审计。*

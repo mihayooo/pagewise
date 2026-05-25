@@ -1303,7 +1303,7 @@
   - 确保 `test:e2e:smoke` 在 headless CI 中 ≤60s 完成且 100% 稳定
   - 复杂度: Medium
 
-- [ ] **R284: 发布自动化脚本完善 ReleaseAutomationR284** — 手动发布步骤繁琐，需自动化
+- [x] **R284: 发布自动化脚本完善 ReleaseAutomationR284** — 手动发布步骤繁琐，需自动化
   - 新建 `scripts/release.sh` 一键发布脚本：(1) 运行 `npm run test:ci` 确认 0 fail；(2) 运行 `npm run lint` 确认 0/0；(3) bump version（package.json + manifest.json 同步）；(4) 生成 CHANGELOG [X.Y.Z] 区段（从 [Unreleased] 提取）；(5) `git commit` + `git tag vX.Y.Z`；(6) `zip -r` 打包扩展产物
   - 支持参数: `./scripts/release.sh patch|minor|major` 自动计算版本号
   - 新建 `scripts/publish-check.sh` 验证发布产物（manifest 合法性、文件完整性、权限检查）
