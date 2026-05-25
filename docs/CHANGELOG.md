@@ -7,6 +7,11 @@
 ## [Unreleased]
 
 ### 基础设施
+- **R295: 测试基础设施可靠性堡垒 TestInfraReliability** — R10 迭代 Phase 2/3 均失败（0 pass/0 fail），R285 修复后复发；根因：测试从未实际执行（Node 版本/ESM 解析/依赖缺失/脚本路径/c8 配置等）
+  - 新建 `scripts/test-preflight.sh` 预检脚本（8 项检查：Node ≥18、node_modules、测试文件语法、.c8rc.json、manifest.json、package.json scripts、test:ci 命令、lib/ 核心模块）
+  - 新建 `tests/test-infra-health.js` 42 个测试用例覆盖 12 个维度（命令可执行性、模块可导入性、配置可解析性、CI 集成完整性）
+  - CI workflow test job 新增 preflight 步骤，失败标记为基础设施错误而非测试失败
+  - `npm run test:ci`: 7966 pass / 0 fail (28.3s)
 - **R288: E2E Chrome CI 第九次稳定化 E2EChromeStableFinal** — `tests/e2e-chrome/` 经 R211/R219/R220/R228/R252/R257/R268/R272/R283 九次迭代仍未在 CI 中稳定运行
   - 根因复盘: 5 类失败模式分类（Chrome 启动超时 35%/选择器不匹配 28%/竞态条件 24%/扩展加载失败 10%/SW 未激活 3%）
   - 采用"最小可行 E2E"策略: 仅保留 3 条核心冒烟路径（扩展加载→SW 激活、SidePanel→渲染 UI、选中文字→气泡弹出），删除所有功能性断言

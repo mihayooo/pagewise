@@ -2,6 +2,49 @@
 
 ---
 
+## R295: 测试基础设施可靠性堡垒 — TestInfraReliability
+
+> 日期: 2026-05-25
+> 复杂度: Medium
+> 前置: R285（测试基础设施修复）、R287（测试执行效率）、R288（E2E CI 稳定化）
+
+### 问题
+
+R10 迭代 Phase 2（设计）和 Phase 3（实现）均标记失败，报告 0 pass/0 fail 表明测试从未实际执行。此问题在 R285 修复后仍复发，根因未彻底消除。历史问题包括：
+- Node.js 版本不满足要求（<18 导致部分 API 不可用）
+- `node_modules` 未安装导致 import 失败
+- `.c8rc.json` 配置漂移导致覆盖率报告异常
+- 测试文件语法错误导致整个测试套件启动失败
+- 以上任何一种问题均表现为"0 pass/0 fail"静默失败
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `scripts/test-preflight.sh` | 新建 | 8 项预检脚本：Node.js 版本 ≥18、node_modules 依赖安装、测试文件语法检查（采样 20 个）、.c8rc.json 解析、manifest.json 解析、package.json scripts 完整性、test:ci 命令非空、lib/ 核心模块完整 |
+| `tests/test-infra-health.js` | 新建 | 42 个测试用例覆盖 12 个 describe 块：test:ci/lint/coverage:gate 命令可执行、10 个核心 lib 模块可 import、manifest.json/c8rc.json 可解析、test-preflight.sh 存在且可执行、Node.js 版本 ≥18、CI workflow 包含 preflight 步骤、测试脚本路径一致性、lib/ 目录完整性 |
+| `.github/workflows/ci.yml` | 修改 | test job 新增 "Preflight - Test infrastructure check" 步骤（`bash scripts/test-preflight.sh`），位于 Install dependencies 之后、Run unit tests 之前；preflight 失败标记为基础设施错误而非测试失败 |
+
+### 设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| R295-D1 | preflight 采用 bash 脚本而非 node 脚本 | bash 脚本可在 Node.js 本身不可用时仍执行（如检查 Node 版本）；且 CI 环境默认有 bash |
+| R295-D2 | 语法检查仅采样 20 个文件 | 全量 215 个文件 node --check 需要 >10s，preflight 应快速（<5s）；采样覆盖足够发现系统性问题 |
+| R295-D3 | preflight 放在 test:ci 之前、coverage 之后 | preflight 是 test:ci 的前置门禁；npm install 已在前置步骤完成 |
+| R295-D4 | 测试用例包含 eslint --version 验证 | 确保 eslint 可执行是 lint 命令可用的前提 |
+| R295-D5 | 10 个核心 lib 模块选择策略 | 选取不同功能域（utils/storage/graph/ai/knowledge/compat）确保 import 链完整 |
+
+### 结果
+
+- `bash scripts/test-preflight.sh`: 11 pass / 0 fail / 0 warn ✅
+- `node --test tests/test-infra-health.js`: 42 pass / 0 fail ✅
+- `npm run test:ci`: **7966 pass / 0 fail** ✅ (28.3s)
+- CI workflow 已集成 preflight 步骤
+- 基础设施预检失败将明确标记为"基础设施错误"而非"测试失败"
+
+---
+
 ## R288: E2E Chrome CI 第九次稳定化 — 真正可用 E2EChromeStableFinal
 
 > 日期: 2026-05-25

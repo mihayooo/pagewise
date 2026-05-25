@@ -58,11 +58,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run unit tests (excluding E2E)
-        run: |
-          # 通过 npm script 运行测试（排除需要浏览器环境的 E2E 测试）
-          echo "运行 npm run test:ci ..."
-          npm run test:ci 2>&1
+      # R295: TestInfraReliability — 基础设施预检
+      # preflight 失败标记为基础设施错误而非测试失败
+      - name: Preflight - Test infrastructure check
+        run: bash scripts/test-preflight.sh
+
+      # R296: 测试执行性能回归防火墙 — 包装 test:ci，硬性门禁 ≤37s
+      - name: Run unit tests with performance gate
+        run: bash scripts/check-test-time.sh
 
       - name: Generate coverage report
         run: npm run test:coverage

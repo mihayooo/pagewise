@@ -1,187 +1,209 @@
-# 需求文档 — Iteration 11: 快捷键自定义
+# 需求文档 — R296: 测试执行性能回归防火墙 TestPerfRegressionWall
 
-> 需求编号: R022
-> 优先级: P1
-> 迭代: R11
-> 日期: 2026-04-30
-> 负责: Plan Agent
-
----
-
-## 一、背景与动机
-
-### 问题陈述
-
-PageWise 当前定义了 **6 组快捷键**，分为两层：
-
-| 层级 | 快捷键 | 功能 | 定义位置 |
-|------|--------|------|----------|
-| Chrome 全局 | `Ctrl+Shift+Y` | 打开侧边栏 | manifest.json → commands |
-| Chrome 全局 | `Ctrl+Shift+S` | 总结当前页面 | manifest.json → commands |
-| Chrome 全局 | `Ctrl+Shift+X` | 打开/关闭侧边栏 | manifest.json → commands |
-| 侧边栏内 | `Ctrl+Enter` | 发送消息 | sidebar.js (硬编码) |
-| 侧边栏内 | `Ctrl+K` | 聚焦搜索框 | sidebar.js (硬编码) |
-| 侧边栏内 | `Ctrl+N` | 清空对话 | sidebar.js (硬编码) |
-
-**用户冲突投诉根因分析：**
-
-1. **`Ctrl+K`** — 与 VS Code 命令面板、Chrome 地址栏搜索、Notion 等高频工具冲突严重
-2. **`Ctrl+N`** — 与所有编辑器的「新建文件」冲突
-3. **`Ctrl+Shift+S`** — 与 Chrome DevTools 的「另存为」、IDE 的「全部保存」冲突
-4. **无自定义入口** — 用户发现问题后无法修改，只能卸载或忍受
-
-### 竞品参考
-
-- **Sider / Monica**: 支持在设置页自定义全局快捷键
-- **Obsidian**: 完全可自定义的快捷键系统，支持冲突检测
-- **VS Code**: 快捷键自定义已成为桌面工具的标配
+> 作者: Plan Agent
+> 日期: 2026-05-25
+> 飞轮迭代: R11
+> 复杂度: Medium
 
 ---
 
-## 二、用户故事
+## 1. 用户故事
 
-### US-1: 技术开发者调整快捷键避免 IDE 冲突
-
-> 作为一名在 VS Code 中工作的前端开发者，我希望将 PageWise 的 `Ctrl+K` 改为 `Ctrl+Shift+F`，这样 PageWise 的搜索快捷键就不会覆盖 VS Code 的命令面板。
-
-### US-2: 重度用户查看并记忆当前快捷键
-
-> 作为一名每天使用 PageWise 的开发者，我希望在设置页看到所有快捷键的统一列表，这样我能快速查阅而不必逐个记忆。
+**作为** PageWise 项目的维护者，  
+**我希望** `npm run test:ci` 的执行时间被 CI 硬性门禁守护，且覆盖率冲刺新增的测试文件自动归类到正确的测试目标，  
+**以便** 历史上 16 次测试执行效率优化（R202-R287）均被后续迭代拖回的循环被永久切断，CI 流水线保持在 ≤35s 的健康水平。
 
 ---
 
-## 三、验收标准
+## 2. 问题分析
 
-### AC-1: 设置页显示快捷键自定义区域
+### 2.1 历史退化模式
 
-- [ ] Options 页面新增「快捷键」section，与「API 配置」「行为设置」同级
-- [ ] 展示全部 6 个快捷键的当前绑定值（分 Chrome 全局 / 侧边栏内 两组）
-- [ ] 每个快捷键显示「操作名称 + 当前组合键 + 修改按钮」
+| 指标 | 数据 |
+|------|------|
+| R287 优化后耗时 | **31.3s**（首次达标 ≤35s） |
+| R292 当前耗时 | **43.4s**（+12.1s / +39%） |
+| 历史优化轮次 | 16 次（R202/R203/R205/R210/R214/R217/R223/R225/R231/R237/R247/R253/R258/R269/R273/R287） |
+| 历史退化次数 | 16 次均在后续迭代被拖回 |
+| 当前 test:ci 文件数 | ~210 个（排除 5 个已知慢文件后） |
 
-### AC-2: 侧边栏内快捷键可自定义
+### 2.2 根因分析
 
-- [ ] 用户可在 Options 页点击「修改」，通过**按键捕获**（按键盘组合键而非手动输入）设置新的组合键
-- [ ] 支持 Ctrl/⌘ + 字母/数字/功能键 的组合，以及单独功能键（如 F1–F12）
-- [ ] 修改后保存到 `chrome.storage.sync`，侧边栏下次打开时读取新配置生效
-- [ ] 提供「恢复默认」按钮，一键重置为出厂默认值
-- [ ] 设置页显示每个快捷键的默认值（灰色小字），方便用户参考
+退化的根本原因是 **测试分类治理缺失**：每次覆盖率冲刺（如 R289 CoverageBreak32）新增大量测试文件后，这些文件被 `find tests -name 'test-*.js'` 自动纳入 `test:ci`，但其目的并非回归验证而是覆盖率提升。
 
-### AC-3: Chrome 全局快捷键引导修改
+当前退化来源（推断）：
 
-- [ ] Chrome 全局快捷键（3 个 commands）展示为**只读 + 引导链接**
-- [ ] 显示提示文字：「Chrome 全局快捷键请前往 [chrome://extensions/shortcuts] 修改」
-- [ ] 提供一键复制 `chrome://extensions/shortcuts` 的按钮
-- [ ] 不在扩展内直接修改 manifest.json 的 commands（Chrome 不允许运行时修改）
+| 来源 | 文件特征 | 耗时贡献（估计） | 正确归属 |
+|------|---------|-----------------|---------|
+| 覆盖率冲刺测试 | `test-coverage-sprint-*.js`、`test-r137-coverage-boost.js`、`tests/coverage-boost/*.js` | ~5-8s | `test:ci:coverage` |
+| 覆盖率配置守护 | `test-r291-coverage-config-drift-guard.js` | ~1-2s | `test:ci:coverage` |
+| 迭代回归测试 | `test-r197-version-sync.js`、`test-r208-release-build.js`、`test-r244-release-v321.js`、`test-r282-jsdoc-audit.js` | ~3-5s | `test:ci:release` / `test:ci:lint` |
+| 基础设施测试 | `test-infra-health.js`、`test-r156-coverage-infra.js`、`test-r233-coverage-gate.js`、`test-r256-coverage-infra-fix.js` | ~2-3s | 可保留或移至 `test:ci:infra` |
 
-### AC-4: 快捷键冲突检测
+### 2.3 当前 test:ci 排除状态
 
-- [ ] 用户设置新快捷键时，自动检测是否与 PageWise 内**其他已设快捷键**冲突
-- [ ] 冲突时弹出警告提示：「该快捷键已绑定到 [操作名]，继续将覆盖原有绑定」
-- [ ] 用户可选择「覆盖」或「取消」
-- [ ] 不阻断用户保存（允许高级用户有意覆盖）
+R287 已排除的文件（硬编码在 package.json 的 `-not -name` 列表中）：
 
-### AC-5: 按键捕获交互体验
-
-- [ ] 点击「修改」后进入**录制模式**，显示「请按下快捷键…」提示
-- [ ] 录制模式下按 Escape 取消，不绑定 Escape 本身
-- [ ] 录制模式下按 Backspace/Delete 恢复为「无绑定」状态
-- [ ] 录制完成后立即显示新组合键，支持「确认」或「取消」
-- [ ] 不接受无修饰键的单字母绑定（防止误触），F 键除外
-
----
-
-## 四、技术约束
-
-### TC-1: Chrome Manifest V3 commands 限制
-
-Chrome MV3 的 `commands` 在 `manifest.json` 中只能声明 `suggested_key`，用户修改必须通过 `chrome://extensions/shortcuts` 原生页面。**扩展代码在运行时无法读取或修改 commands 的实际绑定值。** 因此：
-
-- Chrome 全局快捷键部分仅做**展示和引导**，不做运行时自定义
-- 侧边栏内快捷键完全由扩展代码控制，可以实现自定义
-
-### TC-2: 存储方式
-
-- 使用 `chrome.storage.sync` 存储自定义快捷键配置，实现跨设备同步
-- 配置 key: `customShortcuts`
-- 数据结构示例：
-
-```json
-{
-  "customShortcuts": {
-    "sendMessage": { "key": "Enter", "ctrl": true, "meta": true },
-    "focusSearch": { "key": "k", "ctrl": true, "meta": true },
-    "clearChat": { "key": "n", "ctrl": true, "meta": true }
-  }
-}
+```
+test-e2e-*          → test:e2e
+test-lint-r159.js   → test:ci:lint
+test-r201-lint-*    → test:ci:lint
+test-r221-lint-*    → test:ci:lint
+test-eslint-infra.js → test:ci:lint
+test-r284-cws-*     → (已排除)
 ```
 
-- 缺失字段时回退到默认值（向后兼容）
+R287 **未排除**但应当排除的文件：
 
-### TC-3: Sidebar 快捷键加载时机
-
-- `sidebar.js` 初始化时从 `chrome.storage.sync` 读取快捷键配置
-- 当前硬编码的 `bindEvents()` 中的 `e.key === 'k'` 等判断改为动态匹配
-- 无需热重载：用户修改设置后重新打开侧边栏即可生效
-
-### TC-4: 不引入外部依赖
-
-- 按键捕获使用原生 `keydown` 事件实现
-- 不引入第三方快捷键库（如 Mousetrap、hotkeys-js）
-- 设置 UI 使用现有 Options 页面的 CSS 框架
-
-### TC-5: 向后兼容
-
-- 升级后首次打开时，`customShortcuts` 为空，自动使用默认值
-- 不影响现有用户的使用体验
+- `tests/coverage-boost/test-coverage-sprint-*.js`（5 个文件）
+- `tests/test-r137-coverage-boost.js`
+- `tests/test-coverage-sprint-*.js`（1 个文件）
+- `tests/test-r291-coverage-config-drift-guard.js`
+- `tests/test-r197-version-sync.js`（发布验证）
+- `tests/test-r208-release-build.js`（发布验证）
+- `tests/test-r244-release-v321.js`（发布验证）
+- `tests/test-r282-jsdoc-audit.js`（Lint/质量验证）
+- `tests/test-r280-changelog-v340-fix.js`（CHANGELOG 验证）
 
 ---
 
-## 五、依赖关系
+## 3. 验收标准
 
-| 依赖 | 类型 | 说明 |
-|------|------|------|
-| R002 (AI 问答) | 功能依赖 | 快捷键触发的「发送消息」功能依赖 AI 问答模块 |
-| manifest.json commands | 系统依赖 | Chrome 全局快捷键由 manifest 声明，只能引导用户去 chrome://extensions/shortcuts 修改 |
-| chrome.storage.sync | API 依赖 | 用于跨设备同步快捷键配置 |
-| options/options.html | UI 依赖 | 快捷键设置 UI 嵌入现有 Options 页面 |
-| sidebar/sidebar.js | 代码依赖 | 核心修改点，需将硬编码快捷键改为动态读取配置 |
+| # | 验收标准 | 判定方式 |
+|---|---------|---------|
+| AC1 | `scripts/check-test-time.sh` 脚本执行 `npm run test:ci` 并计时，若耗时 >37s 则 exit 1（CI 硬性阻断） | 手动测试：构造 >37s 场景验证 exit 1；正常场景验证 exit 0 |
+| AC2 | 当前 `npm run test:ci` 耗时 **≤35s**（排除覆盖率冲刺/发布验证/Lint 验证测试后） | 连续 3 次 `npm run test:ci` 均 ≤35s |
+| AC3 | 覆盖率冲刺测试（文件名含 `coverage-boost`、`coverage-sprint`、`r291-coverage-config` 等关键词）从 `test:ci` 排除至 `test:ci:coverage` | `npm run test:ci:coverage` 包含这些文件，`npm run test:ci` 不包含 |
+| AC4 | 发布验证测试（`test-r197-version-sync.js`、`test-r208-release-build.js`、`test-r244-release-v321.js`、`test-r280-changelog-*`、`test-r282-jsdoc-audit.js`）从 `test:ci` 排除至 `test:ci:release` | `npm run test:ci:release` 包含这些文件 |
+| AC5 | 新增 ≥5 个测试验证门禁脚本逻辑（阈值判定、计时精度、exit code、文件分类规则、边界条件） | `node --test tests/test-check-test-time.js` 全部通过 |
 
 ---
 
-## 六、不在范围内 (Out of Scope)
+## 4. 技术约束
 
-| 项目 | 原因 |
+| 约束 | 说明 |
 |------|------|
-| 运行时修改 Chrome 全局快捷键 | MV3 技术限制，不可行 |
-| 快捷键方案导入/导出 | 当前用户量不需要 |
-| 快捷键与第三方扩展的冲突检测 | 无法读取其他扩展的快捷键配置 |
-| Vim 模式 / Emacs 模式 | 不符合目标用户画像 |
-| 鼠标手势自定义 | 不在本迭代范围内 |
+| **计时精度** | 门禁脚本使用 `date +%s%N` 或 `SECONDS` bash 变量计时，精度 ≤1s |
+| **阈值设计** | 硬性上限 37s（高于目标 35s 留 2s buffer，避免 CI 环境 CPU 抖动导致 flaky） |
+| **排除规则** | 使用 `-not -name` 或 `-not -path` 模式匹配，与现有 `test:ci` 脚本风格一致 |
+| **分类规则** | 基于文件名关键词匹配（`coverage-boost`/`coverage-sprint`/`coverage-config`/`release-build`/`version-sync`/`changelog`/`jsdoc-audit`），非目录结构 |
+| **向后兼容** | `npm run test:ci` 的通过用例数不减少（排除的文件移至对应目标后仍可独立执行） |
+| **CI 集成** | `check-test-time.sh` 在 CI workflow 的 test job 中作为 `test:ci` 的包装器执行（或作为独立 step 紧接 test:ci 之后） |
+| **test:ci:coverage 完整性** | `test:ci:coverage` 现有脚本需同步更新，确保新排除的覆盖率冲刺测试被纳入（用于 c8 插桩） |
 
 ---
 
-## 七、风险与缓解
+## 5. 依赖关系
 
-| 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|----------|
-| 用户设置的快捷键与浏览器/操作系统冲突 | 中 | 低 | 文档提示常见冲突组合；冲突检测仅限扩展内部 |
-| chrome.storage.sync 配额限制 | 低 | 低 | 快捷键数据量极小（<1KB），远低于 100KB 配额 |
-| 侧边栏焦点丢失导致快捷键不响应 | 中 | 中 | 快捷键绑定在 sidebar iframe 的 document 上，已有 focus 管理逻辑 |
-
----
-
-## 八、成功指标
-
-| 指标 | 目标 | 衡量方式 |
-|------|------|----------|
-| 快捷键冲突投诉归零 | 0 条/月 | GitHub Issues / 反馈渠道 |
-| 设置页快捷键区域访问率 | >30% DAU | 页面访问统计（如接入） |
-| 用户自定义快捷键比例 | >10% 用户 | chrome.storage.sync 数据抽样 |
+| 依赖项 | 类型 | 说明 |
+|--------|------|------|
+| R287 (TestExecutionOpt15) | 前置 | 建立了当前 test:ci 排除模式和 31.3s 基线 |
+| R289 (CoverageBreak32) | 前置（引入退化） | 新增大量覆盖率冲刺测试文件，导致退化至 43.4s |
+| R295 (TestInfraReliability) | 前置 | 建立了 test-preflight.sh 和 test-infra-health.js |
+| R296 输出 | 被依赖 | Phase AP 及后续所有迭代的 CI 性能基线守护 |
+| CI workflow (ci.yml) | 需修改 | test job 需集成 check-test-time.sh 门禁 |
 
 ---
 
-## 变更记录
+## 6. 实现要点
 
-| 日期 | 变更内容 |
-|------|----------|
-| 2026-04-30 | 初始化 R022 需求文档 |
+### 6.1 门禁脚本 `scripts/check-test-time.sh`
+
+```
+功能：包装 npm run test:ci，捕获执行时间，与阈值比较
+输入：环境变量 TEST_TIME_THRESHOLD（默认 37，单位秒）
+输出：执行时间 + PASS/FAIL 判定
+退出码：0 = 通过，1 = 超时
+日志：输出 `test:ci` 完整 stdout/stderr（不吞输出）
+```
+
+### 6.2 test:ci 排除规则更新
+
+在 `package.json` 的 `test:ci` 脚本中追加排除模式：
+
+```
+-not -path 'tests/coverage-boost/*'
+-not -name 'test-r137-coverage-boost.js'
+-not -name 'test-coverage-sprint-*.js'
+-not -name 'test-r291-coverage-config-drift-guard.js'
+-not -name 'test-r197-version-sync.js'
+-not -name 'test-r208-release-build.js'
+-not -name 'test-r244-release-v321.js'
+-not -name 'test-r280-changelog-*.js'
+-not -name 'test-r282-jsdoc-audit.js'
+```
+
+### 6.3 新增测试目标脚本
+
+```
+test:ci:release  → test-r197 / test-r208 / test-r244 / test-r280-changelog / test-r282
+test:ci:coverage → 现有 test:ci:coverage + tests/coverage-boost/* + test-r137 + test-coverage-sprint-* + test-r291
+```
+
+### 6.4 门禁测试 `tests/test-check-test-time.js`
+
+5+ 个测试用例建议：
+
+1. **AC-1**: 门禁脚本文件存在且可执行（`-x` 权限）
+2. **AC-2**: 脚本 `--help` 或无参执行输出使用说明（非崩溃）
+3. **AC-3**: 阈值判定逻辑 — mock 计时 <37s 输出 PASS + exit 0
+4. **AC-4**: 阈值判定逻辑 — mock 计时 ≥37s 输出 FAIL + exit 1
+5. **AC-5**: 环境变量覆盖 — `TEST_TIME_THRESHOLD=50` 可修改阈值
+6. **AC-6**: 被排除的覆盖率冲刺文件不在 `npm run test:ci` 执行列表中（`--dry-run` 或解析脚本输出验证）
+7. **AC-7**: 被排除的文件在 `npm run test:ci:coverage` 或 `npm run test:ci:release` 执行列表中
+
+---
+
+## 7. 风险
+
+| 风险 | 概率 | 影响 | 缓解 |
+|------|------|------|------|
+| 排除文件过多导致回归覆盖面不足 | 中 | 核心回归遗漏 | 仅排除覆盖率冲刺/发布验证/Lint 验证类文件，核心功能测试保留 |
+| CI 环境 CPU 抖动导致 37s 阈值 flaky | 低 | 门禁误报 | 37s 阈值高于 35s 目标留 6% buffer；极端情况可调整环境变量 |
+| 排除后 test:ci:coverage 覆盖率数据变化 | 低 | 覆盖率门禁波动 | 门禁阈值不变（28%/75%/50%），c8 仅在 test:ci:coverage 中插桩 |
+| 未来新增测试文件仍可能拖慢 test:ci | 中 | 防线再次被突破 | check-test-time.sh 作为硬性门禁，任何超时都会被 CI 阻断 |
+
+---
+
+## 8. 不包含
+
+- 不包含新增 lib 模块功能
+- 不包含覆盖率门禁阈值调整（R243 职责）
+- 不包含测试用例重写或合并
+- 不包含 test:ci 并行化优化（属于 TestExecutionOpt 系列）
+- 不包含 E2E 测试性能优化（R288 职责）
+
+---
+
+## 附录 A: 受影响文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|---------|------|
+| `scripts/check-test-time.sh` | **新建** | CI 门禁脚本 |
+| `package.json` | **修改** | test:ci 排除规则追加 + 新增 test:ci:release |
+| `.github/workflows/ci.yml` | **修改** | test job 集成 check-test-time.sh |
+| `tests/test-check-test-time.js` | **新建** | 门禁脚本测试 |
+| `docs/CHANGELOG.md` | **修改** | 新增 R296 条目 |
+
+---
+
+## 附录 B: 测试执行时间基线
+
+| 迭代 | test:ci 耗时 | 用例数 | 说明 |
+|------|-------------|--------|------|
+| R202 | 45.4s | 6977 | 优化前基线 |
+| R287 | **31.3s** | 7907 | 历史最优（达标 ≤35s） |
+| R292 | 43.4s | ~7966 | 当前退化状态 |
+| **R296 目标** | **≤35s** | ≥7800 | 本轮目标 |
+
+---
+
+## 附录 C: 测试分类目录
+
+| 类别 | test 脚本名 | 包含文件 | 用途 |
+|------|------------|---------|------|
+| **核心回归** | `test:ci` | 所有 test-*.js（排除以下类别） | CI 主门禁，≤35s |
+| **覆盖率冲刺** | `test:ci:coverage` | coverage-boost/\*、coverage-sprint-\*、r137-boost、r291-config-drift | c8 插桩覆盖率统计 |
+| **发布验证** | `test:ci:release` | r197-version-sync、r208-release-build、r244-release-v321、r280-changelog、r282-jsdoc-audit | 版本/CHANGELOG/发布脚本验证 |
+| **Lint 验证** | `test:ci:lint` | lint-r159、r201-lint、r221-lint、eslint-infra | ESLint 规则验证 |
+| **E2E** | `test:e2e` | e2e-chrome/test-smoke.js | 浏览器端冒烟 |

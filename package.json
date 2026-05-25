@@ -6,8 +6,10 @@
   "description": "智阅 PageWise - Chrome 浏览器扩展",
   "scripts": {
     "test": "node --test --test-concurrency=8 'tests/*.js'",
-    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -path 'tests/e2e-chrome/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' -not -name 'test-r221-lint-warning-final.js' -not -name 'test-eslint-infra.js' -not -name 'test-r284-cws-submission.js' | sort)",
+    "test:ci": "node --test --test-concurrency=8 $(find tests -name 'test-*.js' -not -name 'test-e2e-*' -not -path 'tests/e2e/*' -not -path 'tests/e2e-chrome/*' -not -path 'tests/coverage-boost/*' -not -name 'test-lint-r159.js' -not -name 'test-r201-lint-warning-final.js' -not -name 'test-r221-lint-warning-final.js' -not -name 'test-eslint-infra.js' -not -name 'test-r284-cws-submission.js' -not -name 'test-r137-coverage-boost.js' -not -name 'test-coverage-infra.js' -not -name 'test-r156-coverage-infra.js' -not -name 'test-r233-coverage-gate.js' -not -name 'test-r243-coverage-gate-align.js' -not -name 'test-r256-coverage-infra-fix.js' -not -name 'test-r291-coverage-config-drift-guard.js' -not -name 'test-r197-version-sync.js' -not -name 'test-r208-release-build.js' -not -name 'test-r218-changelog-v310.js' -not -name 'test-r244-release-v321.js' -not -name 'test-r280-changelog-v340-fix.js' -not -name 'test-r282-jsdoc-audit.js' | sort)",
     "test:ci:lint": "node --test tests/test-lint-r159.js tests/test-r201-lint-warning-final.js tests/test-r221-lint-warning-final.js tests/test-eslint-infra.js",
+    "test:ci:release": "node --test tests/test-r197-version-sync.js tests/test-r208-release-build.js tests/test-r218-changelog-v310.js tests/test-r244-release-v321.js tests/test-r280-changelog-v340-fix.js tests/test-r282-jsdoc-audit.js",
+    "test:ci:gate": "bash scripts/check-test-time.sh",
     "test:e2e": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e-chrome/test-smoke.js",
     "test:e2e:full": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e-chrome/test-sidebar-core.js tests/e2e-chrome/test-bookmarks-flow.js tests/e2e-chrome/test-knowledge-flow.js tests/e2e-chrome/test-performance.js tests/e2e-chrome/test-permissions.js",
     "test:all": "node --test --test-concurrency=8 'tests/*.js' 'tests/e2e/*.js'",

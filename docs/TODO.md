@@ -1348,4 +1348,23 @@
 
 - [x] **R293: 行覆盖率稳固 30% CoverageStable30** — 当前行覆盖率 ~28%（门禁刚好过线），R289 覆盖率冲刺可能因测试文件被排除出 `test:ci` 而未持续计入覆盖率；(1) 运行 `npm run test:coverage` 获取当前真实覆盖率基线（行/函数/分支/语句）；(2) 确认 R289 新增覆盖率测试是否在 `test:ci:coverage` 中正常执行并计入 c8 统计；(3) 若覆盖率因测试隔离策略退化至 <28%，调整 `test:ci:coverage` 的 c8 include 配置确保所有测试产出均被统计；(4) 为覆盖率最低的 5 个 >300 行纯逻辑模块补充边界用例（每模块 ≥3 用例）；(5) 将 `coverage:gate --lines` 维持 28 不变（稳固后再收紧）；(6) 更新 `docs/reports/coverage-baseline.md`；(7) 目标: 行覆盖率 ≥30%、函数覆盖率 ≥53%。复杂度: Medium
 
-- [ ] **R294: 全量回归与迭代收尾 IterationCloseAR** — R290-R293 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7874 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s；(5) `npm run coverage:gate` 正常运行无错误；(6) 更新 CHANGELOG.md 补充 R290-R293 变更记录；(7) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`；(8) 输出迭代收尾报告。复杂度: Simple
+- [x] **R294: 全量回归与迭代收尾 IterationCloseAR** — R290-R293 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7874 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥28%、functions ≥50%、branches ≥75%）；(4) 测试执行 ≤35s；(5) `npm run coverage:gate` 正常运行无错误；(6) 更新 CHANGELOG.md 补充 R290-R293 变更记录；(7) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`；(8) 输出迭代收尾报告。复杂度: Simple
+
+---
+
+## Phase AS: 测试基础设施可靠性与用户价值深耕 (R295-R299) — 5 轮
+
+> 飞轮迭代 R11 起，2026-05-25
+> 现状: R10 迭代报告显示 0 pass / 0 fail（Phase 2 设计、Phase 3 实现均标记失败），表明测试基础设施存在间歇性断裂风险；R285/R290 两次修复后问题复发；测试执行 ~43.4s 经 16 次优化仍未稳定在 ≤35s；行覆盖率 ~28% 门禁刚好过线无安全裕量；E2E Chrome 经 9 次迭代仍为最小冒烟；v3.4.0 已发布但无真实用户数据；Chrome Web Store 提交经 4 次准备未落地
+> 目标: 消除测试基础设施间歇性断裂、测试执行稳定 ≤35s、覆盖率突破 30% 门禁裕量、建立用户数据驱动迭代机制、E2E 拓展核心场景
+> 任务来源优先级: 测试基础设施可靠性 > 测试性能回归防护 > 覆盖率安全裕量 > 用户数据闭环 > E2E 场景拓展
+
+- [x] **R295: 测试基础设施可靠性堡垒 TestInfraReliability** — R10 迭代 Phase 2(设计)和 Phase 3(实现)均标记失败，报告 0 pass/0 fail 表明测试从未实际执行；此问题在 R285 修复后仍复发，根因未彻底消除；(1) 运行 `npm run test:ci` 并捕获完整 stdout/stderr，分类失败原因（Node 版本/ESM 解析/依赖缺失/脚本路径/c8 配置）；(2) 新建 `scripts/test-preflight.sh` 预检脚本：在 `test:ci` 前验证 node --version ≥18、node_modules/.package-lock.json 存在、所有 test-*.js 可 import 无语法错误、.c8rc.json 可解析；(3) 在 CI workflow 中添加 preflight 步骤，prelight 失败则标记为基础设施错误而非测试失败；(4) 新建 `tests/test-infra-health.js` 42 个用例覆盖 12 个维度：验证 test:ci 命令可执行、lint 命令可执行、coverage:gate 可执行、关键 lib 模块可 import、manifest.json 可解析；(5) ✅ `npm run test:ci` 7966 pass / 0 fail，preflight 11 pass / 0 fail。复杂度: Medium ✅
+
+- [x] **R296: 测试执行性能回归防火墙 TestPerfRegressionWall** — R287 曾达 31.3s 但 R292 已回退至 43.4s（+12.1s/39%），历史上 16 次优化均在后续迭代被新测试拖回；根因：每次覆盖率冲刺新增的测试文件未被及时排除出 test:ci；(1) 建立 `scripts/check-test-time.sh` CI 门禁脚本：执行 `npm run test:ci` 并计时，若 >37s 则 CI fail（硬性阻断），防止未来退化；(2) 分析当前 test:ci 中所有文件，将累计耗时 >2s 的文件分类为核心测试/覆盖率冲刺测试/回归测试三类；(3) 将覆盖率冲刺测试（文件名含 coverage-boost / sprint / r270 / r241 / r266 等关键词）从 test:ci 排除至 test:ci:coverage；(4) 将回归测试（lint/发布/构建验证类）排除至 test:ci:lint / test:ci:release；(5) 目标: `npm run test:ci` ≤35s 稳定；(6) 新增 ≥5 个测试验证门禁脚本逻辑。复杂度: Medium
+
+- [ ] **R297: 行覆盖率安全裕量突破 CoverageSafetyMargin** — 当前 ~28% 门禁刚好过线，任何覆盖率冲刺测试被排除（R296）都可能导致门禁失守；需要 2pp 安全裕量至 ≥30%；(1) 在 R296 确认 test:ci 的最终文件列表后，运行 `npm run test:coverage` 获取真实行覆盖率基线；(2) 若 <30%，为 Top-10 零覆盖纯逻辑模块编写测试（每模块 ≥3 用例，必须 import 加载确保 c8 可插桩）；(3) 确保所有覆盖率测试在 `test:ci:coverage` 中正常执行并计入 c8 统计；(4) 验证 `coverage:gate --lines 28` 通过且实测 ≥30%（2pp 安全裕量）；(5) 更新 `docs/reports/coverage-baseline.md`；(6) 新增 ≥20 用例。复杂度: Medium
+
+- [ ] **R298: 用户数据驱动迭代机制 DataDrivenIteration** — v3.4.0 已发布但从未收集真实用户行为数据，所有产品决策基于假设而非数据；R212 telemetry + R276 feedback-collector 已实现但从未验证真实环境采集链路；(1) 审查 `lib/telemetry.js` 核心采集点（选中即问/AI 回答/书签操作/知识库查询/搜索），确保 5 个核心动作全部触发记录；(2) 审查 `lib/feedback-collector.js` NPS 弹窗触发逻辑：首次使用 7 天后触发、低分引导帮助改进、高分引导 CWS 评价；(3) 新建 `lib/user-insight-analyzer.js` 分析遥测数据生成产品洞察：功能使用频率排名、核心路径完成率（选中→提问→获得回答→归档）、日活/周活趋势、错误率 Top-5；(4) 生成 `docs/reports/user-insight-template.md` 模板：指导如何从 chrome.storage.local 遥测数据提取可行动的产品改进清单；(5) 测试 ≥20 用例覆盖 insight-analyzer 核心逻辑。复杂度: Medium
+
+- [ ] **R299: E2E Chrome 核心场景扩展 E2ECoreScenarioExpand** — E2E 经 9 次迭代精简至仅 3 条冒烟路径（扩展加载/SidePanel/选中文字），但缺乏核心用户路径覆盖：(1) 在 R288 最小可行 E2E 稳定基础上，新增 3 条核心用户路径：书签采集→图谱渲染→节点点击详情、知识库搜索→结果列表→点击打开、设置页→主题切换→验证生效；(2) 每条路径 45s 硬超时 + 2 次自动重试（仅 TimeoutError），与 R288 保持一致策略；(3) `--test-concurrency=1` 串行执行避免浏览器状态污染；(4) 目标: `npm run test:e2e` ≥6 条路径全部通过（原 3 条 + 新增 3 条）；(5) 更新 `docs/reports/e2e-baseline.md` 记录新增路径和稳定性数据。复杂度: Medium
