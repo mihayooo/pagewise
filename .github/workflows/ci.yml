@@ -94,7 +94,8 @@ jobs:
   chrome-e2e:
     runs-on: ubuntu-latest
     needs: [lint, test]
-    continue-on-error: true  # soft-fail: E2E failures don't block main CI
+    # R288: 从 soft-fail 升级为正式门禁 — E2E 冒烟测试稳定化
+    # continue-on-error: true  ← 已移除 (R288)
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

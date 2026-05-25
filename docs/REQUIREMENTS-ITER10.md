@@ -1,3 +1,106 @@
+# 需求文档 — R288: E2E Chrome CI 第九次稳定化 — 真正可用 E2EChromeStableFinal
+
+> 迭代: 飞轮迭代 R10 (R288)
+> 复杂度: Complex
+> 创建日期: 2026-05-25
+
+---
+
+## 1. 用户故事
+
+作为 **PageWise 项目维护者**，`tests/e2e-chrome/` 经 R211/R219/R220/R228/R252/R257/R268/R272/R283 九次迭代仍未在 CI 中稳定运行——`chrome-e2e` job 长期处于 `continue-on-error: true`（soft-fail）状态，E2E 测试形同虚设——我需要通过"最小可行 E2E"策略将 3 条核心冒烟路径稳定至连续 5 次 CI 全绿，从而将 `chrome-e2e` 从软失败升级为正式发布门禁，确保每次合并前扩展的基本可用性得到真实浏览器验证。
+
+---
+
+## 2. 验收标准
+
+| # | 验收标准 | 验证方式 |
+|---|---------|---------|
+| AC-1 | 完成 E2E 历史失败根因复盘文档 `docs/reports/e2e-baseline.md`，将过去 9 次迭代的失败模式归类为 5 类（Chrome 启动超时 / 选择器不匹配 / 扩展加载失败 / Service Worker 未激活 / 竞态条件），每类包含 ≥1 个具体失败案例及根因分析 | 文件存在且包含 5 类失败模式，每类含"现象 → 根因 → 修复策略"三段式描述 |
+| AC-2 | `tests/e2e-chrome/test-smoke.js` 仅保留 3 条核心冒烟路径：(a) 扩展加载→Service Worker 激活→获取 extensionId；(b) SidePanel 打开→渲染 UI（`#app` + `#panelChat`）；(c) 选中文字→弹出提问气泡（`.pagewise-toolbar`）；删除所有功能性断言（标签切换、输入框交互、性能基准、书签流程、知识库流程等） | `test-smoke.js` 中 `it()` 块恰好 3 个；无 `clickTab`/`waitForPanel`/`measurePerformance`/`assertWithinBudget` 调用 |
+| AC-3 | 每条路径配备 30s 硬超时 + 最多 2 次自动重试（仅 TimeoutError 触发重试，其他错误直接失败）；使用 `describe` 串行（非 `parallel`）执行以避免浏览器状态污染 | `test-smoke.js` 中 `HARD_TIMEOUT = 30_000`、`MAX_RETRIES = 2`；`describe` 无 `{ concurrency: true }`；`isTimeoutError()` 仅匹配 `TimeoutError`/`timed out`/`ERR_TEST_FAILURE` |
+| AC-4 | `.github/workflows/ci.yml` 中 `chrome-e2e` job 不包含 `continue-on-error: true`（或等价的 soft-fail 配置），即 E2E 失败会阻断整个 CI 流水线 | `grep -c 'continue-on-error' .github/workflows/ci.yml` 返回 0（或该行被注释/删除） |
+| AC-5 | 手动或脚本触发连续 5 次 CI 运行，`chrome-e2e` job 全部绿色通过（3/3 路径 pass，0 fail）；结果记录在 `docs/reports/e2e-baseline.md` 的"稳定性验证"章节 | 文件存在，包含 5 次运行的日期、commit SHA、pass/fail 状态、耗时记录，且全部为 pass |
+| AC-6 | `docs/reports/e2e-baseline.md` 包含完整的 E2E 基线信息：3 条路径描述、超时配置、重试策略、CI 配置、稳定性验证结果、以及未来扩展路径的指引 | 文件包含"冒烟路径定义""超时与重试""CI 门禁配置""稳定性验证""未来扩展"五个章节 |
+
+---
+
+## 3. 技术约束
+
+| 约束 | 说明 |
+|------|------|
+| **最小可行范围** | 仅保留 3 条冒烟路径，不验证功能细节。原有 5 个测试文件（`test-sidebar-core.js`、`test-bookmarks-flow.js`、`test-knowledge-flow.js`、`test-performance.js`、`test-permissions.js`）通过 `test:e2e:full` 保留但不纳入 CI 门禁 |
+| **test:e2e 脚本仅运行 test-smoke.js** | `package.json` 中 `test:e2e` 脚本仅执行 `test-smoke.js`，不可引入其他测试文件；`test:e2e:full` 脚本保留用于本地手动完整测试 |
+| **串行执行** | `test-smoke.js` 内部使用 `describe` 串行执行（Node.js `node:test` 默认串行），路径间有共享状态（`context`、`extensionId`）因此不可并行；`--test-concurrency=1` 确保文件级串行 |
+| **TimeoutError 判定** | 重试仅触发于：(1) `err.name === 'TimeoutError'`、(2) `err.message` 包含 `timeout` 或 `timed out`、(3) `err.code === 'ERR_TEST_FAILURE'` 且 message 包含 `timeout`。其他错误（断言失败、DOM 异常等）直接抛出不重试 |
+| **总超时预算** | CI job `timeout-minutes: 5`；每条路径 30s × 3（1 次执行 + 2 次重试）= 90s；3 条路径合计 ≤ 270s (4.5min)；加上 Chrome 启动和清理 ≤ 5min |
+| **helpers.js 不做大改** | R283 已完成 helpers.js 的 CI 自适应超时和重试机制。R288 仅修复 R283 验证报告中指出的 P1 问题（`ElementHandle.click()` → `page.click()`），不重构 helpers.js 整体架构 |
+| **P1 修复必须包含** | R283 验证报告（`VERIFICATION-ITER10-R283.md`）指出的 P1 问题必须在 R288 中一并修复：(1) `helpers.js:238-239` `ElementHandle.click()` 无 timeout 支持→改为 `page.click()`；(2) `helpers.js:323` `assertWithinBudget` CI 严重超预算阈值 `budget*16` 过于宽松→改为 `effectiveBudget*2`（即 8x 原始预算） |
+| **Node.js 环境** | 测试在 Node.js ≥ v22 + Playwright chromium 执行，与 CI 环境一致 |
+| **不引入新依赖** | 不新增 npm 包依赖；复用现有的 Playwright + `node:test` 测试框架 |
+
+---
+
+## 4. 依赖关系
+
+| 依赖 | 方向 | 说明 |
+|------|------|------|
+| R211 (E2EChromeInit) | 历史前置 ✅ | 首次建立 `tests/e2e-chrome/` 测试基础设施和 helpers.js |
+| R219/R220/R228 (E2E 迭代 2-4) | 历史前置 ✅ | 尝试修复 Chrome 启动超时、SW 等待等初期不稳定问题 |
+| R252/R257 (E2E 迭代 5-6) | 历史前置 ✅ | 选择器更新、content script 注入检测等修复 |
+| R268/R272 (E2E 迭代 7-8) | 历史前置 ✅ | CI 环境适配、headless 模式参数调优 |
+| R283 (E2ESmokeStable) | 直接前置 ✅ | helpers.js 已添加 CI 环境检测（`isCI`）、自适应超时（`getTimeout`）、指数退避重试（`withRetry`）；`test-smoke.js` 已重写为 3 条路径 MVP 版本 |
+| R283 验证报告 | 约束依赖 | `VERIFICATION-ITER10-R283.md` 中的 P1/P2 返工清单必须在 R288 中完成 |
+| Playwright chromium | 工具依赖 | `npx playwright install chromium --with-deps` 安装的浏览器运行时 |
+| `.github/workflows/ci.yml` | 配置依赖 | `chrome-e2e` job 配置（需移除 soft-fail） |
+| `npm run test:e2e` | 脚本依赖 | 已指向 `test-smoke.js`，R288 确认其稳定性 |
+
+---
+
+## 5. 变更范围预估
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `tests/e2e-chrome/test-smoke.js` | 审查/微调 | 确认 3 条路径、30s 超时、2 次重试、串行执行均已就绪（R283 已完成主体实现）；如有遗漏按 AC-2/AC-3 修正 |
+| `tests/e2e-chrome/helpers.js` | 修改 | 修复 R283 P1 返工：(1) L238-239 `ElementHandle.click({ timeout })` → `page.click('#onboardingSkip', { timeout })`；(2) L323 严重超预算阈值 `effectiveBudget * 4` → `effectiveBudget * 2`；(3) L259 移除 `.modal-backdrop` 幽灵选择器 |
+| `.github/workflows/ci.yml` | 修改 | 确认 `chrome-e2e` job 无 `continue-on-error: true`（R288 注释已存在但需验证实际配置）；必要时添加重复运行机制用于稳定性验证 |
+| `docs/reports/e2e-baseline.md` | 新建 | E2E 基线文档：失败模式分类、冒烟路径定义、超时与重试策略、CI 门禁配置、5 次连续通过记录、未来扩展指引 |
+| `package.json` | 审查 | 确认 `test:e2e` 脚本仅执行 `test-smoke.js`；`test:e2e:full` 保留完整测试 |
+
+---
+
+## 6. 风险评估
+
+| 风险 | 等级 | 缓解措施 |
+|------|------|----------|
+| CI 环境（GitHub Actions ubuntu-latest）Chrome headless 偶发崩溃 | **高** | 30s 超时 + 2 次重试已覆盖偶发崩溃；R283 的 `--headless=new` + `--no-sandbox` + `--disable-gpu` + `--disable-dev-shm-usage` + `--disable-renderer-backgrounding` 参数已优化 CI 环境兼容性；如仍不稳定，考虑增加 `--single-process` 参数 |
+| 路径 3（选中文字→气泡弹出）依赖 content script 注入，最不稳定 | **高** | 15s `waitForFunction` 等待 `__AI_ASSISTANT_INJECTED__` + 10s `waitForSelector('.pagewise-toolbar--visible')`；2 次重试提供容错；如持续失败，可降级为仅验证 content script 注入标志而不验证气泡 DOM |
+| `--test-concurrency=1` 下 3 条路径串行执行总耗时接近 5min 超时 | **中** | 单路径最大 90s（30s × 3），3 路径 270s + Chrome 启动 ~30s = ~5min；CI job `timeout-minutes: 5` 刚好覆盖；如紧张可将 `timeout-minutes` 放宽至 6 |
+| 升级为正式门禁后首次失败阻断合并 | **中** | 连续 5 次通过后才升级；若后续出现偶发失败，可通过 `continue-on-error` 临时回退，并在下一轮迭代分析根因 |
+| R283 的 `test-smoke.js` 中路径 3 使用 `page.setContent()` 创建测试页面，在某些 Chrome 版本下 content script 不自动注入到 `data:` / `about:blank` 页面 | **中** | 当前实现使用 `setContent()` 创建 HTTP-like 页面，但需验证 `content_scripts.matches` 中的 `<all_urls>` 是否覆盖；如不覆盖，改为先导航到 `http://example.com`（或本地 HTTP 服务器）再执行选中操作 |
+
+---
+
+## 7. 根因复盘框架（AC-1 指导）
+
+以下为 9 次迭代（R211-R283）的失败模式分类框架，R288 实施时需基于实际 `docs/reports/` 和 CI 日志填充具体案例：
+
+| 失败模式 | 典型现象 | 可能根因 | 当前缓解措施 |
+|---------|---------|---------|------------|
+| Chrome 启动超时 | `launchPersistentContext` 超时、SW 事件未触发 | CI 环境资源不足、headless 模式参数不兼容、profile 目录锁定 | R283 `withRetry` 指数退避 + CI 优化参数 |
+| 选择器不匹配 | `waitForSelector` 超时、元素未找到 | UI 重构后选择器未更新、onboarding 遮罩层阻塞 | R283 `dismissOnboarding` 三层防御 |
+| 扩展加载失败 | `extensionId` 为空、`chrome://extensions` 未识别扩展 | manifest.json 路径错误、扩展目录不完整 | `EXTENSION_PATH` 基于 `import.meta.url` 解析 |
+| Service Worker 未激活 | `waitForEvent('serviceworker')` 超时 | MV3 SW 注册延迟、Chrome 版本差异 | R283 双重等待（事件 + 扫描） |
+| 竞态条件 | 间歇性断言失败、时序依赖 | 共享浏览器状态、profile 目录残留、`waitForTimeout` 不足 | R288 串行执行 + `cleanProfileDir` |
+
+---
+
+*文档创建于 2026-05-25，飞轮迭代 R10*
+
+---
+
+# (以下为 R286 历史文档，保留参考)
+
 # 需求文档 — R286: Chrome Web Store 真正提交 CWSActualSubmit
 
 > 迭代: 飞轮迭代 R10 (R286)

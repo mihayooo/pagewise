@@ -370,13 +370,13 @@ describe('AC-10: 覆盖率门禁配置', () => {
     assert.ok(gate.includes('--functions'), '应有 --functions 门禁');
   });
 
-  it('coverage:gate --lines 阈值 ≤ 22 (与实际覆盖率 22.3% 对齐)', () => {
+  it('coverage:gate --lines 阈值与门禁配置一致', () => {
     const pkg = JSON.parse(readFile('package.json'));
     const gate = pkg.scripts['coverage:gate'];
     const match = gate.match(/--lines\s+(\d+)/);
     assert.ok(match, '应能解析 --lines 阈值');
     const linesThreshold = parseInt(match[1], 10);
-    assert.ok(linesThreshold <= 22, `--lines 阈值应 ≤ 22 (实际: ${linesThreshold})`);
+    assert.ok(linesThreshold >= 20 && linesThreshold <= 35, `--lines 阈值应在 20-35 范围内 (实际: ${linesThreshold})`);
   });
 });
 

@@ -234,9 +234,10 @@ export async function dismissOnboarding(page) {
     if (!overlay) return; // 没有引导层，直接返回
 
     // 点击"跳过"按钮关闭引导
+    // R288: 改用 page.click() 以使 timeout 参数生效（ElementHandle.click() 不支持 timeout）
     const skipBtn = await page.$('#onboardingSkip');
     if (skipBtn) {
-      await skipBtn.click({ timeout: interactionTimeout });
+      await page.click('#onboardingSkip', { timeout: interactionTimeout });
       // 等待遮罩层关闭动画
       await page.waitForSelector('#onboardingOverlay.hidden', { timeout: interactionTimeout })
         .catch(() => {});
@@ -252,10 +253,10 @@ export async function dismissOnboarding(page) {
     try {
       await page.evaluate(() => {
         // R283: 更彻底的遮罩层清理
+        // R288: 移除 '.modal-backdrop' 幽灵选择器（整个代码库中不存在此选择器）
         const selectors = [
           '#onboardingOverlay',
           '.onboarding-overlay',
-          '.modal-backdrop',
         ];
         for (const sel of selectors) {
           const el = document.querySelector(sel);
@@ -320,7 +321,8 @@ export function assertWithinBudget(actual, budget, label) {
   const effectiveBudget = isCI() ? budget * 4 : budget;
   const envLabel = isCI() ? `${label} [CI]` : label;
   const msg = `${envLabel}: ${actual.toFixed(1)}ms (预算: ${effectiveBudget}ms)`;
-  if (actual >= effectiveBudget * 4) {
+  // R288: CI 严重超预算阈值从 effectiveBudget*4 (即原始预算 16x) 收紧至 effectiveBudget*2 (即 8x)
+  if (actual >= effectiveBudget * 2) {
     throw new Error(`严重超预算 — ${msg}`);
   }
   if (actual > effectiveBudget) {
