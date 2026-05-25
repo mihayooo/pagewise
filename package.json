@@ -10,7 +10,7 @@
     "test:ci:lint": "node --test tests/test-lint-r159.js tests/test-r201-lint-warning-final.js tests/test-r221-lint-warning-final.js tests/test-eslint-infra.js",
     "test:ci:release": "node --test tests/test-r197-version-sync.js tests/test-r208-release-build.js tests/test-r218-changelog-v310.js tests/test-r244-release-v321.js tests/test-r280-changelog-v340-fix.js tests/test-r282-jsdoc-audit.js",
     "test:ci:gate": "bash scripts/check-test-time.sh",
-    "test:e2e": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e-chrome/test-smoke.js",
+    "test:e2e": "node --test --test-concurrency=1 --test-timeout=600000 tests/e2e-chrome/test-smoke.js tests/e2e-chrome/test-core-scenarios.js",
     "test:e2e:full": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e-chrome/test-sidebar-core.js tests/e2e-chrome/test-bookmarks-flow.js tests/e2e-chrome/test-knowledge-flow.js tests/e2e-chrome/test-performance.js tests/e2e-chrome/test-permissions.js",
     "test:all": "node --test --test-concurrency=8 'tests/*.js' 'tests/e2e/*.js'",
     "test:smoke": "node --test --test-concurrency=4 tests/test-smoke.js tests/test-utils.js tests/test-ai-client.js tests/test-conversation-store.js tests/test-page-sense.js tests/test-skill-engine.js tests/test-storage-adapter.js tests/test-sanitize.js tests/test-cost-estimator.js tests/test-bookmark-indexer.js tests/test-bookmark-core-unit.js",
