@@ -2,6 +2,47 @@
 
 ---
 
+## R298: 用户数据驱动迭代机制 — DataDrivenIteration
+
+> 日期: 2026-05-25
+> 复杂度: Medium
+> 前置: R212（PostLaunchTelemetry）、R276（FeedbackLoopV34）
+
+### 问题
+
+v3.4.0 已发布但从未收集真实用户行为数据，所有产品决策基于假设而非数据。R212 telemetry + R276 feedback-collector 已实现但从未验证真实环境采集链路：
+- `lib/telemetry.js` 从未在 sidebar/background/options 中被 import 或调用
+- `lib/feedback-collector.js` NPS 触发逻辑未验证
+- 无法从遥测数据提取可行动的产品改进清单
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `lib/telemetry.js` | 审查 | 确认 5 个核心采集点 API 完整：trackFeature(text_select/ask_ai/ai_response/bookmark/knowledge_search)、trackError、recordMetric；确认禁用/启用、数据持久化、FIFO 淘汰机制均正确 |
+| `lib/feedback-collector.js` | 审查 | 确认 NPS 触发逻辑：安装满 7 天 shouldShowPrompt=true、未提交+未跳过才显示、低分(0-6)触发帮助改进通知、高分(9-10)引导 CWS 评价、中间分(7-8)不触发通知 |
+| `lib/user-insight-analyzer.js` | 新建 | 用户数据驱动洞察分析器（纯逻辑，无 I/O）：getFeatureRanking 功能使用频率排名含百分比、getCorePathCompletion 核心路径漏斗（选中→提问→回答→归档）、getUsageTrends 日活/周活趋势（支持 session 数据和估算两种模式）、getErrorTop5 错误率 Top-5、getMetricStats 指标统计、generateInsightReport 综合报告含推荐建议 |
+| `docs/reports/user-insight-template.md` | 新建 | 遥测数据提取模板：数据导出方法、数据结构说明、5 步分析流程（功能排名→路径漏斗→趋势→错误→指标）、改进清单模板（P0-P3 优先级矩阵）、采集点验证清单（5 个核心动作）、NPS 反馈验证清单（7 条件） |
+| `tests/test-user-insight-analyzer.js` | 新建 | 36 个单元测试，8 个 describe 套件 |
+
+### 设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| R298-D1 | user-insight-analyzer 为纯逻辑模块，不依赖 chrome.storage | 分析逻辑应可复用于任意数据源（本地、CI 脚本、手动导出） |
+| R298-D2 | 核心路径 feature key 与 telemetry API 保持一致 | text_select/ask_ai/ai_response/bookmark 与 telemetry.trackFeature 的 featureName 参数对应 |
+| R298-D3 | 支持 session 数据和估算两种活跃度计算 | 当前 telemetry 仅有聚合计数（无时间戳），session 数据来自未来扩展 |
+| R298-D4 | 推荐生成基于阈值规则而非 ML | 数据量小时规则更可靠，阈值可调 |
+| R298-D5 | 模板含采集点验证清单 | 确保 5 个核心动作的 trackFeature 调用被验证而非假设 |
+
+### 结果
+
+- `node --test tests/test-user-insight-analyzer.js`: **36 pass / 0 fail** ✅
+- 模块: `lib/user-insight-analyzer.js` (~220 行，≤400 行限制)
+- 模板: `docs/reports/user-insight-template.md`（数据提取+分析+验证完整指南）
+
+---
+
 ## R295: 测试基础设施可靠性堡垒 — TestInfraReliability
 
 > 日期: 2026-05-25

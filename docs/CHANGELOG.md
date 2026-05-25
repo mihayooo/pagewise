@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 功能
+- **R298: 用户数据驱动迭代机制 DataDrivenIteration** — 从遥测数据生成产品洞察，建立数据驱动的迭代机制
+  - 审查 `lib/telemetry.js` 核心采集点：确认 trackFeature API 支持 5 个核心动作（text_select/ask_ai/ai_response/bookmark/knowledge_search）
+  - 审查 `lib/feedback-collector.js` NPS 弹窗触发逻辑：首次使用 7 天后触发、低分(detractor)引导帮助改进、高分(promoter)引导 CWS 评价
+  - 新建 `lib/user-insight-analyzer.js` 纯逻辑分析模块（功能使用频率排名、核心路径完成率漏斗、日活/周活趋势、错误率 Top-5、综合推荐建议）
+  - 新建 `docs/reports/user-insight-template.md` 遥测数据提取模板（含采集点验证清单和 NPS 反馈验证清单）
+  - 新建 `tests/test-user-insight-analyzer.js` 36 个单元测试覆盖 8 个维度
+
 ### 基础设施
 - **R295: 测试基础设施可靠性堡垒 TestInfraReliability** — R10 迭代 Phase 2/3 均失败（0 pass/0 fail），R285 修复后复发；根因：测试从未实际执行（Node 版本/ESM 解析/依赖缺失/脚本路径/c8 配置等）
   - 新建 `scripts/test-preflight.sh` 预检脚本（8 项检查：Node ≥18、node_modules、测试文件语法、.c8rc.json、manifest.json、package.json scripts、test:ci 命令、lib/ 核心模块）
