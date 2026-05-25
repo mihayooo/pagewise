@@ -1270,7 +1270,7 @@
 > 现状: 7717 pass / 0 fail / 95.9s；Lint 0/0；244 个 lib 模块 (52,421 行)；208 个测试文件 (76,476 行)；VERSION 3.4.0
 > 目标: 大模块拆分（>350行）、测试覆盖率提升、E2E 冒烟稳定化、JSDoc 完整性审计、发布自动化完善
 
-- [ ] **R280: 大模块拆分 Top-5 SplitR280** — 5 个 lib 模块超过 350 行接近 400 行限制，需预防性拆分
+- [x] **R280: 大模块拆分 Top-5 SplitR280** — 5 个 lib 模块超过 350 行接近 400 行限制，需预防性拆分
   - `lib/page-sense.js` (400行) → 拆分为 `page-sense-dom.js`（DOM 感知/选区检测）+ `page-sense-context.js`（上下文提取/页面分析）+ `page-sense.js`（薄编排层 ≤150行）
   - `lib/bookmark-clusterer.js` (399行) → 拆分为 `bookmark-clusterer-core.js`（聚类算法 DBSCAN/K-means）+ `bookmark-clusterer.js`（编排层 + 阈值配置）
   - `lib/wiki-query.js` (387行) → 拆分为 `wiki-query-builder.js`（查询构建/过滤/排序）+ `wiki-query.js`（执行 + 结果映射）
