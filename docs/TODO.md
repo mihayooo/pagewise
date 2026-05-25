@@ -1260,3 +1260,52 @@
 - [ ] **R283: 行覆盖率务实提升 35% CoverageSprint35v2** — 当前行覆盖率 ~28%（门禁刚好过线），历史 R205-R270 十次冲刺均未稳定突破 35%；本轮目标 35%（需新增覆盖 ~3,600 行）：(1) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-20 零覆盖纯逻辑模块编写测试（每模块 ≥5 用例，必须通过 `import` 加载确保 c8 可插桩）；(3) 重点覆盖 R275-R278 新增模块（bookmark-accessibility.js、crash-reporter.js、usage-analytics-dashboard.js、performance-monitor.js、browser-compat.js、platform-detector.js、storage-adapter.js）当前覆盖率未知；(4) 将 `coverage:gate --lines` 从 28 收紧至 33；(5) 目标: 行覆盖率 ≥35%、函数覆盖率 ≥58%；(6) 新增 ≥60 用例。复杂度: Medium
 
 - [ ] **R284: v3.4.0 Chrome Web Store 正式提交 ChromeWebStoreSubmitV34** — v3.4.0 功能完备（无障碍合规、跨浏览器兼容、性能优化、用户反馈闭环），历次提交准备（R210/R239/R274）均停留在自检阶段未实际提交；(1) 运行 `scripts/publish-check.sh` 修复所有发现（manifest 版本一致性、权限最小化、图标完整性、_locales 双语一致性）；(2) 验证 `scripts/build.sh` 生成的 .zip 产物（≤500KB）可在 Chrome 中正常加载运行；(3) 更新 `docs/privacy-policy.html` 覆盖 v3.3.0-v3.4.0 新增数据处理（cross-browser compat 层、performance-monitor 遥测、crash-reporter 错误上报）；(4) 准备 Chrome Web Store Listing 资产：5 张功能截图（1280×800）、宣传图（1400×560）、中英文详细描述文案；(5) 全量回归 `npm run test:ci` 0 fail + `npm run lint` 0/0 + 覆盖率门禁三项通过；(6) 在 Chrome Web Store Developer Dashboard 创建商品并提交审核。复杂度: Medium
+
+---
+
+## Phase AP: v3.4.1 — 后发布优化与技术债治理 (R280-R284) — 5 轮
+
+> 飞轮迭代，2026-05-25
+> 前置条件: v3.4.0 已发布，R43-R279 全部完成
+> 现状: 7717 pass / 0 fail / 95.9s；Lint 0/0；244 个 lib 模块 (52,421 行)；208 个测试文件 (76,476 行)；VERSION 3.4.0
+> 目标: 大模块拆分（>350行）、测试覆盖率提升、E2E 冒烟稳定化、JSDoc 完整性审计、发布自动化完善
+
+- [ ] **R280: 大模块拆分 Top-5 SplitR280** — 5 个 lib 模块超过 350 行接近 400 行限制，需预防性拆分
+  - `lib/page-sense.js` (400行) → 拆分为 `page-sense-dom.js`（DOM 感知/选区检测）+ `page-sense-context.js`（上下文提取/页面分析）+ `page-sense.js`（薄编排层 ≤150行）
+  - `lib/bookmark-clusterer.js` (399行) → 拆分为 `bookmark-clusterer-core.js`（聚类算法 DBSCAN/K-means）+ `bookmark-clusterer.js`（编排层 + 阈值配置）
+  - `lib/wiki-query.js` (387行) → 拆分为 `wiki-query-builder.js`（查询构建/过滤/排序）+ `wiki-query.js`（执行 + 结果映射）
+  - `lib/core-flow-fix.js` (384行) → 分析实际用途，如为热修复累积代码则拆分为独立修复模块
+  - `lib/knowledge-base-crud.js` (383行) → 已有 cursor.js 抽离，剩余 CRUD 操作拆分为 `knowledge-base-crud-batch.js`（批量操作）+ `knowledge-base-crud.js`（单条 CRUD）
+  - 所有公开 API 签名不变，现有测试不修改仅补充
+  - 测试: 每个拆分模块 ≥10 用例，全量回归 0 fail
+  - 复杂度: Medium
+
+- [ ] **R281: 测试覆盖率冲刺 32% CoverageSprint32** — 当前行覆盖率约 28%，目标 ≥32%（+4pp ≈ 新覆盖 ~2,100 行）
+  - 运行 c8 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块
+  - 重点覆盖: `lib/bookmark-sharing.js` (372行)、`lib/bookmark-performance-opt.js` (368行)、`lib/bookmark-visualizer.js` (367行)、`lib/bookmark-smart-collections.js` 等大模块
+  - 补充 `lib/cost-estimator.js`、`lib/stats-cost.js`、`lib/log-store.js` 等工具模块的边界用例
+  - `coverage:gate --lines` 维持 28 不变（确认实测 ≥32% 后收紧）
+  - 新增 ≥60 用例，目标 7777+ pass
+  - 复杂度: Medium
+
+- [ ] **R282: JSDoc 完整性审计与补充 JSDocAuditR282** — 多个 lib 模块缺少 JSDoc 注释，影响 IDE 智能提示和维护效率
+  - 运行 `jsdoc --explain` 或自定义脚本扫描所有 lib/*.js，统计无 JSDoc 的 exported function 占比
+  - 优先补充: 所有 `export function` 和 `export class` 的 JSDoc（@param/@returns/@throws）
+  - 重点模块: R275-R278 新增模块（bookmark-accessibility.js/performance-monitor.js/browser-compat.js/storage-adapter.js）确保 100% JSDoc
+  - 生成 `docs/reports/jsdoc-coverage.md` 统计每个模块的 JSDoc 覆盖率
+  - 目标: exported function JSDoc 覆盖率 ≥90%
+  - 复杂度: Simple
+
+- [ ] **R283: E2E 冒烟测试稳定化 E2ESmokeStable** — E2E 测试经过 R211/R219/R220/R228/R252/R257/R268/R272 八次迭代，在 CI 环境仍有间歇性失败
+  - 分析最近 10 次 CI 运行中 E2E 失败的 root cause（超时/选择器/竞态/Chrome 启动）
+  - 为所有 E2E 用例添加 retry 机制（最多 3 次重试，仅对 TimeoutError 重试）
+  - 添加 `test:e2e:smoke` 脚本仅运行核心 3 条路径（扩展加载 → SidePanel 打开 → 选中文字提问）
+  - 确保 `test:e2e:smoke` 在 headless CI 中 ≤60s 完成且 100% 稳定
+  - 复杂度: Medium
+
+- [ ] **R284: 发布自动化脚本完善 ReleaseAutomationR284** — 手动发布步骤繁琐，需自动化
+  - 新建 `scripts/release.sh` 一键发布脚本：(1) 运行 `npm run test:ci` 确认 0 fail；(2) 运行 `npm run lint` 确认 0/0；(3) bump version（package.json + manifest.json 同步）；(4) 生成 CHANGELOG [X.Y.Z] 区段（从 [Unreleased] 提取）；(5) `git commit` + `git tag vX.Y.Z`；(6) `zip -r` 打包扩展产物
+  - 支持参数: `./scripts/release.sh patch|minor|major` 自动计算版本号
+  - 新建 `scripts/publish-check.sh` 验证发布产物（manifest 合法性、文件完整性、权限检查）
+  - 测试: ≥15 用例（版本 bump 逻辑/changelog 提取/zip 打包）
+  - 复杂度: Medium
