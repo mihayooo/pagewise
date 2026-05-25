@@ -572,6 +572,104 @@ describe('BookmarkAccessibility — ARIA 属性', () => {
   })
 })
 
+// ==================== ARIA 属性扩展 (R275) ====================
+
+describe('BookmarkAccessibility — ARIA 属性扩展 (R275)', () => {
+  let a11y
+
+  beforeEach(() => {
+    a11y = new BookmarkAccessibility()
+  })
+
+  it('getBookmarkSelectedAriaAttrs 选中状态返回 aria-selected=true', () => {
+    const attrs = a11y.getBookmarkSelectedAriaAttrs(true)
+    assert.equal(attrs['aria-selected'], 'true')
+  })
+
+  it('getBookmarkSelectedAriaAttrs 未选中状态返回 aria-selected=false', () => {
+    const attrs = a11y.getBookmarkSelectedAriaAttrs(false)
+    assert.equal(attrs['aria-selected'], 'false')
+  })
+
+  it('getBookmarkSelectedAriaAttrs 默认参数为 false', () => {
+    const attrs = a11y.getBookmarkSelectedAriaAttrs()
+    assert.equal(attrs['aria-selected'], 'false')
+  })
+
+  it('getBookmarkExpandedAriaAttrs 展开状态返回 aria-expanded=true', () => {
+    const attrs = a11y.getBookmarkExpandedAriaAttrs(true)
+    assert.equal(attrs['aria-expanded'], 'true')
+  })
+
+  it('getBookmarkExpandedAriaAttrs 折叠状态返回 aria-expanded=false', () => {
+    const attrs = a11y.getBookmarkExpandedAriaAttrs(false)
+    assert.equal(attrs['aria-expanded'], 'false')
+  })
+
+  it('getBookmarkExpandedAriaAttrs 默认参数为 false', () => {
+    const attrs = a11y.getBookmarkExpandedAriaAttrs()
+    assert.equal(attrs['aria-expanded'], 'false')
+  })
+
+  it('getBookmarkItemFullAriaAttrs 包含 role/tabindex/aria-label/aria-selected/aria-expanded', () => {
+    const attrs = a11y.getBookmarkItemFullAriaAttrs({
+      title: 'Test',
+      url: 'https://example.com',
+      status: 'read',
+      index: 2,
+      total: 10,
+      selected: true,
+      expanded: true,
+    })
+    assert.equal(attrs.role, 'listitem')
+    assert.equal(attrs.tabindex, '0')
+    assert.ok(attrs['aria-label'])
+    assert.ok(attrs['aria-label'].includes('Test'))
+    assert.ok(attrs['aria-label'].includes('已读'))
+    assert.ok(attrs['aria-label'].includes('3 / 10'))
+    assert.equal(attrs['aria-selected'], 'true')
+    assert.equal(attrs['aria-expanded'], 'true')
+  })
+
+  it('getBookmarkItemFullAriaAttrs 默认 selected/expanded 为 false', () => {
+    const attrs = a11y.getBookmarkItemFullAriaAttrs({
+      title: 'Default',
+      url: 'https://example.com',
+      index: 0,
+      total: 1,
+    })
+    assert.equal(attrs['aria-selected'], 'false')
+    assert.equal(attrs['aria-expanded'], 'false')
+  })
+
+  it('getSearchBoxAriaAttrs 返回 role=search 且 aria-label 包含搜索', () => {
+    const attrs = a11y.getSearchBoxAriaAttrs()
+    assert.equal(attrs.role, 'search')
+    assert.ok(attrs['aria-label'])
+    assert.ok(attrs['aria-label'].includes('搜索'))
+  })
+
+  it('getStatusAriaAttrs 阅读中状态返回正确标签', () => {
+    const attrs = a11y.getStatusAriaAttrs('reading')
+    assert.equal(attrs['aria-label'], '阅读中')
+    assert.equal(attrs.role, 'status')
+  })
+
+  it('getStatusAriaAttrs 已读状态返回正确标签', () => {
+    const attrs = a11y.getStatusAriaAttrs('read')
+    assert.equal(attrs['aria-label'], '已读')
+  })
+
+  it('attrsToString 正确转义 HTML 属性值', () => {
+    const str = BookmarkAccessibility.attrsToString({
+      'aria-label': '书签"引号"测试',
+      role: 'listitem',
+    })
+    assert.ok(str.includes('role="listitem"'))
+    assert.ok(str.includes('&quot;'))
+  })
+})
+
 // ==================== Live Region 公告 ====================
 
 describe('BookmarkAccessibility — Live Region 公告', () => {

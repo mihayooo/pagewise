@@ -4,7 +4,16 @@
      4|
      5|---
 
-## [Unreleased] - 2026-05-22
+## [Unreleased] - 2026-05-25
+
+### 功能
+- **R275: WCAG 2.1 AA 障碍功能合规实现 AccessibilityWCAG** — `lib/bookmark-accessibility.js` 补全 aria-selected/aria-expanded ARIA 属性支持，完整 WCAG 2.1 AA 合规
+  - 新增 `getBookmarkSelectedAriaAttrs()` — 选中/未选中状态的 `aria-selected` 属性生成
+  - 新增 `getBookmarkExpandedAriaAttrs()` — 展开/折叠状态的 `aria-expanded` 属性生成
+  - 新增 `getBookmarkItemFullAriaAttrs()` — 完整书签项属性（含 role/tabindex/aria-label/aria-selected/aria-expanded）
+  - 已有功能确认: 键盘导航(ArrowUp/Down/Home/End/Enter/Escape/Tab)、焦点陷阱(createFocusTrap)、Live Region 公告(createAnnouncer)、对比度审计(auditContrast)
+  - CSS 已就绪: `.sr-only`(L6784)、`focus-visible` 焦点环(L5186)、`forced-colors` 高对比模式(L6935)、`prefers-color-scheme` 暗色主题(L6886)、状态徽章对比度修复(L6869)
+  - 测试: 79 用例 (14 describe suites)，全部通过 ✅
 
 ### 测试
 - **R183: error-handler.js 测试覆盖 ErrorHandlerTests** — `lib/error-handler.js` (393行) 是核心错误处理模块，被多个模块依赖，但无任何测试覆盖

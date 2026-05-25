@@ -2,6 +2,57 @@
 
 ---
 
+## R275: WCAG 2.1 AA 障碍功能合规实现 AccessibilityWCAG
+
+> 日期: 2026-05-25
+> 复杂度: Complex
+> 前置: R79 (BookmarkAccessibility), R131 (AccessibilityComplete)
+
+### 问题
+
+R79 BookmarkAccessibility 早期迭代已实现键盘导航、焦点陷阱、Live Region 公告、对比度审计等核心功能（`lib/bookmark-accessibility.js` + `-navigator.js` + `-contrast.js` 三模块拆分）。CSS 层面 `.sr-only`、`focus-visible`、`forced-colors`、`prefers-color-scheme` 也已在 `sidebar.css` 中实现（L6781-6948）。
+
+R275 要求补全 ARIA 属性标注，确保 `aria-selected` 和 `aria-expanded` 完整支持，使书签面板达到 WCAG 2.1 AA 合规。
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `lib/bookmark-accessibility.js` | 修改 | 新增 3 个方法: `getBookmarkSelectedAriaAttrs(selected)`、`getBookmarkExpandedAriaAttrs(expanded)`、`getBookmarkItemFullAriaAttrs(opts)` |
+| `tests/test-bookmark-accessibility.js` | 修改 | 新增 12 个测试用例（describe "ARIA 属性扩展 (R275)"），覆盖选中/展开/默认值/完整属性/状态标签/HTML 转义 |
+| `docs/CHANGELOG.md` | 修改 | 新增 R275 变更记录 |
+| `docs/IMPLEMENTATION.md` | 修改 | 本记录 |
+| `docs/TODO.md` | 修改 | R275 标记完成 |
+
+### 设计决策
+
+- **新增方法而非修改已有**: `getBookmarkSelectedAriaAttrs()` 和 `getBookmarkExpandedAriaAttrs()` 作为独立方法，允许调用方按需组合（如仅需选中状态时无需生成展开属性），保持 API 粒度
+- **`getBookmarkItemFullAriaAttrs()` 聚合方法**: 将 base + selected + expanded 通过展开运算符合并，为需要一次性获取所有属性的场景提供便利
+- **CSS 层面无需修改**: `.sr-only`、`[aria-selected="true"]`、`forced-colors` 等样式已在 R79/R131 中实现（sidebar.css L6781-6948），本次仅确认 JS API 与 CSS 选择器匹配
+
+### 现有功能确认（无需修改）
+
+| 功能 | 模块 | CSS 行号 |
+|------|------|----------|
+| `.sr-only` 屏幕阅读器隐藏 | — | sidebar.css L6784 |
+| `focus-visible` 焦点环 | — | sidebar.css L5186, L6802 |
+| `[aria-selected="true"]` 选中样式 | — | sidebar.css L6810 |
+| `forced-colors` 高对比模式 | — | sidebar.css L6935 |
+| `prefers-color-scheme: dark` 暗色适配 | — | sidebar.css L6886 |
+| 状态徽章对比度修复 | — | sidebar.css L6869 |
+| `.skip-nav` 跳转链接 | — | sidebar.css L6911 |
+| 键盘导航 (14 键) | bookmark-accessibility.js | — |
+| 焦点陷阱 (Tab 循环) | bookmark-accessibility-navigator.js | — |
+| Live Region 公告 | bookmark-accessibility-navigator.js | — |
+| 对比度审计 (14 色彩对) | bookmark-accessibility-contrast.js | — |
+
+### 验证结果
+
+- `node --test tests/test-bookmark-accessibility.js`: 79 pass / 0 fail ✅ (14 suites)
+- 原有 67 测试 + 新增 12 测试 = 79 总计，≥49 门禁通过
+
+---
+
 ## R238: 用户首次体验优化与遥测数据验证 FirstRunExperienceOpt
 
 > 日期: 2026-05-21
