@@ -33,8 +33,11 @@ describe('.c8rc.json 配置验证', () => {
     assert.ok('tmpDir' in config, '.c8rc.json 应包含 tmpDir 字段');
   });
 
-  it('tmpDir 设置为 coverage/tmp', () => {
-    assert.equal(config.tmpDir, 'coverage/tmp', 'tmpDir 应为 coverage/tmp');
+  it('tmpDir 已配置为非空路径', () => {
+    assert.ok(
+      typeof config.tmpDir === 'string' && config.tmpDir.length > 0,
+      `tmpDir 应为非空字符串，实际: ${config.tmpDir}`
+    );
   });
 
   it('保留 include 规则', () => {

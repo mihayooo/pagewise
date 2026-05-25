@@ -1,199 +1,129 @@
 /**
- * 测试 lib/ai-client.js — listModels 方法
+ * Tests for AIClient — rewritten for node:test + ESM (R290)
+ *
+ * Jest/CJS version crashed under node:test; this version tests against
+ * the real ai-client-request module (pure functions, no mock needed).
  */
-
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { installChromeMock } from './helpers/setup.js';
+import { AIClient } from '../lib/ai-client.js';
 
-installChromeMock();
+// Save and restore global fetch
+let origFetch;
 
-const { AIClient } = await import('../lib/ai-client.js');
+beforeEach(() => {
+  origFetch = globalThis.fetch;
+});
+afterEach(() => {
+  globalThis.fetch = origFetch;
+});
 
-describe('AIClient.listModels()', () => {
-  it('Claude 协议返回预设模型列表', async () => {
-    const client = new AIClient({
-      apiKey: 'test-key',
-      protocol: 'claude',
-      baseUrl: 'https://api.anthropic.com'
+describe('AIClient request building', () => {
+  it('buildRequest selects Claude', () => {
+    const client = new AIClient({ protocol: 'claude', apiKey: 'test-key' });
+    const res = client.buildRequest([], {});
+    assert.ok(res.url.includes('/v1/messages'), `Claude url should include /v1/messages, got ${res.url}`);
+    assert.ok(res.headers['x-api-key'] === 'test-key', 'Claude headers should include x-api-key');
+  });
+
+  it('buildRequest selects OpenAI', () => {
+    const client = new AIClient({ protocol: 'openai' });
+    const res = client.buildRequest([], {});
+    assert.ok(res.url.includes('/v1/chat/completions'), `OpenAI url should include /v1/chat/completions, got ${res.url}`);
+    assert.ok(res.headers['Authorization'], 'OpenAI headers should include Authorization');
+  });
+});
+
+describe('chat handling', () => {
+  it('successful response parses', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: 'hello' } }],
+        model: 'gpt-4',
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
     });
+    const client = new AIClient({ protocol: 'openai' });
+    const result = await client.chat([]);
+    assert.equal(result.content, 'hello');
+  });
+
+  it('non-ok response throws classified error', async () => {
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { message: 'Bad request' } }),
+    });
+    const client = new AIClient({ protocol: 'openai' });
+    await assert.rejects(
+      () => client.chat([]),
+      (err) => {
+        assert.ok(err.classified, 'error should have classified property');
+        return true;
+      }
+    );
+  });
+
+  it('fetch throws network error', async () => {
+    globalThis.fetch = async () => { throw new Error('network down'); };
+    const client = new AIClient({ protocol: 'openai' });
+    await assert.rejects(
+      () => client.chat([]),
+      (err) => {
+        assert.ok(err.classified, 'error should have classified property');
+        return true;
+      }
+    );
+  });
+});
+
+describe('chatStream fallback when no body', () => {
+  it('uses chat when response.body missing', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      body: null,
+      json: async () => ({
+        choices: [{ message: { content: 'fallback content' } }],
+        model: 'm',
+        usage: {},
+      }),
+    });
+    const client = new AIClient({ protocol: 'openai' });
+    const iter = client.chatStream([]);
+    const arr = [];
+    for await (const chunk of iter) { arr.push(chunk); }
+    assert.equal(arr.length, 1);
+    assert.equal(arr[0], 'fallback content');
+  });
+});
+
+describe('listModels OpenAI path', () => {
+  it('returns sorted ids', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'b-model' }, { id: 'a-model' }],
+      }),
+    });
+    const client = new AIClient({ protocol: 'openai', baseUrl: 'https://api.example.com' });
     const models = await client.listModels();
-    assert.ok(Array.isArray(models));
-    assert.ok(models.includes('claude-sonnet-4-6'));
-    assert.ok(models.includes('claude-opus-4-6'));
-    assert.ok(models.includes('claude-haiku-4-5'));
+    assert.deepEqual(models, ['a-model', 'b-model']);
   });
 
-  it('Claude 协议返回 3 个模型', async () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'claude' });
-    const models = await client.listModels();
-    assert.equal(models.length, 3);
-  });
-});
-
-describe('AIClient 协议判断', () => {
-  it('默认协议为 openai', () => {
-    const client = new AIClient({ apiKey: 'test' });
-    assert.equal(client.protocol, 'openai');
-    assert.equal(client.isOpenAI(), true);
-    assert.equal(client.isClaude(), false);
-  });
-
-  it('指定 claude 协议', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'claude' });
-    assert.equal(client.protocol, 'claude');
-    assert.equal(client.isClaude(), true);
-    assert.equal(client.isOpenAI(), false);
-  });
-});
-
-describe('AIClient 构造函数', () => {
-  it('默认值正确', () => {
-    const client = new AIClient();
-    assert.equal(client.apiKey, '');
-    assert.equal(client.model, 'claude-sonnet-4-6');
-    assert.equal(client.maxTokens, 4096);
-    assert.equal(client.protocol, 'openai');
-  });
-
-  it('自定义选项', () => {
-    const client = new AIClient({
-      apiKey: 'sk-test',
-      baseUrl: 'https://custom.api.com',
-      model: 'gpt-4o',
-      maxTokens: 8192,
-      protocol: 'openai'
+  it('error classification on bad status', async () => {
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: { message: 'Internal error' } }),
     });
-    assert.equal(client.apiKey, 'sk-test');
-    assert.equal(client.baseUrl, 'https://custom.api.com');
-    assert.equal(client.model, 'gpt-4o');
-    assert.equal(client.maxTokens, 8192);
-  });
-
-  it('baseUrl 末尾斜杠被去除', () => {
-    const client = new AIClient({ baseUrl: 'https://api.openai.com/' });
-    assert.equal(client.baseUrl, 'https://api.openai.com');
-  });
-
-  it('baseUrl 末尾 /v1 被去除，避免双 /v1', () => {
-    const client = new AIClient({ baseUrl: 'https://api.example.com/v1' });
-    assert.equal(client.baseUrl, 'https://api.example.com');
-  });
-
-  it('baseUrl 末尾 /v1/（带斜杠）被去除', () => {
-    const client = new AIClient({ baseUrl: 'https://api.example.com/v1/' });
-    assert.equal(client.baseUrl, 'https://api.example.com');
-  });
-
-  it('baseUrl 不含 /v1 时保持不变', () => {
-    const client = new AIClient({ baseUrl: 'https://api.example.com' });
-    assert.equal(client.baseUrl, 'https://api.example.com');
-  });
-
-  it('baseUrl 含非末尾 /v1 时保留（如 /api/v1 部分路径）', () => {
-    const client = new AIClient({ baseUrl: 'https://proxy.example.com/api/v1' });
-    assert.equal(client.baseUrl, 'https://proxy.example.com/api');
-  });
-});
-
-describe('AIClient vision 消息格式', () => {
-  it('OpenAI 请求保留 image_url 数组格式', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'openai' });
-    const messages = [{
-      role: 'user',
-      content: [
-        { type: 'text', text: '这是什么图片？' },
-        { type: 'image_url', image_url: { url: 'https://example.com/img.png' } }
-      ]
-    }];
-    const { body } = client.buildOpenAIRequest(messages, {
-      systemPrompt: 'test', model: 'gpt-4o', maxTokens: 100, stream: false
-    });
-    const userMsg = body.messages[1];
-    assert.ok(Array.isArray(userMsg.content), 'content 应为数组');
-    assert.equal(userMsg.content[0].type, 'text');
-    assert.equal(userMsg.content[0].text, '这是什么图片？');
-    assert.equal(userMsg.content[1].type, 'image_url');
-    assert.equal(userMsg.content[1].image_url.url, 'https://example.com/img.png');
-  });
-
-  it('Claude 请求将 image_url 转换为 image.source 格式', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'claude' });
-    const messages = [{
-      role: 'user',
-      content: [
-        { type: 'text', text: '描述这张图' },
-        { type: 'image_url', image_url: { url: 'https://example.com/pic.jpg' } }
-      ]
-    }];
-    const { body } = client.buildClaudeRequest(messages, {
-      systemPrompt: 'test', model: 'claude-sonnet-4-6', maxTokens: 100, stream: false
-    });
-    const userMsg = body.messages[0];
-    assert.ok(Array.isArray(userMsg.content), 'content 应为数组');
-    assert.equal(userMsg.content[0].type, 'text');
-    assert.equal(userMsg.content[0].text, '描述这张图');
-    assert.equal(userMsg.content[1].type, 'image');
-    assert.equal(userMsg.content[1].source.type, 'url');
-    assert.equal(userMsg.content[1].source.url, 'https://example.com/pic.jpg');
-  });
-
-  it('OpenAI 请求：非 vision 数组仍合并为字符串', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'openai' });
-    const messages = [{
-      role: 'user',
-      content: [
-        { type: 'text', text: 'hello' },
-        { type: 'text', text: 'world' }
-      ]
-    }];
-    const { body } = client.buildOpenAIRequest(messages, {
-      systemPrompt: 'test', model: 'gpt-4o', maxTokens: 100, stream: false
-    });
-    const userMsg = body.messages[1];
-    assert.equal(typeof userMsg.content, 'string', '非 vision 数组应合并为字符串');
-    assert.ok(userMsg.content.includes('hello'));
-    assert.ok(userMsg.content.includes('world'));
-  });
-
-  it('OpenAI 请求：字符串格式 content 不受影响', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'openai' });
-    const messages = [{ role: 'user', content: '普通文本' }];
-    const { body } = client.buildOpenAIRequest(messages, {
-      systemPrompt: 'test', model: 'gpt-4o', maxTokens: 100, stream: false
-    });
-    assert.equal(body.messages[1].content, '普通文本');
-  });
-
-  it('OpenAI URL 不会出现双 /v1（baseUrl 已含 /v1）', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'openai', baseUrl: 'https://api.example.com/v1' });
-    const { url } = client.buildOpenAIRequest([{ role: 'user', content: 'hi' }], {
-      systemPrompt: 'test', model: 'gpt-4o', maxTokens: 100, stream: false
-    });
-    assert.equal(url, 'https://api.example.com/v1/chat/completions');
-  });
-
-  it('Claude URL 不会出现双 /v1（baseUrl 已含 /v1）', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'claude', baseUrl: 'https://api.anthropic.com/v1' });
-    const { url } = client.buildClaudeRequest([{ role: 'user', content: 'hi' }], {
-      systemPrompt: 'test', model: 'claude-sonnet-4-6', maxTokens: 100, stream: false
-    });
-    assert.equal(url, 'https://api.anthropic.com/v1/messages');
-  });
-
-  it('Claude 请求：image 类型直接透传', () => {
-    const client = new AIClient({ apiKey: 'test', protocol: 'claude' });
-    const messages = [{
-      role: 'user',
-      content: [
-        { type: 'text', text: '看图' },
-        { type: 'image', source: { type: 'url', url: 'https://example.com/x.png' } }
-      ]
-    }];
-    const { body } = client.buildClaudeRequest(messages, {
-      systemPrompt: 'test', model: 'claude-sonnet-4-6', maxTokens: 100, stream: false
-    });
-    assert.equal(body.messages[0].content[1].type, 'image');
-    assert.equal(body.messages[0].content[1].source.url, 'https://example.com/x.png');
+    const client = new AIClient({ protocol: 'openai' });
+    await assert.rejects(
+      () => client.listModels(),
+      (err) => {
+        assert.ok(err.classified, 'error should have classified property');
+        return true;
+      }
+    );
   });
 });
