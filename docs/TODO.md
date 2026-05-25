@@ -1280,7 +1280,7 @@
   - 测试: 每个拆分模块 ≥10 用例，全量回归 0 fail
   - 复杂度: Medium
 
-- [ ] **R281: 测试覆盖率冲刺 32% CoverageSprint32** — 当前行覆盖率约 28%，目标 ≥32%（+4pp ≈ 新覆盖 ~2,100 行）
+- [x] **R281: 测试覆盖率冲刺 32% CoverageSprint32** — 当前行覆盖率约 28%，目标 ≥32%（+4pp ≈ 新覆盖 ~2,100 行）
   - 运行 c8 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块
   - 重点覆盖: `lib/bookmark-sharing.js` (372行)、`lib/bookmark-performance-opt.js` (368行)、`lib/bookmark-visualizer.js` (367行)、`lib/bookmark-smart-collections.js` 等大模块
   - 补充 `lib/cost-estimator.js`、`lib/stats-cost.js`、`lib/log-store.js` 等工具模块的边界用例
