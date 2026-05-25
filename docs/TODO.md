@@ -1193,7 +1193,7 @@
 > 目标: 行覆盖率门禁达标（≥28%）、测试执行 ≤35s、E2E Chrome CI 稳定、发布 v3.3.0
 > 任务来源优先级: 覆盖率门禁 > 测试性能 > E2E 加固 > 发布收尾
 
-- [ ] **R270: 行覆盖率门禁达标冲刺 CoverageGatePassFinal** — 当前行覆盖率 22.46%（11,652/51,871），门禁 ≥28% 未达标（差距 5.54pp/需新增覆盖 ~2,870 行）；历史 R205-R266 十次覆盖率冲刺均未让门禁稳定通过；根因：~40,000 行零覆盖模块在测试中从未被 import；(1) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-20 零覆盖纯逻辑模块编写测试（每模块 ≥5 用例，必须通过 `import` 加载确保 c8 可插桩）；(3) 重点覆盖 R163-R186 学习闭环模块群（bookmark-spaced-repetition.js、bookmark-reading-queue.js、bookmark-learning-coach.js、bookmark-predictive-engine.js 等大量零覆盖）；(4) 将 `coverage:gate --lines` 从 28 维持不变（确认实测 ≥28% 后维持）；(5) 目标: 行覆盖率 ≥28%（门禁通过）、函数覆盖率 ≥53%；(6) 新增 ≥80 用例。复杂度: Medium
+- [x] **R270: 行覆盖率门禁达标冲刺 CoverageGatePassFinal** — 当前行覆盖率 22.46%（11,652/51,871），门禁 ≥28% 未达标（差距 5.54pp/需新增覆盖 ~2,870 行）；历史 R205-R266 十次覆盖率冲刺均未让门禁稳定通过；根因：~40,000 行零覆盖模块在测试中从未被 import；(1) 运行 `c8 report --reporter=json` 精确识别零覆盖模块 Top-30（按未覆盖行数排序），筛选纯逻辑/无 Chrome API 依赖模块；(2) 为 Top-20 零覆盖纯逻辑模块编写测试（每模块 ≥5 用例，必须通过 `import` 加载确保 c8 可插桩）；(3) 重点覆盖 R163-R186 学习闭环模块群（bookmark-spaced-repetition.js、bookmark-reading-queue.js、bookmark-learning-coach.js、bookmark-predictive-engine.js 等大量零覆盖）；(4) 将 `coverage:gate --lines` 从 28 维持不变（确认实测 ≥28% 后维持）；(5) 目标: 行覆盖率 ≥28%（门禁通过）、函数覆盖率 ≥53%；(6) 新增 ≥80 用例。复杂度: Medium
 
 - [ ] **R271: 测试执行效率十三期 TestExecutionOpt13** — 当前 7801 用例执行 41.7s（目标 ≤35s 差距 6.7s/16%，历史十二次优化均未达标）；本轮采用"依赖图分片"策略：(1) 分析测试文件依赖图，识别可安全并行执行的独立子图；(2) 将测试套件按模块域拆分为 4 个分片（bookmark/knowledge/ai/core），独立并行执行；(3) 用 `--test-reporter=json --test-concurrency=1` 识别 Top-10 最慢文件（>2s），对慢用例排查根因（mock 构造开销 / 循环赋值 / 大量对象构造）并优化；(4) 建立 `npm run test:smoke` 子集 ≤80 用例 <3s 作为 CI 快速门禁；(5) 目标: `npm run test:ci` ≤35s。复杂度: Medium
 
