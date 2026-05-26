@@ -1,6 +1,6 @@
 {
   "name": "pagewise",
-  "version": "3.4.3",
+  "version": "3.5.0",
   "private": true,
   "type": "module",
   "description": "智阅 PageWise - Chrome 浏览器扩展",

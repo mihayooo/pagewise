@@ -1506,4 +1506,11 @@
 
 - [x] **R333: 知识图谱交互增强 KnowledgeGraphInteraction** — 当前知识图谱可视化仅支持查看和缩放，缺乏交互式探索能力，用户难以发现隐藏的知识关联：(1) 新建 `lib/graph-interaction.js` 纯逻辑模块：路径发现（两个书签之间的最短知识路径，基于 BFS）、子图提取（选中节点及其 N 跳邻居导出为独立子图）、节点高亮传播（点击节点后高亮其所有直接关联节点）；(2) 图谱筛选器：按标签/域名/时间范围/聚类分组过滤图谱节点，隐藏不匹配节点及其边；(3) 图谱布局切换：支持力导向/环形/分层三种布局算法，用户可在 Options 页切换；(4) 交互状态持久化：用户上次使用的布局/缩放级别/选中节点持久化至 chrome.storage.local，下次打开恢复；(5) 孤立节点处理：自动识别并以半透明样式展示孤立节点，支持一键隐藏/显示；(6) 与 BookmarkStatisticsDashboard（R323）集成：图谱面板显示基础统计信息（节点数/边数/聚类系数）；(7) 测试 ≥30 用例覆盖路径发现/子图提取/筛选逻辑/布局切换/状态持久化/孤立节点检测。复杂度: Complex
 
-- [ ] **R334: 全量回归与 v3.5.0 发布 ReleaseV350** — R330-R333 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7700 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥93%、functions ≥88%、branches ≥86%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.5.0（package.json + manifest.json 同步，minor 版本 bump 标志功能增强）；(6) CHANGELOG.md 补充 `[3.5.0]` 区段（R330-R333 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/ROADMAP.md`；(10) 确认 `[Unreleased]` 区段为空。复杂度: Simple
+- [x] **R334: 全量回归与 v3.5.0 发布 ReleaseV350** — R330-R333 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7700 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥93%、functions ≥88%、branches ≥86%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.5.0（package.json + manifest.json 同步，minor 版本 bump 标志功能增强）；(6) CHANGELOG.md 补充 `[3.5.0]` 区段（R330-R333 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/ROADMAP.md`；(10) 确认 `[Unreleased]` 区段为空。复杂度: Simple
+
+---
+
+## Phase BA: 用户价值深化与多端扩展 (R335-R339) — 5 轮
+
+> 飞轮迭代 R33，2026-05-26
+> 现状 (实测): test:ci 7656 pass / 0 fail / 29.1s；Lint 0/0
