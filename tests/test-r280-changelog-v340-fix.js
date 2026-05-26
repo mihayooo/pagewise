@@ -74,7 +74,7 @@ describe('R280: ChangelogV340Fix', () => {
     });
 
     it('[3.5.0] 区段应有实质内容（>200 字符）', () => {
-      assert.ok(section340.length > 200,
+      assert.ok(section350.length > 200,
         `[3.5.0] section should have substantial content, got ${section350.length} chars`);
     });
   });

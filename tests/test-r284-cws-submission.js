@@ -31,14 +31,14 @@ const fileSize = (rel) => statSync(join(ROOT, rel)).size;
 // 1. 版本一致性
 // ═══════════════════════════════════════════════════════
 describe('AC-1: 版本一致性', () => {
-  it('package.json version 应为 3.4.0', () => {
+  it('package.json version 应为 3.5.0', () => {
     const pkg = JSON.parse(readFile('package.json'));
-    assert.equal(pkg.version, '3.4.0');
+    assert.equal(pkg.version, '3.5.0');
   });
 
-  it('manifest.json version 应为 3.4.0', () => {
+  it('manifest.json version 应为 3.5.0', () => {
     const manifest = JSON.parse(readFile('manifest.json'));
-    assert.equal(manifest.version, '3.4.0');
+    assert.equal(manifest.version, '3.5.0');
   });
 
   it('package.json 与 manifest.json 版本一致', () => {
@@ -49,19 +49,19 @@ describe('AC-1: 版本一致性', () => {
 
   it('CHANGELOG.md 包含 [3.4.0] 区段', () => {
     const changelog = readFile('docs/CHANGELOG.md');
-    assert.ok(changelog.includes('[3.4.0]'), 'CHANGELOG 应包含 [3.4.0] 区段');
+    assert.ok(changelog.includes('[3.5.0]'), 'CHANGELOG 应包含 [3.5.0] 区段');
   });
 
-  it('CHANGELOG [3.4.0] 区段包含 R275 无障碍条目', () => {
+  it('CHANGELOG [3.5.0] 区段包含 R331 搜索持久化条目', () => {
     const changelog = readFile('docs/CHANGELOG.md');
-    assert.ok(changelog.includes('R275') || changelog.includes('AccessibilityWCAG') || changelog.includes('无障碍'),
-      'CHANGELOG [3.4.0] 应包含无障碍功能条目');
+    assert.ok(changelog.includes('R331') || changelog.includes('SearchHistoryPersist') || changelog.includes('搜索'),
+      'CHANGELOG [3.5.0] 应包含搜索持久化条目');
   });
 
-  it('CHANGELOG [3.4.0] 区段包含 R278 跨浏览器条目', () => {
+  it('CHANGELOG [3.5.0] 区段包含 R333 知识图谱条目', () => {
     const changelog = readFile('docs/CHANGELOG.md');
-    assert.ok(changelog.includes('R278') || changelog.includes('CrossBrowserCompat') || changelog.includes('跨浏览器'),
-      'CHANGELOG [3.4.0] 应包含跨浏览器兼容条目');
+    assert.ok(changelog.includes('R333') || changelog.includes('KnowledgeGraphInteraction') || changelog.includes('知识图谱'),
+      'CHANGELOG [3.5.0] 应包含知识图谱交互条目');
   });
 });
 
@@ -413,9 +413,9 @@ describe('AC-11: v3.4.0 功能模块存在性', () => {
 // 12. 文档完整性
 // ═══════════════════════════════════════════════════════
 describe('AC-12: 文档完整性', () => {
-  it('docs/CHANGELOG.md 包含 [3.4.0] 区段', () => {
+  it('docs/CHANGELOG.md 包含 [3.5.0] 区段', () => {
     const changelog = readFile('docs/CHANGELOG.md');
-    assert.ok(changelog.includes('[3.4.0]'));
+    assert.ok(changelog.includes('[3.5.0]'));
   });
 
   it('docs/IMPLEMENTATION.md 存在', () => {
@@ -426,7 +426,7 @@ describe('AC-12: 文档完整性', () => {
     assert.ok(fileExists('docs/TODO.md'));
   });
 
-  it('docs/DESIGN-ITER10.md 存在 (设计文档)', () => {
-    assert.ok(fileExists('docs/DESIGN-ITER10.md'));
+  it('docs/DESIGN-ITER56.md 存在 (设计文档)', () => {
+    assert.ok(fileExists('docs/DESIGN-ITER56.md'));
   });
 });
