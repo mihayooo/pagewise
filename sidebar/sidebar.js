@@ -16,6 +16,8 @@ import { getAllHighlightsFlat, deleteHighlight, deleteHighlightsByUrl } from '..
 import { calculateNextReview, getDueCards, getDueCardCount, initializeReviewData, recordReviewDay } from '../lib/spaced-repetition.js';
 import { buildGraphData, forceDirectedLayout } from '../lib/knowledge-graph.js';
 import { getSettings, saveSettings, renderMarkdown, formatTime, debounce, throttle, saveConversation, loadConversation, clearConversation, saveProfiles, loadProfiles } from '../lib/utils.js';
+import { buildSearchIndex, searchWithIndex, lazyLoadBookmarks } from '../lib/bookmark-performance-opt.js';
+import { getVisibleRange, shouldEnableVirtualization } from '../lib/virtual-scroll.js';
 import { saveConversation as saveConversationIDB, getConversationByUrl, getAllConversations, deleteConversation, deleteOldConversations, searchConversations } from '../lib/conversation-store.js';
 import { saveSkill as saveCustomSkill, getAllSkills as getAllCustomSkills, getSkillById as getCustomSkillById, deleteSkill as deleteCustomSkill, toggleSkill as toggleCustomSkill, renderTemplate } from '../lib/custom-skills.js';
 import { buildTopicStats, buildLearningPathPrompt, parseLearningPathResponse, validateLearningPath, renderLearningPathHTML } from '../lib/learning-path.js';
@@ -126,6 +128,13 @@ class SidebarApp {
 
     // 性能优化：懒加载标记
     this._statsLoaded = false;
+
+    // R332 性能优化：索引预热 + 图谱缓存
+    this._searchIndex = null;         // buildSearchIndex 结果缓存
+    this._searchIndexWarmed = false;  // 索引是否已预热
+    this._graphCache = null;          // 图谱布局缓存
+    this._graphCacheDirty = true;     // 图谱缓存是否过期
+    this._graphLoading = false;       // 图谱是否正在计算
 
     // 书签图谱状态
     this._bookmarkCollector = new BookmarkCollector();
@@ -1044,7 +1053,7 @@ class SidebarApp {
       this.bookmarksSearchInput.addEventListener('input', debounce(() => {
         this._bookmarkSearchQuery = this.bookmarksSearchInput.value.trim();
         this._renderBookmarksList();
-      }, 200));
+      }, 300)); // R332: 防抖 300ms（原 200ms）
     }
     if (this.btnBookmarksBack) {
       this.btnBookmarksBack.addEventListener('click', () => this._hideBookmarkDetail());
@@ -7168,13 +7177,20 @@ ${sendContent}
       // 采集书签
       this._bookmarks = await this._bookmarkCollector.collect();
 
-      // 构建索引
-      if (this._bookmarks.length > 0) {
-        this._bookmarkIndexer.buildIndex(this._bookmarks);
+      // R332: 分页首批渲染 — 只处理前 50 条用于首屏
+      const firstPage = lazyLoadBookmarks(this._bookmarks, 50, 0);
+
+      // 构建索引（首批数据）
+      if (firstPage.items.length > 0) {
+        this._bookmarkIndexer.buildIndex(firstPage.items);
       }
 
-      // 构建图谱
-      if (this._bookmarks.length > 0) {
+      // R332: 图谱懒加载 — 不在首屏时构建图谱，延迟到用户切换到图谱标签页
+      // 图谱构建标记为延迟加载
+      this._graphCacheDirty = true;
+
+      // 构建图谱引擎关系（仅基于首批数据的轻量构建）
+      if (firstPage.items.length > 0) {
         this._bookmarkGraphEngine.buildGraph(this._bookmarks);
       }
 
