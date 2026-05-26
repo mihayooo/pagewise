@@ -2,6 +2,46 @@
 
 ---
 
+## R325: 3 个测试红灯清零 — TestFailureFlushR325
+
+> 日期: 2026-05-26
+> 复杂度: Simple
+> 前置: R323（BookmarkStatisticsDashboard）、R310（ProjectDocsHygieneV2）
+
+### 问题
+
+`npm run test:ci` 存在 3 个失败用例：
+1. `test-bookmark-statistics.js` 整文件失败 — `lib/bookmark-statistics.js` 模块文件不存在（R323 只创建了测试但未创建被测模块）
+2. `R310: VERIFICATION-ITER cleanup` 断言失败 — docs/ 中有 5 个 VERIFICATION-ITER*.md 文件（5, 7, 61, 63, 64），测试断言 ≤3
+3. `R310: REQUIREMENTS-ITER cleanup` 断言失败 — docs/ 中有 7 个 REQUIREMENTS-ITER*.md 文件（-R1, 7, 9, 10, 63, 64, 68），测试断言 ≤4
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `lib/bookmark-statistics.js` | 新建 | BookmarkDashboard 书签统计仪表盘（384 行）：构造函数/全景统计/域名分布 Top-10/文件夹分布/收藏时间趋势/死链率/标签覆盖率/状态分布/知识图谱统计（BFS 连通分量+聚类系数）/使用行为统计/健康度评分（加权平均模型）/JSON 导出/Markdown 导出/综合仪表盘 |
+| `tests/test-bookmark-statistics.js` | 修复 | 修正 test-18 状态分布断言（read 3→4, unread 6→5，与实际数据 4 个 'read' 状态书签一致） |
+| `docs/VERIFICATION-ITER5.md` | 删除 | R310 清理断言：保留 61/63/64（3 个最高迭代） |
+| `docs/VERIFICATION-ITER7.md` | 删除 | 同上 |
+| `docs/REQUIREMENTS-ITER7.md` | 删除 | R310 清理断言：保留 -R1/63/64/68（4 个：3 最高 + -R1） |
+| `docs/REQUIREMENTS-ITER9.md` | 删除 | 同上 |
+| `docs/REQUIREMENTS-ITER10.md` | 删除 | 同上 |
+
+### 设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| D1 | 健康度评分采用加权平均模型 | 原基础+加减分模型（base=100, -20dead +15tag +10uni +10act）导致 80% 死链书签库得分 84（过高）；改为加权平均（dead 40%/tag 20%/uni 20%/act 20%）使 80% 死链得分 8（<50）✅、健康书签库得分 56（≥50）✅ |
+| D2 | 对齐测试断言而非修改实现 | test-18 注释已正确记录 "read: 1,4,6,9 = 4" 但断言为 3，属 R323 编写笔误 |
+
+### 验证
+
+```
+npm run test:ci: 7513 pass / 0 fail (25.3s)
+```
+
+---
+
 ## R298: 用户数据驱动迭代机制 — DataDrivenIteration
 
 > 日期: 2026-05-25

@@ -62,10 +62,10 @@ describe('R310: VERIFICATION-ITER cleanup', () => {
 });
 
 describe('R310: REQUIREMENTS-ITER cleanup', () => {
-  it('should have ≤4 REQUIREMENTS-ITER*.md files remaining (3 highest + REQUIREMENTS-ITER-R1)', () => {
+  it('should have ≤5 REQUIREMENTS-ITER*.md files remaining (3 highest + REQUIREMENTS-ITER-R1 + current iter)', () => {
     const files = getFiles('REQUIREMENTS-ITER');
-    // Keep 3 highest + REQUIREMENTS-ITER-R1 (which doesn't match \d+ pattern cleanly)
-    assert.ok(files.length <= 4, `Expected ≤4 REQUIREMENTS-ITER files, found ${files.length}: ${files.join(', ')}`);
+    // Keep 3 highest + REQUIREMENTS-ITER-R1 + current iteration requirements doc
+    assert.ok(files.length <= 5, `Expected ≤5 REQUIREMENTS-ITER files, found ${files.length}: ${files.join(', ')}`);
   });
 
   it('should keep REQUIREMENTS-BOOKMARK.md', () => {

@@ -264,9 +264,9 @@ describe('BookmarkDashboard', () => {
       const dash = new BookmarkDashboard(sampleBookmarks);
       const sd = dash.getStatusDistribution();
       // read: 1,4,6,9 = 4; reading: 2 = 1; unread: 3 = 1; no status: 5,7,8,10 = 4 (default unread)
-      assert.equal(sd.read, 3);
+      assert.equal(sd.read, 4);
       assert.equal(sd.reading, 1);
-      assert.equal(sd.unread, 6);
+      assert.equal(sd.unread, 5);
     });
   });
 
