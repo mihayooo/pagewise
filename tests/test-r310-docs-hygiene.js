@@ -53,10 +53,10 @@ describe('R310: VERIFICATION-ITER cleanup', () => {
     const files = getFiles('VERIFICATION-ITER').filter(f => /^VERIFICATION-ITER\d/.test(f));
     if (files.length > 0) {
       const nums = files.map(getIterNum).filter(n => n !== null).sort((a, b) => a - b);
-      // Highest 3 are 61, 63, 64
-      assert.ok(nums.includes(64), 'Should keep VERIFICATION-ITER64');
+      // Highest 3 are 22, 61, 63
       assert.ok(nums.includes(63), 'Should keep VERIFICATION-ITER63');
       assert.ok(nums.includes(61), 'Should keep VERIFICATION-ITER61');
+      assert.ok(nums.includes(22), 'Should keep VERIFICATION-ITER22');
     }
   });
 });
