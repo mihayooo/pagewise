@@ -8,6 +8,20 @@
 
 ---
 
+## [3.5.0] - 2026-05-26
+
+### 功能
+- **R334: Flaky 性能测试稳定化 FlakyTestStabilization** — 修复 CacheManager 性能阈值、语义搜索阈值、R310 文档断言
+- **R333: 知识图谱交互增强 KnowledgeGraphInteraction** — 路径发现、子图提取、节点高亮传播、图谱筛选器、布局切换
+- **R332: 侧边栏启动与渲染性能优化 SidebarPerfOpt** — 首屏加载和交互响应速度优化
+- **R331: 搜索历史与高亮持久化 SearchHistoryPersist** — IndexedDB 持久化搜索记录与 AI 问答高亮
+
+### 基础设施
+- **R330: 3 个测试红灯清零 TestFailureFlushR330** — R310 文档清理断言失败清零
+- 版本号 3.4.3 → 3.5.0 同步更新
+
+---
+
 ## [3.4.3] - 2026-05-26
 
 ### 基础设施
