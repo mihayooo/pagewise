@@ -16,8 +16,7 @@ import { getAllHighlightsFlat, deleteHighlight, deleteHighlightsByUrl } from '..
 import { calculateNextReview, getDueCards, getDueCardCount, initializeReviewData, recordReviewDay } from '../lib/spaced-repetition.js';
 import { buildGraphData, forceDirectedLayout } from '../lib/knowledge-graph.js';
 import { getSettings, saveSettings, renderMarkdown, formatTime, debounce, throttle, saveConversation, loadConversation, clearConversation, saveProfiles, loadProfiles } from '../lib/utils.js';
-import { buildSearchIndex, searchWithIndex, lazyLoadBookmarks } from '../lib/bookmark-performance-opt.js';
-import { getVisibleRange, shouldEnableVirtualization } from '../lib/virtual-scroll.js';
+import { lazyLoadBookmarks } from '../lib/bookmark-performance-opt.js';
 import { saveConversation as saveConversationIDB, getConversationByUrl, getAllConversations, deleteConversation, deleteOldConversations, searchConversations } from '../lib/conversation-store.js';
 import { saveSkill as saveCustomSkill, getAllSkills as getAllCustomSkills, getSkillById as getCustomSkillById, deleteSkill as deleteCustomSkill, toggleSkill as toggleCustomSkill, renderTemplate } from '../lib/custom-skills.js';
 import { buildTopicStats, buildLearningPathPrompt, parseLearningPathResponse, validateLearningPath, renderLearningPathHTML } from '../lib/learning-path.js';

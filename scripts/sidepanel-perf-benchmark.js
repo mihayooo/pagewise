@@ -28,7 +28,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const { buildSearchIndex, searchWithIndex, lazyLoadBookmarks, getIndexStats } =
   await import('../lib/bookmark-performance-opt.js');
 
-const { getVisibleRange, shouldEnableVirtualization } =
+const { getVisibleRange } =
   await import('../lib/virtual-scroll.js');
 
 // ==================== 数据生成 ====================
