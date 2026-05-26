@@ -1460,3 +1460,22 @@
 - [x] **R323: 书签统计仪表盘 BookmarkStatisticsDashboard** — REQUIREMENTS-BOOKMARK.md R069 已定义但从未实现；用户缺乏对书签库整体健康度和使用模式的量化认知；(1) 新建 `lib/bookmark-statistics.js` 纯逻辑模块：提供书签库全景统计（总数/按域名分布 Top-10/按文件夹分布/按添加时间趋势/死链率/标签覆盖率/状态分布 unread-reading-read）；(2) 知识图谱统计：节点数/边数/平均连接度/孤立节点数/最大连通分量大小/聚类系数；(3) 使用行为统计：复用 `lib/telemetry.js` 数据，计算日均问答次数/书签收藏频率/搜索频率/AI 推荐点击率；(4) 健康度评分：综合死链率(-20分)、标签覆盖率(+15分)、分类均匀度(+10分)、活跃度(+10分) 生成 0-100 健康度分数；(5) 统计数据导出：JSON 格式完整数据 + Markdown 可读报告；(6) 在 Options 页新增"统计"标签页渲染统计图表（纯 CSS 柱状图/饼图，无第三方库）；(7) 测试 ≥30 用例覆盖各维度统计计算/健康评分/边界条件（空书签库/超大书签库）。复杂度: Medium
 
 - [x] **R324: 全量回归与 v3.4.3 发布收尾 ReleaseV343** — R320-R323 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7800 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.4.3（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.3]` 区段（R320-R323 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/ROADMAP.md`。复杂度: Simple
+
+---
+
+## Phase AY: 测试红灯清零与 v3.4.3 发布落地 (R325-R329) — 5 轮
+
+> 飞轮迭代 R31，2026-05-26
+> 现状 (实测): test:ci 7474 pass / **3 fail** / 26s；Lint 0/0；行覆盖率 ~28%（门禁 ≥28% 零安全裕量）；260 个 lib 模块 (54,700 行)；VERSION 3.4.2；R324 发布任务实现阶段失败（Phase 2 & 3 失败，R9 迭代报告确认）；3 个失败测试: test-bookmark-statistics.js（R323 新模块测试）、R310 VERIFICATION-ITER cleanup 断言、R310 REQUIREMENTS-ITER cleanup 断言；docs/ 过期文档清理断言与实际清理结果不匹配
+> 目标: 清零 3 个测试红灯恢复 0 fail、v3.4.3 版本发布真正落地、覆盖率安全裕量至 ≥30%、首个用户价值功能（批量书签整理建议）、CHANGELOG 卫生收尾
+> 任务来源优先级: 修复失败测试(质量底线) > v3.4.3 发布落地 > 覆盖率安全裕量 > 产品功能 > 文档收尾
+
+- [ ] **R325: 3 个测试红灯清零 TestFailureFlushR325** — `npm run test:ci` 中 3 个失败用例需一次性清零：(1) `test-bookmark-statistics.js` 整文件失败（R323 新建的 BookmarkStatisticsDashboard 模块测试断言与实际模块实现不匹配，可能为模块导出/API 签名/计算逻辑偏差）；(2) `R310: VERIFICATION-ITER cleanup` 断言失败（R310 文档卫生治理声称清理 138 个过期文档但断言清理数量/保留文件列表与实际不一致）；(3) `R310: REQUIREMENTS-ITER cleanup` 断言失败（同 R310 清理结果断言不匹配）；(1) 逐一排查 3 个失败根因，对齐测试断言与实际实现/清理结果；(2) 对 test-bookmark-statistics.js: 对比 `lib/bookmark-statistics.js` 实际导出函数与测试 import/断言，修复不匹配项；(3) 对 R310 清理测试: 用 `ls docs/DESIGN-ITER* docs/VERIFICATION-ITER* docs/REQUIREMENTS-ITER*` 实际计数更新断言；(4) 目标: `npm run test:ci` 7477 pass / 0 fail。复杂度: Simple
+
+- [ ] **R326: v3.4.3 版本发布真正落地 ReleaseV343Landing** — R324 标记完成但实现阶段失败（R9 Phase 2 & 3 失败），版本仍为 3.4.2，CHANGELOG 缺 [3.4.3] 区段；(1) `npm run test:ci` 0 fail（≥7477 pass）+ `npm run lint` 0/0；(2) 覆盖率门禁三项通过（lines ≥28%、functions ≥50%、branches ≥75%）；(3) 版本号 bump 至 3.4.3（`package.json` + `manifest.json` 同步，`scripts/bump-version.sh`）；(4) CHANGELOG.md 补充 `[3.4.3] - 2026-05-26` 区段（R320-R325 变更摘要：书签内容预览/CHANGELOG 卫生/覆盖率安全裕量/统计仪表盘/测试红灯清零）；(5) 确认 `[Unreleased]` 区段为空；(6) 更新 `docs/ROADMAP.md` 状态表至 v3.4.3/R325；(7) 更新 `docs/reports/coverage-baseline.md` 最新数据；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) `npm run test:e2e` ≥9 条路径通过。复杂度: Simple
+
+- [ ] **R327: 行覆盖率安全裕量巩固 30% CoverageSafetyMargin30** — 当前行覆盖率 ~28% 门禁 ≥28% 零安全裕量，R325 修复测试后需确认覆盖率未退化；(1) 运行 `npm run test:coverage` 获取精确基线（行/函数/分支/语句四维度）；(2) 分析 c8 报告中零覆盖高价值模块 Top-20（>150 行纯逻辑），优先 R320 新建的 `bookmark-content-preview.js` 和 R323 新建的 `bookmark-statistics.js` 确保测试覆盖；(3) 为 Top-10 零覆盖模块补充边界用例（每模块 ≥3 用例，覆盖正常路径+异常路径+空数据）；(4) 新增用例 ≥30，目标行覆盖率 ≥30%（2pp 安全裕量）、函数覆盖率 ≥53%；(5) 将 `coverage:gate --lines` 从 28 收紧至 30；(6) 更新 `docs/reports/coverage-baseline.md`。复杂度: Medium
+
+- [ ] **R328: 批量书签整理建议 BookmarkOrganizeSuggestions** — 用户书签积累至数百/上千条后文件夹结构混乱、重复/死链/未分类书签堆积，缺乏一键整理能力；新建 `lib/bookmark-organize-suggestions.js` 纯逻辑模块：(1) 综合分析：聚合 BookmarkDedup（重复检测）、BookmarkLinkChecker（死链）、BookmarkFolderAnalyzer（文件夹质量）、BookmarkGapDetector（分类盲区）、BookmarkStatusManager（未读堆积）五个模块输出，生成整理优先级队列；(2) 建议类型 6 种：合并重复书签（URL 相似 + 标题相似）、删除死链、归档未读超 90 天书签、文件夹合并/拆分建议、未分类书签批量归类、标签补全建议；(3) 优先级排序：按影响书签数量 × 用户可见度综合评分，Top-5 建议优先展示；(4) 一键执行：每条建议附带 `executeSuggestion()` 操作函数（批量删除/合并/移动/打标签），执行前预览影响范围；(5) 整理报告：生成 Markdown 格式整理建议报告（书签总数/问题分布/建议列表/预期效果）；(6) 与 SettingsManager 集成：用户可设置自动整理频率（weekly/monthly/off）；(7) 测试 ≥30 用例覆盖各建议类型生成/优先级排序/执行操作/边界条件（空书签库/全死链/全重复）。复杂度: Medium
+
+- [ ] **R329: 全量回归与迭代收尾 IterationCloseAY** — R325-R328 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7500 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号确认 3.4.3（package.json + manifest.json 一致）；(6) `npm run test:e2e` ≥9 条路径通过；(7) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(8) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md` + `docs/ROADMAP.md`。复杂度: Simple
