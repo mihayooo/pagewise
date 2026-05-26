@@ -2,7 +2,7 @@
 
 > 基于 PRD.md 和 REQUIREMENTS-BOOKMARK.md 规划
 > 迭代轮次: R43 - R314
-> 最后更新: 2026-05-25
+> 最后更新: 2026-05-26
 
 ---
 
@@ -1487,3 +1487,23 @@
 - [x] **R181: 测试覆盖率提升** — 补充 0% 覆盖率模块的单元测试，目标 ≥80%
 - [x] **R182: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
+
+---
+
+## Phase AZ: 测试清零、搜索体验深化与架构审计 (R330-R334) — 5 轮
+
+> 飞轮迭代 R32，2026-05-26
+> 现状 (实测): test:ci 7656 pass / **0 fail** / 29.1s；Lint 0/0；Coverage Lines 93.73% / Branches 86.77% / Functions 88.73%（全量测试套件）；263 个 lib 模块 (54,700+ 行)；VERSION 3.4.3；技术债务全部清零；R4-R330 全部完成
+> R330 已清零 3 个 R310 断言失败：删除 DESIGN-ITER17/18、VERIFICATION-ITER11/15、REQUIREMENTS-ITER11/12 共 6 个过期文档
+> 目标: 清零 3 个测试红灯恢复 0 fail、搜索历史与高亮持久化提升用户连续体验、侧边栏性能优化、知识图谱交互增强、发布 v3.5.0
+> 任务来源优先级: 修复失败测试(质量底线) > 搜索体验(核心路径) > 性能优化(用户体验) > 知识图谱增强(产品差异化) > 发布收尾
+
+- [x] **R330: 3 个测试红灯清零 TestFailureFlushR330** — `npm run test:ci` 中 3 个 R310 文档清理断言失败需一次性清零：(1) `R310: DESIGN-ITER cleanup` 期望 ≤3 个文件但实际有 4 个（多出 `DESIGN-ITER17.md`），需删除该文件或更新断言为 ≤4；(2) `R310: VERIFICATION-ITER cleanup` 期望 ≤3 个文件但实际有 5 个（多出 `VERIFICATION-ITER11.md`、`VERIFICATION-ITER15.md`），需删除多余文件或更新断言；(3) `R310: REQUIREMENTS-ITER cleanup` 期望 ≤5 个文件但实际有 6 个（多出 `REQUIREMENTS-ITER11.md`），需删除或更新断言；(4) 优先策略：删除多余过期文档（更符合 R310 清理意图），而非放宽断言；(5) 验证 `npm run test:ci` 0 fail（≥7656 pass）。复杂度: Simple
+
+- [ ] **R331: 搜索历史与高亮持久化 SearchHistoryPersist** — 用户在 SidePanel 中的搜索记录和 AI 问答高亮在页面刷新后丢失，缺乏连续搜索体验：(1) 新建 `lib/search-history.js` 纯逻辑模块：基于 IndexedDB 持久化搜索历史记录（query/timestamp/resultCount/sourceTab），最多保留 200 条，支持按时间/频率排序；(2) 搜索建议：输入前 2 字符自动匹配历史记录 Top-5，按最近使用频率加权排序；(3) AI 问答高亮持久化：将用户选中文字+AI 回答关联存储至 IndexedDB（bookmarkId/pageUrl/selectedText/aiAnswer/createdAt），再次访问同一页面时自动恢复高亮；(4) 搜索历史导出：支持 JSON/Markdown 格式导出全部搜索记录（与 R318 KnowledgeExport 风格一致）；(5) 隐私控制：用户可在设置中清除全部搜索历史/关闭历史记录功能；(6) 在 SidePanel 搜索框下方渲染"最近搜索"快捷标签（最近 5 条，点击即搜）；(7) 测试 ≥25 用例覆盖历史存储/去重/排序/建议匹配/导出/清理/隐私控制。复杂度: Medium
+
+- [ ] **R332: 侧边栏启动与渲染性能优化 SidebarPerfOpt** — SidePanel 在书签数量增长（>500）后启动和交互出现明显延迟，需优化首屏加载和交互响应速度：(1) 性能基线测量：新建 `scripts/sidepanel-perf-benchmark.js`，测量 SidePanel 首屏渲染时间（DOMContentLoaded → 首批书签列表可交互）、搜索响应时间、图谱渲染时间，输出 JSON 基线报告；(2) 虚拟滚动：当书签列表 >100 项时启用虚拟化渲染（仅渲染可视区域 + 上下各 5 项缓冲），新建 `lib/virtual-scroll.js` 纯逻辑模块；(3) 懒加载策略：书签图谱可视化的力导向计算延迟至用户切换到"图谱"标签页后触发，首屏不加载图谱；(4) 搜索防抖：搜索输入 300ms 防抖 + 索引预热（首次搜索时预加载倒排索引至内存 Map）；(5) 缓存层：SidePanel 启动时从 IndexedDB 批量读取书签改为分页读取（首次 50 条 → 滚动加载更多），减少首屏 IO 阻塞；(6) 目标：首屏渲染 <500ms（书签 <1000）、搜索响应 <100ms；(7) 测试 ≥20 用例覆盖虚拟滚动/防抖/分页加载/性能断言。复杂度: Complex
+
+- [ ] **R333: 知识图谱交互增强 KnowledgeGraphInteraction** — 当前知识图谱可视化仅支持查看和缩放，缺乏交互式探索能力，用户难以发现隐藏的知识关联：(1) 新建 `lib/graph-interaction.js` 纯逻辑模块：路径发现（两个书签之间的最短知识路径，基于 BFS）、子图提取（选中节点及其 N 跳邻居导出为独立子图）、节点高亮传播（点击节点后高亮其所有直接关联节点）；(2) 图谱筛选器：按标签/域名/时间范围/聚类分组过滤图谱节点，隐藏不匹配节点及其边；(3) 图谱布局切换：支持力导向/环形/分层三种布局算法，用户可在 Options 页切换；(4) 交互状态持久化：用户上次使用的布局/缩放级别/选中节点持久化至 chrome.storage.local，下次打开恢复；(5) 孤立节点处理：自动识别并以半透明样式展示孤立节点，支持一键隐藏/显示；(6) 与 BookmarkStatisticsDashboard（R323）集成：图谱面板显示基础统计信息（节点数/边数/聚类系数）；(7) 测试 ≥30 用例覆盖路径发现/子图提取/筛选逻辑/布局切换/状态持久化/孤立节点检测。复杂度: Complex
+
+- [ ] **R334: 全量回归与 v3.5.0 发布 ReleaseV350** — R330-R333 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7700 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥93%、functions ≥88%、branches ≥86%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.5.0（package.json + manifest.json 同步，minor 版本 bump 标志功能增强）；(6) CHANGELOG.md 补充 `[3.5.0]` 区段（R330-R333 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/ROADMAP.md`；(10) 确认 `[Unreleased]` 区段为空。复杂度: Simple

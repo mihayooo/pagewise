@@ -10,6 +10,12 @@
 
 ## [3.4.3] - 2026-05-26
 
+### 基础设施
+- **R330: 3 个测试红灯清零 TestFailureFlushR330** — `npm run test:ci` 3 个 R310 文档清理断言失败一次性清零
+  - 删除过期文档：`DESIGN-ITER17.md`、`DESIGN-ITER18.md`、`VERIFICATION-ITER11.md`、`VERIFICATION-ITER15.md`、`REQUIREMENTS-ITER11.md`、`REQUIREMENTS-ITER12.md`
+  - 策略：删除多余过期文档（符合 R310 清理意图），而非放宽断言
+  - `npm run test:ci`: **7656 pass / 0 fail** (29.1s)
+
 ### 功能
 - **R323: 书签统计仪表盘 BookmarkStatisticsDashboard** — 新建 `lib/bookmark-statistics.js` BookmarkDashboard 纯逻辑模块，全景统计（总数/域名分布 Top-10/文件夹分布/时间趋势/死链率/标签覆盖率/状态分布）+ 知识图谱统计（节点数/边数/聚类系数/孤立节点）+ 使用行为统计 + 健康度评分（加权平均模型）+ JSON/Markdown 导出
 - **R320: 书签内容预览 BookmarkContentPreview** — 新建 `lib/bookmark-content-preview.js`，OG/meta 提取 + IndexedDB 缓存 + 详情面板集成

@@ -2,6 +2,45 @@
 
 ---
 
+## R330: 3 个测试红灯清零 — TestFailureFlushR330
+
+> 日期: 2026-05-26
+> 复杂度: Simple
+> 前置: R310（ProjectDocsHygieneV2）、R325（TestFailureFlushR325）
+
+### 问题
+
+`npm run test:ci` 存在 3 个 R310 文档清理断言失败：
+1. `R310: DESIGN-ITER cleanup` 期望 ≤3 个文件但实际有 5 个（多出 `DESIGN-ITER17.md`、`DESIGN-ITER18.md`）
+2. `R310: VERIFICATION-ITER cleanup` 期望 ≤3 个文件但实际有 5 个（多出 `VERIFICATION-ITER11.md`、`VERIFICATION-ITER15.md`）
+3. `R310: REQUIREMENTS-ITER cleanup` 期望 ≤5 个文件但实际有 6 个（多出 `REQUIREMENTS-ITER11.md`、`REQUIREMENTS-ITER12.md`）
+
+### 修改内容
+
+| 文件 | 操作 | 变更内容 |
+|------|------|----------|
+| `docs/DESIGN-ITER17.md` | 删除 | R310 清理断言：保留 56/64/67（3 个最高迭代） |
+| `docs/DESIGN-ITER18.md` | 删除 | 同上 |
+| `docs/VERIFICATION-ITER11.md` | 删除 | R310 清理断言：保留 61/63/64（3 个最高迭代） |
+| `docs/VERIFICATION-ITER15.md` | 删除 | 同上 |
+| `docs/REQUIREMENTS-ITER11.md` | 删除 | R310 清理断言：保留 -R1/12/63/64/68（5 个：3 最高 + -R1 + 12） |
+| `docs/REQUIREMENTS-ITER12.md` | 删除 | 同上 |
+
+### 设计决策
+
+| ID | 决策 | 原因 |
+|----|------|------|
+| D1 | 删除多余过期文档而非放宽断言 | 更符合 R310 清理意图：保持文档精简，只保留最高迭代版本 |
+| D2 | DESIGN-ITER18.md 一并删除 | 测试断言保留 56/64/67（≤3 个最高迭代），17 和 18 均为低编号旧文档 |
+
+### 验证
+
+```
+npm run test:ci: 7656 pass / 0 fail (29.1s)
+```
+
+---
+
 ## R325: 3 个测试红灯清零 — TestFailureFlushR325
 
 > 日期: 2026-05-26
