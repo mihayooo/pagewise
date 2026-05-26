@@ -1440,4 +1440,23 @@
 
 - [x] **R318: 知识条目导出功能 KnowledgeExport** — 用户在 PageWise 中积累的知识库条目无法批量导出为通用格式，数据被锁在 IndexedDB 中：(1) 新建 `lib/knowledge-export.js` 纯逻辑模块，支持将知识库条目导出为 Markdown（标题+来源URL+标签+内容+AI摘要+创建时间）、JSON（完整结构化数据含元数据）、CSV（表格化适合 Excel/Notion 导入）三种格式；(2) 导出范围支持: 全量导出、按标签筛选导出、按时间范围导出、按书签关联导出；(3) 导出物包含元数据头: 导出时间、条目总数、版本号、筛选条件；(4) Markdown 导出格式: 每条目为二级标题，含来源链接、标签列表、原始摘录、AI 摘要、关联书签；(5) 在 SidePanel/Options 页添加"导出"按钮（触发 `chrome.downloads.download` 下载）；(6) 大量条目（>500）分批处理避免内存溢出；(7) 测试 ≥25 用例覆盖三种格式/筛选逻辑/分批处理/元数据完整性。复杂度: Medium
 
-- [ ] **R319: 全量回归与 v3.4.2 发布收尾 ReleaseV342Final** — R315-R318 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7774 pass，含 R317 回收的 ≥300 测试）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号确认 3.4.2（package.json + manifest.json 已在 R316 同步）；(6) `npm run test:e2e` ≥9 条路径通过；(7) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(8) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`；(9) 更新 `docs/ROADMAP.md` 最终状态表。复杂度: Simple
+- [x] **R319: 全量回归与 v3.4.2 发布收尾 ReleaseV342Final** — R315-R318 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7774 pass，含 R317 回收的 ≥300 测试）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号确认 3.4.2（package.json + manifest.json 已在 R316 同步）；(6) `npm run test:e2e` ≥9 条路径通过；(7) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(8) 更新 `docs/reports/coverage-baseline.md` + `docs/reports/test-perf-analysis.md`；(9) 更新 `docs/ROADMAP.md` 最终状态表。复杂度: Simple
+
+---
+
+## Phase AX: 用户价值新功能与质量防线巩固 (R320-R324) — 5 轮
+
+> 飞轮迭代 R30，2026-05-26
+> 现状: R4-R319 全部完成；技术债务清零；260 个 lib 模块 (54,700 行)；VERSION 3.4.2；CHANGELOG [Unreleased] 仍含 R295/R298 条目未归入版本区段；REQUIREMENTS-BOOKMARK.md 中 R064 BookmarkContentPreview 和 R069 BookmarkStatistics 已定义但从未实现；行覆盖率 ~28%（门禁零安全裕量）；docs/reports/2026-05-26-R4.md 显示 Phase 1-3 失败表明飞轮引擎仍有间歇性故障
+> 目标: 实现首个待交付产品功能（内容预览）、CHANGELOG 版本归档、覆盖率安全裕量巩固、统计仪表盘、发布 v3.4.3
+> 任务来源优先级: 产品功能(用户价值) > CHANGELOG 卫生(发布前提) > 覆盖率安全裕量(质量防线) > 统计仪表盘(数据洞察) > 发布收尾
+
+- [x] **R320: 书签内容预览功能 BookmarkContentPreview** — REQUIREMENTS-BOOKMARK.md R064 已定义但从未实现；用户在图谱中点击书签时只能看到标题/URL/文件夹，无法预览页面内容摘要，需在不打开原网页的情况下快速了解书签页面核心内容；(1) 新建 `lib/bookmark-content-preview.js` 纯逻辑模块：提取页面关键信息（Open Graph 标题/描述、meta description、页面首段文字、favicon URL）；(2) 预览缓存：首次获取的预览内容持久化至 IndexedDB（避免重复请求），缓存过期策略（30 天自动失效）；(3) 预览数据模型：{ bookmarkId, title, description, imageUrl, faviconUrl, fetchedAt, source (og/meta/manual) }；(4) 与 `lib/bookmark-detail-panel.js` 集成：详情面板新增"内容预览"区域，显示描述文字+封面图+favicon；(5) 预览加载状态：loading skeleton → 成功展示 / 失败降级（仅显示 URL）；(6) 批量预览：支持一次性预加载 Top-20 最近书签的预览数据（后台 Service Worker 空闲时执行）；(7) 测试 ≥25 用例覆盖数据提取/缓存命中/过期淘汰/降级策略/批量预加载。复杂度: Medium
+
+- [ ] **R321: CHANGELOG 版本归档与文档卫生 ChangelogHygiene** — CHANGELOG.md [Unreleased] 区段仍含 R295（测试基础设施可靠性堡垒）和 R298（用户数据驱动迭代机制）两个条目，应归入已发布的版本区段；(1) 将 [Unreleased] 中 R295/R298 条目迁移至对应版本区段（R295 属于 Phase AS R295-R299，应归入 [3.4.1] 或 [3.4.2]）；(2) 确认 [Unreleased] 区段清空（所有已完成变更均已归入版本号）；(3) 验证 CHANGELOG 中 [3.4.2] 区段包含 R310-R319 全部变更摘要；(4) 审查 docs/ROADMAP.md 版本状态表与实际版本号（3.4.2）一致；(5) 审查 docs/ARCHITECTURE.md 模块数/行数声明与实际（260 模块/54,700 行）一致；(6) `npm run test:ci:release` version-sync 测试 0 fail。复杂度: Simple
+
+- [ ] **R322: 行覆盖率安全裕量至 32% CoverageSafetyMargin32** — 当前行覆盖率 ~28%（门禁 ≥28% 零安全裕量），R320 新增模块（bookmark-content-preview.js）将进一步稀释覆盖率分母；需在新功能引入前建立 4pp 安全裕量；(1) 运行 `npm run test:coverage` 获取精确基线（行/函数/分支/语句四维度）；(2) 分析 c8 报告中 Top-20 零覆盖高价值模块（>150 行纯逻辑，优先 ai-client-*.js / knowledge-base-crud.js / bookmark-graph-engine.js / bookmark-spaced-repetition.js 等核心模块）；(3) 为 Top-15 模块编写边界用例（每模块 ≥3 用例，覆盖正常路径+异常路径+空数据）；(4) 新增用例 ≥50，目标行覆盖率 ≥32%（4pp 安全裕量）、函数覆盖率 ≥56%；(5) 将 `coverage:gate --lines` 从 28 收紧至 30；(6) 更新 `docs/reports/coverage-baseline.md`。复杂度: Medium
+
+- [ ] **R323: 书签统计仪表盘 BookmarkStatisticsDashboard** — REQUIREMENTS-BOOKMARK.md R069 已定义但从未实现；用户缺乏对书签库整体健康度和使用模式的量化认知；(1) 新建 `lib/bookmark-statistics.js` 纯逻辑模块：提供书签库全景统计（总数/按域名分布 Top-10/按文件夹分布/按添加时间趋势/死链率/标签覆盖率/状态分布 unread-reading-read）；(2) 知识图谱统计：节点数/边数/平均连接度/孤立节点数/最大连通分量大小/聚类系数；(3) 使用行为统计：复用 `lib/telemetry.js` 数据，计算日均问答次数/书签收藏频率/搜索频率/AI 推荐点击率；(4) 健康度评分：综合死链率(-20分)、标签覆盖率(+15分)、分类均匀度(+10分)、活跃度(+10分) 生成 0-100 健康度分数；(5) 统计数据导出：JSON 格式完整数据 + Markdown 可读报告；(6) 在 Options 页新增"统计"标签页渲染统计图表（纯 CSS 柱状图/饼图，无第三方库）；(7) 测试 ≥30 用例覆盖各维度统计计算/健康评分/边界条件（空书签库/超大书签库）。复杂度: Medium
+
+- [ ] **R324: 全量回归与 v3.4.3 发布收尾 ReleaseV343** — R320-R323 全部完成后执行：(1) `npm run test:ci` 0 fail（目标 ≥7800 pass）；(2) `npm run lint` 0 errors 0 warnings；(3) 覆盖率门禁三项全部通过（lines ≥30%、functions ≥53%、branches ≥75%）；(4) 测试执行 ≤35s；(5) 版本号 bump 至 3.4.3（package.json + manifest.json 同步）；(6) CHANGELOG.md 补充 `[3.4.3]` 区段（R320-R323 变更摘要）；(7) `npm run test:e2e` ≥9 条路径通过；(8) 运行 `scripts/publish-check.sh` 验证发布产物就绪；(9) 更新 `docs/reports/coverage-baseline.md` + `docs/ROADMAP.md`。复杂度: Simple
