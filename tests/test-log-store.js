@@ -1,8 +1,8 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { addLog, logDebug, logInfo, logWarn, logError, getLogs, getLogsByModule, getLogsByLevel, clearLogs, exportLogs, LogLevel } from '../lib/log-store.js';
+import { addLog, logDebug, logInfo, logWarn, logError, getLogs, getLogsByModule, getLogsByLevel, clearLogs, exportLogs, LogLevel, recordMetric, getMetrics, getMetricsByCategory, getRecentMetrics, getPerformanceStats, clearMetrics } from '../lib/log-store.js';
 
-beforeEach(() => { clearLogs(); });
+beforeEach(() => { clearLogs(); clearMetrics(); });
 
 describe('log-store', () => {
 
@@ -132,6 +132,121 @@ describe('log-store', () => {
     assert.equal(LogLevel.INFO, 'info');
     assert.equal(LogLevel.WARN, 'warn');
     assert.equal(LogLevel.ERROR, 'error');
+  });
+
+});
+
+// ==================== 性能指标 ====================
+
+describe('performance metrics', () => {
+
+  it('recordMetric — 记录一条指标', () => {
+    const entry = recordMetric('api', 150.5, { model: 'gpt-4o' });
+    assert.ok(entry);
+    assert.equal(entry.category, 'api');
+    assert.equal(entry.durationMs, 150.5);
+    assert.ok(typeof entry.id === 'string');
+    assert.ok(entry.timestamp > 0);
+    assert.ok(entry.data.includes('gpt-4o'));
+  });
+
+  it('recordMetric — 无 data 时 data 为 null', () => {
+    const entry = recordMetric('rendering', 50);
+    assert.equal(entry.data, null);
+  });
+
+  it('recordMetric — durationMs 保留两位小数', () => {
+    const entry = recordMetric('api', 123.456789);
+    assert.equal(entry.durationMs, 123.46);
+  });
+
+  it('getMetrics — 返回所有指标', () => {
+    recordMetric('api', 100);
+    recordMetric('rendering', 50);
+    recordMetric('extraction', 200);
+    assert.equal(getMetrics().length, 3);
+  });
+
+  it('getMetrics — 返回副本', () => {
+    recordMetric('api', 100);
+    const copy = getMetrics();
+    copy.push({ fake: true });
+    assert.equal(getMetrics().length, 1);
+  });
+
+  it('getMetricsByCategory — 按类别筛选', () => {
+    recordMetric('api', 100);
+    recordMetric('rendering', 50);
+    recordMetric('api', 200);
+    const apiMetrics = getMetricsByCategory('api');
+    assert.equal(apiMetrics.length, 2);
+    assert.ok(apiMetrics.every(m => m.category === 'api'));
+  });
+
+  it('getMetricsByCategory — 无匹配返回空数组', () => {
+    recordMetric('api', 100);
+    assert.deepEqual(getMetricsByCategory('nonexistent'), []);
+  });
+
+  it('getRecentMetrics — 返回最近 N 条', () => {
+    for (let i = 0; i < 30; i++) recordMetric('api', i * 10);
+    const recent = getRecentMetrics(5);
+    assert.equal(recent.length, 5);
+    assert.equal(recent[4].durationMs, 290);
+  });
+
+  it('getRecentMetrics — 按类别筛选 + 最近 N 条', () => {
+    for (let i = 0; i < 10; i++) recordMetric('api', i * 10);
+    for (let i = 0; i < 10; i++) recordMetric('rendering', i * 20);
+    const recent = getRecentMetrics(3, 'api');
+    assert.equal(recent.length, 3);
+    assert.ok(recent.every(m => m.category === 'api'));
+  });
+
+  it('getPerformanceStats — 空指标返回全零', () => {
+    const stats = getPerformanceStats();
+    assert.equal(stats.avg, 0);
+    assert.equal(stats.p50, 0);
+    assert.equal(stats.p95, 0);
+    assert.equal(stats.count, 0);
+    assert.equal(stats.min, 0);
+    assert.equal(stats.max, 0);
+  });
+
+  it('getPerformanceStats — 计算 avg/p50/p95/min/max', () => {
+    const durations = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    durations.forEach(d => recordMetric('api', d));
+    const stats = getPerformanceStats();
+    assert.equal(stats.count, 10);
+    assert.equal(stats.min, 10);
+    assert.equal(stats.max, 100);
+    assert.equal(stats.avg, 55);
+    assert.equal(stats.p50, 60);  // index 5
+    assert.equal(stats.p95, 100); // index 9
+  });
+
+  it('getPerformanceStats — 按类别筛选', () => {
+    recordMetric('api', 100);
+    recordMetric('api', 200);
+    recordMetric('rendering', 50);
+    const stats = getPerformanceStats('api');
+    assert.equal(stats.count, 2);
+    assert.equal(stats.avg, 150);
+  });
+
+  it('clearMetrics — 清除后为空', () => {
+    recordMetric('api', 100);
+    recordMetric('rendering', 50);
+    assert.equal(getMetrics().length, 2);
+    clearMetrics();
+    assert.equal(getMetrics().length, 0);
+  });
+
+  it('MAX_METRICS 限制 — 超过 100 条只保留最近 100', () => {
+    for (let i = 0; i < 110; i++) recordMetric('api', i);
+    assert.equal(getMetrics().length, 100);
+    assert.equal(getMetrics()[0].durationMs, 10);
+    assert.equal(getMetrics()[99].durationMs, 109);
   });
 
 });

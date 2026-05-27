@@ -21,6 +21,10 @@ const {
   saveConversation,
   loadConversation,
   clearConversation,
+  saveProfiles,
+  loadProfiles,
+  detectPageLanguage,
+  getLanguageDisplay,
 } = await import('../lib/utils.js');
 
 afterEach(() => {
@@ -294,5 +298,109 @@ describe('getSettings() / saveSettings()', () => {
     const settings = await getSettings();
     assert.equal(settings.apiKey, 'test-key-123');
     assert.equal(settings.model, 'claude-3');
+  });
+});
+
+// ==================== saveConversation / loadConversation / clearConversation ====================
+
+describe('saveConversation / loadConversation / clearConversation', () => {
+  it('保存并恢复对话历史', async () => {
+    const history = [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi' }];
+    await saveConversation(history, 'https://example.com');
+    const data = await loadConversation('https://example.com');
+    assert.ok(data, '应返回数据');
+    assert.deepEqual(data.conversationHistory, history);
+    assert.equal(data.currentPageUrl, 'https://example.com');
+    assert.ok(data.timestamp > 0, '应有时间戳');
+  });
+
+  it('无数据时返回 null', async () => {
+    const data = await loadConversation('https://other.com');
+    assert.equal(data, null);
+  });
+
+  it('清除对话历史', async () => {
+    await saveConversation([{ role: 'user', content: 'test' }], 'https://a.com');
+    await clearConversation();
+    const data = await loadConversation('https://a.com');
+    assert.equal(data, null);
+  });
+});
+
+// ==================== saveProfiles / loadProfiles ====================
+
+describe('saveProfiles / loadProfiles', () => {
+  it('保存并加载 API Profiles', async () => {
+    const profiles = [
+      { name: 'OpenAI', apiKey: 'sk-xxx', model: 'gpt-4o' },
+      { name: 'Claude', apiKey: 'sk-ant-xxx', model: 'claude-3' },
+    ];
+    await saveProfiles(profiles);
+    const loaded = await loadProfiles();
+    assert.equal(loaded.length, 2);
+    assert.equal(loaded[0].name, 'OpenAI');
+    assert.equal(loaded[1].name, 'Claude');
+  });
+
+  it('无 Profiles 时返回空数组', async () => {
+    const loaded = await loadProfiles();
+    assert.ok(Array.isArray(loaded));
+  });
+});
+
+// ==================== detectPageLanguage ====================
+
+describe('detectPageLanguage()', () => {
+  it('中文内容返回 zh', () => {
+    assert.equal(detectPageLanguage('这是一段中文内容，用于测试语言检测功能'), 'zh');
+  });
+
+  it('英文内容返回 en', () => {
+    assert.equal(detectPageLanguage('This is some English text for testing the language detection feature'), 'en');
+  });
+
+  it('空文本返回 other', () => {
+    assert.equal(detectPageLanguage(''), 'other');
+    assert.equal(detectPageLanguage(null), 'other');
+    assert.equal(detectPageLanguage(undefined), 'other');
+  });
+
+  it('非字符串返回 other', () => {
+    assert.equal(detectPageLanguage(12345), 'other');
+    assert.equal(detectPageLanguage(undefined), 'other');
+  });
+
+  it('混合内容中中文占比高返回 zh', () => {
+    const text = '这是中文测试 hello world 你好世界 测试语言检测';
+    assert.equal(detectPageLanguage(text), 'zh');
+  });
+
+  it('纯数字和符号返回 other', () => {
+    assert.equal(detectPageLanguage('12345 !@#$% 67890'), 'other');
+  });
+});
+
+// ==================== getLanguageDisplay ====================
+
+describe('getLanguageDisplay()', () => {
+  it('中文标签', () => {
+    const display = getLanguageDisplay('zh');
+    assert.equal(display.label, '中文');
+    assert.ok(display.icon.length > 0);
+  });
+
+  it('英文标签', () => {
+    const display = getLanguageDisplay('en');
+    assert.equal(display.label, 'English');
+  });
+
+  it('未知语言返回 other', () => {
+    const display = getLanguageDisplay('unknown');
+    assert.equal(display.label, 'Other');
+  });
+
+  it('other 标签', () => {
+    const display = getLanguageDisplay('other');
+    assert.equal(display.label, 'Other');
   });
 });

@@ -379,3 +379,71 @@ describe('getWeeklyGrowth', () => {
     assert.equal(growth.length, 4);
   });
 });
+
+// ==================== getLearningStreak ====================
+
+describe('getLearningStreak', () => {
+  let stats;
+  let storage;
+
+  beforeEach(() => {
+    storage = createMockStorage();
+    stats = _createStatsModule(storage);
+  });
+
+  it('returns 0 when no daily usage', async () => {
+    const streak = await stats.getLearningStreak();
+    assert.equal(streak, 0);
+  });
+
+  it('returns streak after recording daily usage', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    await stats.recordDailyUsage(today, { questions: 3 });
+    const streak = await stats.getLearningStreak();
+    assert.ok(streak >= 1);
+  });
+});
+
+// ==================== Cost functions ====================
+
+describe('cost functions', () => {
+  let stats;
+  let storage;
+
+  beforeEach(() => {
+    storage = createMockStorage();
+    stats = _createStatsModule(storage);
+  });
+
+  it('recordCost — records cost data', async () => {
+    await stats.recordCost('gpt-4o', 1000, 500);
+    const s = await stats.getStats();
+    assert.ok(s.modelUsage, '应有 modelUsage');
+  });
+
+  it('recordCacheSaving — records cache savings', async () => {
+    await stats.recordCacheSaving('gpt-4o', 500, 3);
+    // Should not throw
+  });
+
+  it('setBudget — sets budget', async () => {
+    await stats.setBudget({ dailyCents: 100, monthlyCents: 2000 });
+    // Should not throw
+  });
+
+  it('getCostSummary — returns summary', async () => {
+    const summary = await stats.getCostSummary();
+    assert.ok(summary, '应返回费用摘要');
+  });
+
+  it('getCostTrend — returns trend array', async () => {
+    const trend = await stats.getCostTrend(7);
+    assert.ok(Array.isArray(trend), '应返回数组');
+    assert.equal(trend.length, 7, '应返回 7 天数据');
+  });
+
+  it('getCostTrend — default 30 days', async () => {
+    const trend = await stats.getCostTrend();
+    assert.equal(trend.length, 30);
+  });
+});
