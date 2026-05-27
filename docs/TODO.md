@@ -554,3 +554,14 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 稳定性提升** — 修复边界情况和错误处理
 - [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
+
+## 自动生成任务 — 2026-05-27 20:00 (第3轮)
+
+> 由 Hermes 直接生成（引擎超时回退）
+> 分析依据: npm run test:ci 7792 pass/0 fail, Lines 77.38%, Functions 66.77% (目标≥68%), Branches 84.08% (目标≥85%), 296 个未覆盖函数
+
+- [ ] **R3: 函数覆盖率冲刺至 68%+ FuncCovBoost** — 当前 66.77%（595/891），需再覆盖 ≥2 个函数即可达标；(1) 用 lcov.info 找 FNDA:0 的未覆盖函数 Top-10；(2) 为 Top-5 模块（无专用测试文件的子模块）补充 ≥3 用例/函数；(3) 目标: functions ≥68%；(4) npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R4: 分支覆盖率提升至 85%+ BranchCovBoost** — 当前 84.08%（2484/2954），需再覆盖 ≥26 个分支；(1) 用 lcov.info 找 BRDA:0 的高频分支（错误处理路径、条件组合）；(2) 针对性补充边界测试（null/undefined/空数组/异常输入）；(3) 目标: branches ≥85%；(4) npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R5: 零覆盖核心模块测试 ZeroCovCoreTests** — 仍有多个核心模块（knowledge-base-*, bookmark-graph-*, ai-client-* 子模块）0% 覆盖；(1) 选 5 个最重要的零覆盖模块（knowledge-base-crud, bookmark-graph-engine, ai-client-context-methods 等）；(2) 每个模块写 ≥5 用例覆盖核心逻辑；(3) npm run test:ci 0 fail。复杂度: Medium
