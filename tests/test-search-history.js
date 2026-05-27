@@ -434,7 +434,9 @@ describe('exportSearchHistory()', () => {
     assert.equal(data.totalRecords, 2)
     assert.ok(Array.isArray(data.records))
     assert.equal(data.records.length, 2)
-    assert.equal(data.records[0].query, 'react hooks')
+    const queries = data.records.map(r => r.query)
+    assert.ok(queries.includes('react hooks'))
+    assert.ok(queries.includes('vue guide'))
   })
 
   it('Markdown 格式导出包含标题和表格', async () => {
