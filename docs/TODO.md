@@ -541,7 +541,7 @@
 
 - [x] **R335: 残留 console.log 清理 ConsoleLogCleanup** — lib/ 目录下仍有 10 处 console.log 残留（生产代码不应有调试日志）；(1) 扫描 lib/*.js 中所有 console.log/warn/error 调用；(2) 分类: 调试日志→删除, 错误日志→替换为 error-handler.js 的 logError()；(3) 确保 0 个 console.log 残留；(4) 测试: 运行 npm run test:ci 确认 0 fail。复杂度: Simple
 
-- [ ] **R336: JSDoc 文档补全 JSDocCoverageBoost** — 4 个模块导出函数多但 JSDoc 覆盖率低: compilation-report.js (9 exports/2 JSDoc)、knowledge-panel-search.js (8 exports/1 JSDoc)、bookmark-store-prep.js (4 exports/1 JSDoc)、knowledge-graph-wiki.js (4 exports/1 JSDoc)；(1) 为所有导出函数添加 JSDoc（@param/@returns/@throws）；(2) 遵循项目规范: 关键函数必须有 JSDoc 注释；(3) 测试: npm run test:ci 确认无回归。复杂度: Simple
+- [x] **R336: JSDoc 文档补全 JSDocCoverageBoost** — 4 个模块导出函数多但 JSDoc 覆盖率低: compilation-report.js (9 exports/2 JSDoc)、knowledge-panel-search.js (8 exports/1 JSDoc)、bookmark-store-prep.js (4 exports/1 JSDoc)、knowledge-graph-wiki.js (4 exports/1 JSDoc)；(1) 为所有导出函数添加 JSDoc（@param/@returns/@throws）；(2) 遵循项目规范: 关键函数必须有 JSDoc 注释；(3) 测试: npm run test:ci 确认无回归。复杂度: Simple
 
 - [ ] **R337: 行覆盖率安全裕量至 35% CoverageSafetyMargin35** — 当前行覆盖率 ~32%（R322 提升至 32%），目标 35%；(1) 分析覆盖率报告，识别零覆盖模块 Top-20；(2) 为 Top-10 模块补充单元测试（每个 ≥5 用例）；(3) 覆盖率门禁 ≥35% lines；(4) npm run test:ci 0 fail。复杂度: Medium
 
