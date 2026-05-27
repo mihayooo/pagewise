@@ -157,9 +157,9 @@ describe('Stats Cost Tracking', () => {
   });
 
   describe('getCostTrend', () => {
-    it('returns 7 days of cost data by default', async () => {
+    it('returns 30 days of cost data by default', async () => {
       const trend = await stats.getCostTrend();
-      assert.equal(trend.length, 7);
+      assert.equal(trend.length, 30);
       for (const day of trend) {
         assert.ok(day.date);
         assert.equal(typeof day.cost, 'number');
