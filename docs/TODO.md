@@ -545,4 +545,4 @@
 
 - [x] **R337: 行覆盖率安全裕量至 35% CoverageSafetyMargin35** — 当前行覆盖率 ~32%（R322 提升至 32%），目标 35%；(1) 分析覆盖率报告，识别零覆盖模块 Top-20；(2) 为 Top-10 模块补充单元测试（每个 ≥5 用例）；(3) 覆盖率门禁 ≥35% lines；(4) npm run test:ci 0 fail。复杂度: Medium
 
-- [ ] **R338: JSDoc 审计自动化 JSDocAuditAutomation** — 新建 `tests/test-jsdoc-audit.js` 自动化审计脚本；(1) 扫描 lib/*.js 所有 export 函数/类；(2) 检查是否有 JSDoc 注释块（/** ... */）；(3) 统计覆盖率百分比，断言 ≥80%；(4) 集成到 npm run test:ci 门控。复杂度: Simple
+- [x] **R338: JSDoc 审计自动化 JSDocAuditAutomation** — 新建 `tests/test-jsdoc-audit.js` 自动化审计脚本；(1) 扫描 lib/*.js 所有 export 函数/类；(2) 检查是否有 JSDoc 注释块（/** ... */）；(3) 统计覆盖率百分比，断言 ≥80%；(4) 集成到 npm run test:ci 门控。复杂度: Simple
