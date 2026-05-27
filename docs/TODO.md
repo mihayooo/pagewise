@@ -543,6 +543,6 @@
 
 - [x] **R336: JSDoc 文档补全 JSDocCoverageBoost** — 4 个模块导出函数多但 JSDoc 覆盖率低: compilation-report.js (9 exports/2 JSDoc)、knowledge-panel-search.js (8 exports/1 JSDoc)、bookmark-store-prep.js (4 exports/1 JSDoc)、knowledge-graph-wiki.js (4 exports/1 JSDoc)；(1) 为所有导出函数添加 JSDoc（@param/@returns/@throws）；(2) 遵循项目规范: 关键函数必须有 JSDoc 注释；(3) 测试: npm run test:ci 确认无回归。复杂度: Simple
 
-- [ ] **R337: 行覆盖率安全裕量至 35% CoverageSafetyMargin35** — 当前行覆盖率 ~32%（R322 提升至 32%），目标 35%；(1) 分析覆盖率报告，识别零覆盖模块 Top-20；(2) 为 Top-10 模块补充单元测试（每个 ≥5 用例）；(3) 覆盖率门禁 ≥35% lines；(4) npm run test:ci 0 fail。复杂度: Medium
+- [x] **R337: 行覆盖率安全裕量至 35% CoverageSafetyMargin35** — 当前行覆盖率 ~32%（R322 提升至 32%），目标 35%；(1) 分析覆盖率报告，识别零覆盖模块 Top-20；(2) 为 Top-10 模块补充单元测试（每个 ≥5 用例）；(3) 覆盖率门禁 ≥35% lines；(4) npm run test:ci 0 fail。复杂度: Medium
 
 - [ ] **R338: JSDoc 审计自动化 JSDocAuditAutomation** — 新建 `tests/test-jsdoc-audit.js` 自动化审计脚本；(1) 扫描 lib/*.js 所有 export 函数/类；(2) 检查是否有 JSDoc 注释块（/** ... */）；(3) 统计覆盖率百分比，断言 ≥80%；(4) 集成到 npm run test:ci 门控。复杂度: Simple
