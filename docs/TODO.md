@@ -564,4 +564,4 @@
 
 - [x] **R4: 分支覆盖率提升至 85%+ BranchCovBoost** — 当前 84.08%（2484/2954），需再覆盖 ≥26 个分支；(1) 用 lcov.info 找 BRDA:0 的高频分支（错误处理路径、条件组合）；(2) 针对性补充边界测试（null/undefined/空数组/异常输入）；(3) 目标: branches ≥85%；(4) npm run test:ci 0 fail。复杂度: Medium
 
-- [ ] **R5: 零覆盖核心模块测试 ZeroCovCoreTests** — 仍有多个核心模块（knowledge-base-*, bookmark-graph-*, ai-client-* 子模块）0% 覆盖；(1) 选 5 个最重要的零覆盖模块（knowledge-base-crud, bookmark-graph-engine, ai-client-context-methods 等）；(2) 每个模块写 ≥5 用例覆盖核心逻辑；(3) npm run test:ci 0 fail。复杂度: Medium
+- [x] **R5: 零覆盖核心模块测试 ZeroCovCoreTests** — 仍有多个核心模块（knowledge-base-*, bookmark-graph-*, ai-client-* 子模块）0% 覆盖；(1) 选 5 个最重要的零覆盖模块（knowledge-base-crud, bookmark-graph-engine, ai-client-context-methods 等）；(2) 每个模块写 ≥5 用例覆盖核心逻辑；(3) npm run test:ci 0 fail。复杂度: Medium
