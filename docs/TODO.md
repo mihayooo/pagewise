@@ -597,10 +597,13 @@
 
 - [x] **R343: knowledge-base-query 核心模块测试 KnowledgeBaseQueryTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询引擎（全文搜索/模糊匹配/分页/排序），当前无专用测试文件，属于核心功能模块；(1) 新建 `tests/test-knowledge-base-query.js`；(2) mock IndexedDB 构造知识库条目（含 title/content/tags/type/updatedAt 字段）；(3) 测试全文搜索: 关键词匹配、中英文混合查询、空查询返回全部；(4) 测试模糊匹配: 编辑距离容忍、拼音/同音近似（如适用）；(5) 测试分页: offset/limit 参数、边界值（offset > 总数）、空结果集；(6) 测试排序: 按相关度/时间/标题排序、降序切换；(7) 测试边界: null 输入、超大结果集（>1000 条）、特殊字符查询；(8) 验收: ≥15 用例，npm run test:ci 0 fail。复杂度: Medium
 
-## 自动生成任务 — 2026-05-28 18:00
+## 自动生成任务 — 2026-05-28 18:00 (第3轮 - 代码质量深挖)
 
-> 由自主任务选择器生成（基于项目状态分析）
+> 由 Hermes 飞轮引擎生成（基于静态分析 + 测试状态）
+> 分析依据: npm run test:ci 7789 pass/0 fail; 覆盖率 Stmts 93.9%/Funcs 88.7%/Branches 86.8%; 59 个 silent catch 块 (20 个 lib 文件); 34 个函数 >80 行
 
-- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
-- [ ] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
-- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
+- [ ] **R344: 消除 Top-5 高频 silent catch 块 SilentCatchRound2** — `storage-adapter.js`(5处)、`feedback-collector.js`(5处)、`chat-mode.js`(5处)、`stats.js`(4处)、`review-session.js`(4处) 共 23 处 silent catch；(1) 逐文件审查每个 catch 块: 判断是「容错安全」还是「吞掉真实错误」；(2) 容错安全场景（如 chrome.runtime.sendMessage 在 extension 环境外调用）保留 silent 但加 `/* safe: <原因> */` 注释；(3) 真实错误场景改为 `catch (e) { console.warn('[PageWise]', e) }` 或调用 `logError()`；(4) 涉及文件: `lib/storage-adapter.js`、`lib/feedback-collector.js`、`lib/chat-mode.js`、`lib/stats.js`、`lib/review-session.js`；(5) 验收: 5 文件 silent catch 从 23 降至 ≤8（仅保留有注释的容错），npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R345: knowledge-base-export 零测试模块测试覆盖 KBExportTests** — `lib/knowledge-base-export.js`（~200 行）是知识库导出模块（JSON/CSV/Markdown 格式导出），含 3 处 silent catch，当前无测试文件；(1) 新建 `tests/test-knowledge-base-export.js`；(2) mock IndexedDB 知识库数据构造 ctx 上下文；(3) 测试 exportJSON: 完整数据导出、空库导出、字段过滤；(4) 测试 exportCSV: 表头生成、中文内容编码、特殊字符转义；(5) 测试 exportMarkdown: 格式化输出、层级结构；(6) 测试错误路径: 存储异常时的 catch 处理；(7) 同步修复 3 处 silent catch（改为 logError）；(8) 验收: ≥12 用例，npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R346: sidebar.js bindEvents() 516 行超长函数拆分 SidebarBindEventsRefactor** — `sidebar/sidebar.js:642` 的 `bindEvents()` 函数 516 行，是全项目最长函数，圈复杂度极高；(1) 按功能域拆分为 5-6 个子函数: `bindBookmarkEvents()`（书签相关事件）、`bindSearchEvents()`（搜索事件）、`bindKnowledgeEvents()`（知识库事件）、`bindSettingsEvents()`（设置事件）、`bindUIEvents()`（UI 交互事件）、`bindKeyboardShortcuts()`（快捷键）；(2) `bindEvents()` 仅保留 ≤30 行协调逻辑，调用各子函数；(3) 保持所有事件绑定行为不变；(4) 验收: 最长函数 ≤80 行，npm run test:ci 0 fail。复杂度: Medium
