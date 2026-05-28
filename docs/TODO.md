@@ -596,3 +596,11 @@
 - [x] **R342: telemetry.js _createTelemetry 超长函数拆分 TelemetryRefactor** — `lib/telemetry.js` 的 `_createTelemetry()` 函数 246 行，远超项目规范（建议 ≤60 行），圈复杂度高、难以测试和维护；(1) 按职责拆分为 4-5 个子函数: `initCounters()`（初始化计数器）、`trackEvent(eventType, data)`（事件追踪）、`generateReport()`（生成报告）、`exportData(format)`（导出数据）、`resetStats()`（重置统计）；(2) `_createTelemetry()` 仅保留协调逻辑（≤30 行），调用各子函数；(3) 子函数提取为独立可导出函数，便于单独测试；(4) 保持现有 API 表面不变（返回对象的方法签名不动）；(5) 同步更新 `tests/test-telemetry.js`（如有）确保现有用例通过；(6) 验收: 最长函数 ≤60 行，npm run test:ci 0 fail，功能行为无变化。复杂度: Medium
 
 - [x] **R343: knowledge-base-query 核心模块测试 KnowledgeBaseQueryTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询引擎（全文搜索/模糊匹配/分页/排序），当前无专用测试文件，属于核心功能模块；(1) 新建 `tests/test-knowledge-base-query.js`；(2) mock IndexedDB 构造知识库条目（含 title/content/tags/type/updatedAt 字段）；(3) 测试全文搜索: 关键词匹配、中英文混合查询、空查询返回全部；(4) 测试模糊匹配: 编辑距离容忍、拼音/同音近似（如适用）；(5) 测试分页: offset/limit 参数、边界值（offset > 总数）、空结果集；(6) 测试排序: 按相关度/时间/标题排序、降序切换；(7) 测试边界: null 输入、超大结果集（>1000 条）、特殊字符查询；(8) 验收: ≥15 用例，npm run test:ci 0 fail。复杂度: Medium
+
+## 自动生成任务 — 2026-05-28 18:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [ ] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [ ] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
