@@ -581,3 +581,18 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-05-28 12:00
+
+> 由代码分析生成（基于静态分析 + 测试状态）
+> 分析依据: npm run test:ci 7789 pass/0 fail；121 个 silent catch 块（63 个文件）；121+ 个 lib 模块无专用测试文件；263 个 lib 模块共 56,182 行
+
+- [ ] **R339: 消除高频 silent catch 块 SilentCatchFix** — 63 个 lib 文件共 121 处 `} catch {` 静默吞错，导致运行时故障不可观测；(1) 优先修复 Top-5 高频模块: `bookmark-advanced-tags.js`(8处)、`bookmark-search-history.js`(5处)、`memory.js`(5处)、`plugin-system.js`(5处)、`bookmark-backup-restore.js`(4处)；(2) 每处 silent catch 改为 `catch (e)` 并调用已有 `error-handler.js` 的 `logError()` 或至少 `console.warn('[PageWise]', e)`；(3) 部分 catch 仅用于容错（如 DOM 操作）可保留 silent 但加 `/* safe: xxx */` 注释说明原因；(4) 涉及文件: `lib/bookmark-advanced-tags.js`、`lib/bookmark-search-history.js`、`lib/memory.js`、`lib/plugin-system.js`、`lib/bookmark-backup-restore.js`；(5) 验收: 上述 5 文件 silent catch 数从 27 降至 ≤5（仅保留有注释说明的容错场景），npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R340: bookmark-semantic-search-hybrid 单元测试 SemanticHybridTests** — `lib/bookmark-semantic-search-hybrid.js`（395 行）是语义搜索引擎核心子模块（semanticSearch / hybridSearch / findSimilar / rrfMerge / mergeResults），当前零测试覆盖；(1) 新建 `tests/test-bookmark-semantic-search-hybrid.js`；(2) 用 chrome-mock + indexeddb-mock 构造 SearchOperations 所需的 ctx 上下文（含 _embeddingEngine、_searchCache、bookmarks 数组）；(3) 测试 semanticSearch: 空查询返回空、缓存命中、IVF 降级阈值触发、正常余弦排序；(4) 测试 hybridSearch: 关键词+语义 RRF 融合、权重参数传递、空结果降级到纯关键词；(5) 测试 findSimilar: 自身排除、相似度排序；(6) 测试 rrfMerge: k 值默认/自定义、空数组输入；(7) 测试 mergeResults: 权重归一化、去重；(8) 验收: ≥15 用例，npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R341: bookmark-advanced-tags 质量修复与测试 AdvancedTagsQA** — `lib/bookmark-advanced-tags.js`（366 行）是标签智能推荐/同义词合并/标签层级模块，当前无测试且有 8 处 silent catch 为全项目最多；(1) 先修复 8 处 silent catch（同 R339 策略），改用 `catch (e) { logError(e, 'bookmark-advanced-tags') }`；(2) 新建 `tests/test-bookmark-advanced-tags.js`；(3) 测试核心逻辑: 标签同义词合并（mergeSynonyms）、标签层级构建（buildTagHierarchy）、智能推荐（suggestTags）、标签频率统计、去重与归一化；(4) 覆盖 catch 修复后的错误路径（传入无效标签/空数据）；(5) 验收: silent catch 从 8 降至 ≤2，新增测试 ≥12 用例，npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R342: telemetry.js _createTelemetry 超长函数拆分 TelemetryRefactor** — `lib/telemetry.js` 的 `_createTelemetry()` 函数 246 行，远超项目规范（建议 ≤60 行），圈复杂度高、难以测试和维护；(1) 按职责拆分为 4-5 个子函数: `initCounters()`（初始化计数器）、`trackEvent(eventType, data)`（事件追踪）、`generateReport()`（生成报告）、`exportData(format)`（导出数据）、`resetStats()`（重置统计）；(2) `_createTelemetry()` 仅保留协调逻辑（≤30 行），调用各子函数；(3) 子函数提取为独立可导出函数，便于单独测试；(4) 保持现有 API 表面不变（返回对象的方法签名不动）；(5) 同步更新 `tests/test-telemetry.js`（如有）确保现有用例通过；(6) 验收: 最长函数 ≤60 行，npm run test:ci 0 fail，功能行为无变化。复杂度: Medium
+
+- [ ] **R343: knowledge-base-query 核心模块测试 KnowledgeBaseQueryTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询引擎（全文搜索/模糊匹配/分页/排序），当前无专用测试文件，属于核心功能模块；(1) 新建 `tests/test-knowledge-base-query.js`；(2) mock IndexedDB 构造知识库条目（含 title/content/tags/type/updatedAt 字段）；(3) 测试全文搜索: 关键词匹配、中英文混合查询、空查询返回全部；(4) 测试模糊匹配: 编辑距离容忍、拼音/同音近似（如适用）；(5) 测试分页: offset/limit 参数、边界值（offset > 总数）、空结果集；(6) 测试排序: 按相关度/时间/标题排序、降序切换；(7) 测试边界: null 输入、超大结果集（>1000 条）、特殊字符查询；(8) 验收: ≥15 用例，npm run test:ci 0 fail。复杂度: Medium
