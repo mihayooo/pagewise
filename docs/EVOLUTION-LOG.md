@@ -745,3 +745,22 @@ CI失败诊断: PerformanceProfiler 测试 '操作按总耗时降序排列' 断�
 
 ---
 
+
+## R342 — 2026-05-28
+
+| 属性 | 值 |
+|------|-----|
+| **时间** | 2026-05-28 14:18:01 |
+| **迭代** | R342 |
+| **分支** | unknown |
+| **提交** | 1979270 |
+| **变更文件** | 1 个 |
+| **新增行** | +232 |
+| **删除行** | -223 |
+
+### 变更描述
+
+refactor(telemetry): extract pure functions from _createTelemetry — 246-line monolith split into 12 focused functions (max 45 lines), API surface unchanged, 7789 tests pass
+
+---
+
