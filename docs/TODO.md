@@ -650,3 +650,11 @@
 - [x] **R354: evolution.js silent catch 块添加日志 SilentCatchFix_Evolution** — `lib/evolution.js` 有 2 处 silent catch（L56: chrome.storage.local.set 失败静默，L233: URL 解析失败静默），进化状态保存失败会导致用户学习数据丢失；(1) L56: `catch {}` → `catch (e) { console.warn('[PageWise] EvolutionState.saveState failed:', e); }`；(2) L233: `catch {}` → `catch (e) { console.debug('[PageWise] boostDomain invalid URL:', url, e); }`；(3) 验收: `grep -c "catch {}" lib/evolution.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
 - [x] **R355: sidebar.js 10 处「静默处理」catch 块添加 debug 日志 SilentCatchDebug_Sidebar** — `sidebar/sidebar.js` 有 10 处 catch 块仅含 `// 静默处理` 注释无任何日志（L249, L5055, L5255, L5408, L5838, L6628, L6728, L6973, L7142, L7153），开发调试时无法追踪错误来源；(1) 每处 `catch (_e) { // 静默处理 }` → `catch (e) { console.debug('[PageWise] sidebar silent catch at L<line>:', e); }`；(2) 保持原有功能不变，仅添加 debug 级别日志；(3) 验收: `grep -c "静默处理" sidebar/sidebar.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
+
+## 自动生成任务 — 2026-05-29 18:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R182: 项目改进** — 根据项目状态进行优化和改进
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
