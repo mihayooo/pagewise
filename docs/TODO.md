@@ -632,7 +632,7 @@
 
 - [x] **R348: bookmark-semantic-search-hybrid.js 零测试模块测试覆盖 BSHTests** — `lib/bookmark-semantic-search-hybrid.js`（395 行）是语义搜索核心模块，当前无测试文件，是最大无覆盖模块；(1) 新建 `tests/test-bookmark-semantic-search-hybrid.js`；(2) 测试 hybridSearch: BM25 + 向量混合排序、权重参数、空查询处理；(3) 测试向量索引构建与增量更新；(4) 测试相关性评分与阈值过滤；(5) 测试空结果降级到纯关键词搜索；(6) 验收: ≥15 用例覆盖核心路径，npm run test:ci 0 fail。复杂度: Hard
 
-- [ ] **R349: plugin-system.js 消除 5 处 silent catch 块 SilentCatchFix_Plugin** — `lib/plugin-system.js` 有 5 处 `catch {}`（插件加载、注册、生命周期钩子相关），插件错误被静默吞没会导致第三方插件故障难以排查；(1) 逐个 catch 块添加错误日志，包含插件名称和钩子名；(2) 确保插件加载失败不影响其他插件；(3) 验收: `grep -c "catch {" lib/plugin-system.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
+- [x] **R349: plugin-system.js 消除 5 处 silent catch 块 SilentCatchFix_Plugin** — `lib/plugin-system.js` 有 5 处 `catch {}`（插件加载、注册、生命周期钩子相关），插件错误被静默吞没会导致第三方插件故障难以排查；(1) 逐个 catch 块添加错误日志，包含插件名称和钩子名；(2) 确保插件加载失败不影响其他插件；(3) 验收: `grep -c "catch {" lib/plugin-system.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
 - [ ] **R350: memory.js 消除 5 处 silent catch 块 SilentCatchFix_Memory** — `lib/memory.js` 有 5 处 `catch {}`，涉及记忆存储/检索/压缩等核心功能，静默错误会导致用户数据丢失难以发现；(1) 逐个 catch 块添加 logError 日志；(2) 确保存储失败时返回合理默认值并记录上下文；(3) 验收: `grep -c "catch {" lib/memory.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
