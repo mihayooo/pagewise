@@ -636,4 +636,4 @@
 
 - [x] **R350: memory.js 消除 5 处 silent catch 块 SilentCatchFix_Memory** — `lib/memory.js` 有 5 处 `catch {}`，涉及记忆存储/检索/压缩等核心功能，静默错误会导致用户数据丢失难以发现；(1) 逐个 catch 块添加 logError 日志；(2) 确保存储失败时返回合理默认值并记录上下文；(3) 验收: `grep -c "catch {" lib/memory.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
-- [ ] **R351: knowledge-base-query.js 零测试模块测试覆盖 KBQTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询模块，无测试覆盖，支持全文搜索、标签过滤、时间范围查询；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 测试 queryByKeyword: 精确匹配、模糊搜索、空输入；(3) 测试 queryByTag: 单标签、多标签交并集；(4) 测试 queryByDateRange: 边界条件；(5) 测试分页与排序；(6) 验收: ≥12 用例，npm run test:ci 0 fail。复杂度: Medium
+- [x] **R351: knowledge-base-query.js 零测试模块测试覆盖 KBQTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询模块，无测试覆盖，支持全文搜索、标签过滤、时间范围查询；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 测试 queryByKeyword: 精确匹配、模糊搜索、空输入；(3) 测试 queryByTag: 单标签、多标签交并集；(4) 测试 queryByDateRange: 边界条件；(5) 测试分页与排序；(6) 验收: ≥12 用例，npm run test:ci 0 fail。复杂度: Medium
