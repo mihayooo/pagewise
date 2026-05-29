@@ -657,4 +657,5 @@
 
 - [x] **R181: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R182: 项目改进** — 根据项目状态进行优化和改进
-- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
+✅ - [x] **R315: 消除 7 个空 catch 块** — 4 个文件中存在 `catch (_e) {}` 完全静默吞错，违反错误可观测性原则；(1) `lib/explore-mode-global.js:84,116` — 2 处空 catch，改为 `console.debug('[PageWise] explore-mode: non-critical', _e)`；(2) `lib/bookmark-highlight-archive-core.js:243` — 空 catch，改为 `console.debug('[PageWise] highlight-archive: skip', _e)`；(3) `lib/message-renderer-actions.js:40,71` — 2 处空 catch，改为 `console.debug('[PageWise] renderer-action: skip', _e)`；(4) `lib/bookmark-link-checker.js:66,74` — 2 处空 catch（onProgress/onComplete 回调保护），改为 `console.debug('[PageWise] link-checker callback error', _e)`；(5) 验收: `npm run test:ci` 0 fail + `npm run lint` 0 errors + grep 确认无残留 `catch.*{\s*}`；测试新增 ≥5 用例覆盖修改路径。复杂度: Simple
+- [ ] **R316: 为 i18n.js 和 docmind-sync-helpers.js 的 silent catch 添加降级日志** — 这两个文件有 3-4 个 catch 块使用 `_e` 但无任何日志输出；(1) `lib/i18n.js:77,89` — locale 读取失败的 catch 块添加 `console.warn('[PageWise] i18n: locale fallback', _e)`；(2) `lib/i18n.js:139` — translation 加载失败添加 warn 日志；(3) `lib/docmind-sync-helpers.js:103` — config 读取失败添加 `console.debug('[PageWise] sync-helpers: using defaults', _e)`；(4) 验收: `npm run test:ci` 0 fail + `npm run lint` 0 errors + grep 确认相关 catch 块均有日志输出。复杂度: Simple

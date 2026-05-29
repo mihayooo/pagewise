@@ -188,3 +188,25 @@ describe('ExploreMode (global)', () => {
     })
   })
 })
+
+// R315: Empty catch block coverage
+describe('R315: catch block error handling', () => {
+  it('enable() should not throw when sendMessage fails', () => {
+    const origSend = globalThis.chrome.runtime.sendMessage
+    globalThis.chrome.runtime.sendMessage = () => { throw new Error('no receiver') }
+    const em = new globalThis.ExploreMode()
+    em.enable() // should not throw
+    assert.equal(em.isActive(), true)
+    globalThis.chrome.runtime.sendMessage = origSend
+  })
+
+  it('_emitStateChange should not throw when sendMessage fails', () => {
+    const origSend = globalThis.chrome.runtime.sendMessage
+    globalThis.chrome.runtime.sendMessage = () => { throw new Error('disconnected') }
+    const em = new globalThis.ExploreMode()
+    em.enable()
+    em._emitStateChange() // should not throw
+    assert.equal(em.isActive(), true)
+    globalThis.chrome.runtime.sendMessage = origSend
+  })
+})

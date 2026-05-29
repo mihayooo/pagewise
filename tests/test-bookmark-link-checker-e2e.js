@@ -559,3 +559,26 @@ describe('BookmarkLinkChecker', () => {
     });
   });
 });
+
+// R315: Empty catch block coverage
+describe('R315: callback error handling', () => {
+  it('onProgress throwing should not abort checkAll', async () => {
+    installFetchMock(async () => new Response('', { status: 200 }));
+    const checker = new BookmarkLinkChecker({ concurrency: 1 });
+    checker.onProgress = () => { throw new Error('progress handler crash') };
+    const bookmarks = [makeBookmark('b1', 'https://ok.com')];
+    const report = await checker.checkAll(bookmarks);
+    assert.equal(report.total, 1);
+    assert.equal(report.alive, 1);
+  });
+
+  it('onComplete throwing should not prevent report return', async () => {
+    installFetchMock(async () => new Response('', { status: 200 }));
+    const checker = new BookmarkLinkChecker({ concurrency: 1 });
+    checker.onComplete = () => { throw new Error('complete handler crash') };
+    const bookmarks = [makeBookmark('b1', 'https://ok.com')];
+    const report = await checker.checkAll(bookmarks);
+    assert.equal(report.total, 1);
+    assert.equal(report.alive, 1);
+  });
+});
