@@ -630,7 +630,7 @@
 
 - [x] **R347: bookmark-advanced-tags.js 消除 8 处 silent catch 块 SilentCatchFix_ATags** — `lib/bookmark-advanced-tags.js` 有 8 处 `catch {}` 无日志空捕获（L178, L194, L213, L230, L254, L300, L337, L340），导致 tag 颜色分配、层级关系、共现分析错误被静默吞没；(1) 逐个 catch 块添加 `console.warn('[ATags]', context, err)` 或使用项目的 logError 工具；(2) L178/L194: 颜色分配失败应 warn 并返回默认色；(3) L213: `_parentMap.set` 失败应 warn tag 名称；(4) L230/L254: 子标签/祖先查询失败应 warn 标签 key；(5) L300: 共现分析失败应 warn 返回空结构；(6) L337/L340: URL 解析/标签提取失败应 warn URL；(7) 验收: `grep -c "catch {" lib/bookmark-advanced-tags.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
-- [ ] **R348: bookmark-semantic-search-hybrid.js 零测试模块测试覆盖 BSHTests** — `lib/bookmark-semantic-search-hybrid.js`（395 行）是语义搜索核心模块，当前无测试文件，是最大无覆盖模块；(1) 新建 `tests/test-bookmark-semantic-search-hybrid.js`；(2) 测试 hybridSearch: BM25 + 向量混合排序、权重参数、空查询处理；(3) 测试向量索引构建与增量更新；(4) 测试相关性评分与阈值过滤；(5) 测试空结果降级到纯关键词搜索；(6) 验收: ≥15 用例覆盖核心路径，npm run test:ci 0 fail。复杂度: Hard
+- [x] **R348: bookmark-semantic-search-hybrid.js 零测试模块测试覆盖 BSHTests** — `lib/bookmark-semantic-search-hybrid.js`（395 行）是语义搜索核心模块，当前无测试文件，是最大无覆盖模块；(1) 新建 `tests/test-bookmark-semantic-search-hybrid.js`；(2) 测试 hybridSearch: BM25 + 向量混合排序、权重参数、空查询处理；(3) 测试向量索引构建与增量更新；(4) 测试相关性评分与阈值过滤；(5) 测试空结果降级到纯关键词搜索；(6) 验收: ≥15 用例覆盖核心路径，npm run test:ci 0 fail。复杂度: Hard
 
 - [ ] **R349: plugin-system.js 消除 5 处 silent catch 块 SilentCatchFix_Plugin** — `lib/plugin-system.js` 有 5 处 `catch {}`（插件加载、注册、生命周期钩子相关），插件错误被静默吞没会导致第三方插件故障难以排查；(1) 逐个 catch 块添加错误日志，包含插件名称和钩子名；(2) 确保插件加载失败不影响其他插件；(3) 验收: `grep -c "catch {" lib/plugin-system.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
