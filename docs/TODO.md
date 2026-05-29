@@ -637,3 +637,16 @@
 - [x] **R350: memory.js 消除 5 处 silent catch 块 SilentCatchFix_Memory** — `lib/memory.js` 有 5 处 `catch {}`，涉及记忆存储/检索/压缩等核心功能，静默错误会导致用户数据丢失难以发现；(1) 逐个 catch 块添加 logError 日志；(2) 确保存储失败时返回合理默认值并记录上下文；(3) 验收: `grep -c "catch {" lib/memory.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
 
 - [x] **R351: knowledge-base-query.js 零测试模块测试覆盖 KBQTests** — `lib/knowledge-base-query.js`（372 行）是知识库查询模块，无测试覆盖，支持全文搜索、标签过滤、时间范围查询；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 测试 queryByKeyword: 精确匹配、模糊搜索、空输入；(3) 测试 queryByTag: 单标签、多标签交并集；(4) 测试 queryByDateRange: 边界条件；(5) 测试分页与排序；(6) 验收: ≥12 用例，npm run test:ci 0 fail。复杂度: Medium
+
+## 自动生成任务 — 2026-05-29 飞轮引擎 R2
+
+> 由 PageWise 飞轮迭代引擎生成（基于代码质量深度分析）
+> 分析范围: 276 个源文件，87 处 silent catch，55 个超长函数，覆盖率 77.36%
+
+- [x] **R352: bookmark-advanced-tags.js catch 块变量作用域 BUG 修复 ScopeBugFix_ATags** — ESLint 报告 `lib/bookmark-advanced-tags.js:215` 存在真实 BUG：`const c` 和 `const p` 在 try 块内声明（L210-211），但在 catch 块（L215）引用时为 `undefined`，导致 `console.warn` 永远打印 undefined；(1) 将 `c` 和 `p` 的声明移到 try 块之前（L209 前）；(2) 保持 try 块内的赋值逻辑不变；(3) 验收: `npx eslint lib/bookmark-advanced-tags.js` 0 warnings，`npm run test:ci` 0 fail。复杂度: Easy
+
+- [ ] **R353: sidebar.js 高危 silent catch 块添加 warn 日志 SilentCatchWarn_Sidebar** — `sidebar/sidebar.js` 有 5 处 IndexedDB saveConversationIDB() 静默失败（L3559, L3810, L4050, L4309）+ 2 处 conversation restore 静默失败（L6041, L6061），用户以为数据已保存但实际丢失；(1) L3559/L3810/L4050/L4309: `catch (_e) {}` → `catch (e) { console.warn('[PageWise] saveConversationIDB failed:', e); }`；(2) L6041: IndexedDB 回退添加 `console.warn('[PageWise] IndexedDB load failed, trying session:', _e)`；(3) L6061: session storage 最终回退添加 `console.warn('[PageWise] conversation restore failed:', _e)`；(4) L1234: checkPendingAction 添加 `console.warn('[PageWise] checkPendingAction failed:', _e)`；(5) 验收: `grep -n "catch (_e) {}" sidebar/sidebar.js` 返回空，npm run test:ci 0 fail。复杂度: Easy
+
+- [ ] **R354: evolution.js silent catch 块添加日志 SilentCatchFix_Evolution** — `lib/evolution.js` 有 2 处 silent catch（L56: chrome.storage.local.set 失败静默，L233: URL 解析失败静默），进化状态保存失败会导致用户学习数据丢失；(1) L56: `catch {}` → `catch (e) { console.warn('[PageWise] EvolutionState.saveState failed:', e); }`；(2) L233: `catch {}` → `catch (e) { console.debug('[PageWise] boostDomain invalid URL:', url, e); }`；(3) 验收: `grep -c "catch {}" lib/evolution.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
+
+- [ ] **R355: sidebar.js 10 处「静默处理」catch 块添加 debug 日志 SilentCatchDebug_Sidebar** — `sidebar/sidebar.js` 有 10 处 catch 块仅含 `// 静默处理` 注释无任何日志（L249, L5055, L5255, L5408, L5838, L6628, L6728, L6973, L7142, L7153），开发调试时无法追踪错误来源；(1) 每处 `catch (_e) { // 静默处理 }` → `catch (e) { console.debug('[PageWise] sidebar silent catch at L<line>:', e); }`；(2) 保持原有功能不变，仅添加 debug 级别日志；(3) 验收: `grep -c "静默处理" sidebar/sidebar.js` 返回 0，npm run test:ci 0 fail。复杂度: Easy
