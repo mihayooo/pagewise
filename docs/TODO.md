@@ -674,3 +674,11 @@
 - [x] **R359: knowledge-base-crud.js 核心模块零测试覆盖 KBCrudTests** — `lib/knowledge-base-crud.js`（298 行）是知识库 CRUD 编排层（单条 CRUD + 去重 + 分页），继承自 KnowledgeBaseCore，mixin 注入 CursorPaging 和 BatchOperations，当前无测试文件；(1) 新建 `tests/test-knowledge-base-crud.js`；(2) 通过 mock IndexedDB 构造 ctx 上下文；(3) 测试 findDuplicate: 精确标题重复检测、模糊匹配、无重复返回 null；(4) 测试 addEntry: 正常插入、重复检测跳过、必填字段校验；(5) 测试 getEntryById: 存在/不存在、ID 格式校验；(6) 测试 updateEntry: 部分更新、不存在时的行为；(7) 测试 deleteEntry: 正常删除、级联清理；(8) 测试分页: offset/limit 边界值、空结果集；(9) 验收: ≥12 用例，`npm run test:ci` 0 fail。复杂度: Medium
 
 - [x] **R360: docmind-client.js API 客户端零测试覆盖 DocMindClientTests** — `lib/docmind-client.js`（316 行）是 DocMind 后端 API 客户端（连接管理/知识同步/书签同步/健康检查），通过可注入 fetchFn 实现便于测试，当前无测试文件；(1) 新建 `tests/test-docmind-client.js`；(2) mock fetchFn 模拟 API 响应，mock chrome.storage.local 存储配置；(3) 测试 connect: 正常连接返回 status、连接超时（15000ms）、网络错误降级；(4) 测试 API 路径常量: status/knowledge/bookmarks/graph/health 端点正确；(5) 测试请求构造: headers 包含 Content-Type、超时配置、认证 token；(6) 测试错误处理: 非 200 响应解析、网络断开降级到离线模式；(7) 测试 health check: 正常/超时/异常；(8) 验收: ≥12 用例，`npm run test:ci` 0 fail。复杂度: Medium
+
+## 自动生成任务 — 2026-05-30 03:14
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [ ] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
