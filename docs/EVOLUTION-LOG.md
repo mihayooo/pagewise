@@ -954,3 +954,22 @@ ci_failed: CI #26670027616 E2E测试 1/9 subtest failure (flaky)，已记录待�
 
 ---
 
+
+## GUARDIAN — 2026-05-30
+
+| 属性 | 值 |
+|------|-----|
+| **时间** | 2026-05-30 06:01:59 |
+| **迭代** | GUARDIAN |
+| **分支** | unknown |
+| **提交** | fc49eb8 |
+| **变更文件** | 3 个 |
+| **新增行** | +100 |
+| **删除行** | -1 |
+
+### 变更描述
+
+CI诊断: E2E Chrome 测试路径3(选中文字弹出气泡)连续3次超时失败。根因疑似 setContent 创建的页面未触发 content script 注入(__AI_ASSISTANT_INJECTED__未设置)。建议: 1) 改用 chrome://extensions 页面导航测试; 2) 或在 setContent 后手动注入 content script; 3) 或为该测试添加 @skip 标记直到修复。
+
+---
+
