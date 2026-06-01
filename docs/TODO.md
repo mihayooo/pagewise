@@ -810,3 +810,14 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+## 自动生成任务 — 2026-06-01 12:05
+
+> 基于代码质量分析自动生成（59 个 silent catch、133 个未测试文件、24756 行未覆盖代码）
+
+- [x] **R361: bookmark-semantic-search-hybrid 单元测试 SemanticSearchHybridTest** — `lib/bookmark-semantic-search-hybrid.js` (395 行，0 测试) 导出 `SearchOperations` 类，含 `semanticSearch()`(L33)、`hybridSearch()`(L175)、`findSimilar()`(L243)、`rrfMerge()`(L293)、`mergeResults()`(L351) 五个核心方法；(1) 新建 `tests/test-bookmark-semantic-search-hybrid.js`；(2) mock TF-IDF 向量索引，测试 semanticSearch 基本查询返回排序结果、空查询返回空、limit 参数生效；(3) 测试 hybridSearch 关键词+语义融合排序、RRF k 参数调节；(4) 测试 findSimilar 以文搜文返回相似书签；(5) 测试 mergeResults 加权归一化、空输入处理；(6) 测试 IVF 降级策略（大数据集触发分区搜索）；(7) 目标 ≥25 用例。验收: `node --test tests/test-bookmark-semantic-search-hybrid.js` 全部通过。复杂度: Medium
+
+- [x] **R362: 消除 lib/ 中 59 个 silent catch 块 SilentCatchAudit** — 48 个文件共 59 处 catch 块吞没异常无任何日志，导致运行时错误静默丢失无法排查；Top 重灾区: `lib/docmind-client.js`(3处 L82/113/145)、`lib/docmind-ai-gateway.js`(3处 L33/58/80)、`lib/bookmark-final-polish-interactions.js`(3处 L60/118/212)、`lib/ai-client.js`(3处 L48/75/263)；(1) 逐文件审查，对已有 fallback 的 catch 添加 `console.warn('[module] context', err)`；(2) 对不应吞错的 catch 改为 `throw` 或 `reject`；(3) 保留 2 个 `evolution.js` 中的 `catch {}` 如果有明确设计意图；(4) 运行 `npm run test:ci` 确认 0 fail；(5) 目标: silent catches 从 59 降至 ≤5。验收: `grep -rn "catch\s*(\w*)" lib/ -A2` 中无未记录的 silent catch。复杂度: Medium
+
+- [x] **R363: knowledge-base-query 单元测试 KBQueryTest** — `lib/knowledge-base-query.js` (372 行，0 测试) 导出 `KnowledgeBaseQuery` 类；(1) 新建 `tests/test-knowledge-base-query.js`；(2) mock IndexedDB/存储层，测试查询构建、过滤条件、分页逻辑、排序选项；(3) 测试空结果处理、大批量数据游标遍历；(4) 目标 ≥20 用例。验收: `node --test tests/test-knowledge-base-query.js` 全部通过。复杂度: Medium
+
+
