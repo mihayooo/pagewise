@@ -829,3 +829,16 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-06-01 14:00 (飞轮引擎 R2 - 代码质量分析)
+
+> 由 PageWise 飞轮迭代引擎生成（基于覆盖率分析 + silent catch 审计）
+> 分析依据: npm run test:ci 7836 pass/0 fail; 覆盖率 Stmts 93.95%/Branches 86.86%/Functions 88.57%; 
+> 18 个 lib 模块 <80% 覆盖率; sidebar.js 45 处 silent catch (5 空块 + 40 无日志); 
+> 最低覆盖率: knowledge-base-cursor.js 27.3%, skill-store.js 34.1%, bookmark-semantic-search-index.js 36.3%
+
+- [x] **R364: knowledge-base-cursor.js 零测试覆盖提升 KBCursorCov** — `lib/knowledge-base-cursor.js`（110 行，27.3% 覆盖率 30/110 stmts）导出 `withCursorPaging(BaseClass)` mixin，为知识库 CRUD 添加游标分页能力；当前无测试文件；(1) 新建 `tests/test-knowledge-base-cursor.js`；(2) 测试 mixin 注入: withCursorPaging 正确扩展 BaseClass 原型方法；(3) 测试 cursorPagedQuery: 正常分页返回 cursor + items、空结果集返回空数组 + null cursor、大数据集多页游标前进；(4) 测试 cursor 参数校验: 无效 cursor 格式抛异常、过期 cursor 降级处理；(5) 测试 count + offset 边界: offset > total 返回空、limit=0 返回空；(6) 验收: 覆盖率从 27.3% 提升至 ≥70%，≥12 用例，`npm run test:ci` 0 fail。复杂度: Medium
+
+- [x] **R365: bookmark-semantic-search-index.js 低覆盖提升 SemanticIndexCov** — `lib/bookmark-semantic-search-index.js`（256 行，36.3% 覆盖率 93/256 stmts）导出 `IVF_DEFAULTS` 常量和 `IndexOperations` 类，是语义搜索的 IVF 倒排索引核心模块；当前无测试文件；(1) 新建 `tests/test-bookmark-semantic-search-index.js`；(2) 测试 IVF_DEFAULTS 常量: nlist/nprobe/minClusterSize 默认值正确；(3) 测试 IndexOperations.buildIndex: 构建 IVF 索引分配聚类、空输入返回空索引；(4) 测试 search: 给定查询向量返回 Top-K 结果、nprobe 参数控制搜索范围；(5) 测试 addVector/removeVector 增量更新、聚类重平衡触发条件；(6) 验收: 覆盖率从 36.3% 提升至 ≥65%，≥15 用例，`npm run test:ci` 0 fail。复杂度: Medium
+
+- [x] **R366: sidebar.js 45 处 silent catch 块添加降级日志 SidebarSilentCatchR2** — `sidebar/sidebar.js` 仍有 45 处 catch 块无错误日志: 5 处空 `catch (_e) {}`（L1234/L3559/L3810/L4050/L4309，IndexedDB saveConversationIDB 失败静默吞没），40 处 `catch (_e) { // 静默处理 }` 仅注释无 console 输出；(1) 5 处空 catch: 改为 `catch (e) { console.warn('[PageWise] IDB save failed at L<line>:', e); }`；(2) 40 处无日志 catch 分三类处理: 核心路径（搜索/问答/书签操作 L3469/L3565/L3713/L3944）添加 `console.warn`，降级路径（content script 注入 L1777/L3603/L3839/L4079）添加 `console.debug`，已有注释说明的容错（L2805/L6041/L6766）添加 `console.debug` 保留注释；(3) 验收: `grep -c "catch (_e) {}" sidebar/sidebar.js` 返回 0，`grep -c "// 静默处理" sidebar/sidebar.js` 返回 0，`npm run test:ci` 0 fail。复杂度: Medium

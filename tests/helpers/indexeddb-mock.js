@@ -348,6 +348,25 @@ class MockIDBIndex {
   }
 
   /**
+   * 计数 — 支持 IDBKeyRange 过滤和复合索引
+   */
+  count(range) {
+    const req = new MockIDBRequest();
+    let count = 0;
+    for (const record of this._store._records.values()) {
+      const idxKey = this._extractKey(record);
+      if (_keyInRange(idxKey, range)) {
+        count++;
+      }
+    }
+    Promise.resolve().then(() => {
+      req.result = count;
+      if (req.onsuccess) req.onsuccess({ target: req });
+    });
+    return req;
+  }
+
+  /**
    * 打开游标 — 支持 IDBKeyRange 过滤和复合索引
    */
   openCursor(range, direction) {
