@@ -858,3 +858,20 @@
 - [x] **R181: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R182: 项目改进** — 根据项目状态进行优化和改进
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-06-01 20:00 (飞轮引擎 R3 - 覆盖率冲刺)
+
+> 由 PageWise 飞轮迭代引擎生成（基于覆盖率分析）
+> 分析依据: npm run test:ci 7855 pass/0 fail; 覆盖率 Stmts 76.68%/Branches 82.41%/Functions 68.41%;
+> 最低覆盖率: skill-store.js 34.1%, bookmark-semantic-search-index.js 36.3%, bookmark-learning-progress-db.js 44.9%
+
+- [x] **R367: skill-store.js SkillPackageManager 测试覆盖提升 SkillStoreCov** — `lib/skill-store.js`（255 行，34.11% 覆盖率）的 `SkillPackageManager` 类有 `exportSkill`/`importSkill`/`checkForUpdate`/`getVersionInfo` 四个方法完全无测试；当前 `tests/test-skill-store.js` 仅覆盖 `SkillStore.fetchSkills`/`installSkill`/`isInstalled`（111 行/12 用例）；(1) 扩展 `tests/test-skill-store.js`；(2) 测试 `exportSkill`: 正常导出生成 ZIP 含 4 文件、skill 不存在抛异常、默认版本/作者/许可证；(3) 测试 `importSkill`: 正常导入、空包抛异常、缺 SKILL.md 抛异常、已存在同 ID 处理、overwrite 选项、validate=false 跳过校验、无效 ZIP 抛异常；(4) 测试 `checkForUpdate`: 有更新/无更新/skill 不存在；(5) 测试 `getVersionInfo`: 正常返回/skill 不存在；(6) 发现并记录: `saveSkill()` 不存储 `version`/`installedAt` 字段，导致 `checkForUpdate` 和 `getVersionInfo` 始终返回默认值；(7) 验收: 覆盖率从 **34.11% → 94.5%**，28 用例（+16 新增），`npm run test:ci` 7871 pass/0 fail。复杂度: Medium
+
+
+## 自动生成任务 — 2026-06-01 20:19
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R182: 项目改进** — 根据项目状态进行优化和改进
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
