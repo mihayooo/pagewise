@@ -821,3 +821,11 @@
 - [x] **R363: knowledge-base-query 单元测试 KBQueryTest** — `lib/knowledge-base-query.js` (372 行，0 测试) 导出 `KnowledgeBaseQuery` 类；(1) 新建 `tests/test-knowledge-base-query.js`；(2) mock IndexedDB/存储层，测试查询构建、过滤条件、分页逻辑、排序选项；(3) 测试空结果处理、大批量数据游标遍历；(4) 目标 ≥20 用例。验收: `node --test tests/test-knowledge-base-query.js` 全部通过。复杂度: Medium
 
 
+
+## 自动生成任务 — 2026-06-01 12:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R183: 项目改进** — 根据项目状态进行优化和改进
