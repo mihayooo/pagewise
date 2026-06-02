@@ -1429,7 +1429,7 @@ class SidebarApp {
 
     // 迷你柱状图（最近 20 条 API 请求）
     const recentApi = getRecentMetrics(20, 'api').filter(m => {
-      try { return JSON.parse(m.data).type === 'total'; } catch { return false; }
+      try { return JSON.parse(m.data).type === 'total'; } catch (e) { console.debug('[Sidebar] metric parse failed:', e); return false; }
     });
     let chartHtml = '';
     if (recentApi.length > 0) {
@@ -1440,7 +1440,7 @@ class SidebarApp {
         const h = Math.max(2, Math.round(pct * 0.6)); // 最大高度 60px
         const time = new Date(m.timestamp).toLocaleTimeString('zh-CN', { hour12: false });
         let model = '';
-        try { model = JSON.parse(m.data).model || ''; } catch {}
+        try { model = JSON.parse(m.data).model || ''; } catch (e) { console.debug('[Sidebar] model parse failed:', e); }
         const color = pct > 80 ? '#f44336' : pct > 50 ? '#FF9800' : '#4CAF50';
         return `<div class="perf-bar-wrapper" title="${time}\n${m.durationMs.toFixed(1)} ms\n${model}" style="width:${barWidth}px">
           <div class="perf-bar" style="height:${h}px;background:${color}"></div>
@@ -3385,8 +3385,9 @@ class SidebarApp {
     try {
       await navigator.clipboard.writeText(this.currentSummary);
       this.showToast('已复制到剪贴板', 'success');
-    } catch {
-      // 降级方案
+    } catch (e) {
+      // 降级方案: clipboard API 不可用时使用 execCommand
+      console.debug('[Sidebar] clipboard write failed, using fallback:', e)
       const textarea = document.createElement('textarea');
       textarea.value = this.currentSummary;
       document.body.appendChild(textarea);
@@ -7251,7 +7252,7 @@ ${sendContent}
       try {
         const domain = new URL(bm.url).hostname.replace(/^www\./, '');
         domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
-      } catch { /* ignore */ }
+      } catch (e) { /* invalid URL, skip */ console.debug('[Sidebar] invalid bookmark URL:', bm.url, e); }
     }
     const topDomains = [...domainCounts.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -7655,7 +7656,8 @@ ${sendContent}
           }
         });
       });
-    } catch {
+    } catch (e) {
+      console.debug('[Sidebar] similar bookmarks failed:', e)
       this.bookmarksDetailSimilar.classList.add('hidden');
     }
   }
@@ -7668,7 +7670,8 @@ ${sendContent}
   _getDomain(url) {
     try {
       return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
+    } catch (e) {
+      /* invalid URL */ console.debug('[Sidebar] _getDomain invalid URL:', url, e);
       return '';
     }
   }
