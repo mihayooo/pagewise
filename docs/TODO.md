@@ -905,5 +905,20 @@
 > 由自主任务选择器生成（基于项目状态分析）
 
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
-- [ ] **R182: 稳定性提升** — 修复边界情况和错误处理
-- [ ] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R182: 稳定性提升** — 修复边界情况和错误处理（已废弃：任务过于模糊）
+- [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型（已废弃：任务过于模糊）
+
+## 自动生成任务 — 2026-06-02 09:30 (具体化重构)
+
+> 基于代码质量分析生成，每个任务包含具体文件、行数、问题描述
+
+- [x] **R184: 消除 memory.js 中 4 处 silent catch 块** — lib/memory.js 第 41/112/262/306/327 行有 `catch { }` 无错误日志，吞掉异常导致调试困难。每处 catch 添加 `console.error('[memory]', err)` 或合理 re-throw。验收：grep 确认 lib/memory.js 中 0 个 silent catch。
+- [x] **R185: 消除 bookmark-backup.js 中 3 处 silent catch 块** — lib/bookmark-backup.js 第 111/210/277 行有 `catch { }` 吞掉备份操作异常，可能导致静默数据丢失。每处 catch 添加错误日志 + 用户可见的备份失败提示。验收：grep 确认 0 个 silent catch。
+- [x] **R186: 为 search-history.js (397行) 创建单元测试** — lib/search-history.js 是无测试覆盖的最大文件（397行）。创建 tests/test-search-history.test.js，覆盖：历史记录添加/删除/搜索/持久化/去重/过期清理。验收：npm run test:ci 通过且新测试文件存在。
+- [x] **R187: 为 stats.js (396行) 创建单元测试** — lib/stats.js (396行) 无测试覆盖。创建 tests/test-stats.test.js，覆盖：统计收集/聚合/导出/重置/边界值。验收：npm run test:ci 通过且新测试文件存在。
+- [x] **R188: 拆分 bookmark-onboarding.js 中 196 行巨型函数** — lib/bookmark-onboarding.js 第 116 行 `_createBookmarkOnboardingModule` 函数长达 196 行。拆分为 3-5 个子函数（initUI/bindEvents/loadData/setupWizard/finalize），每个 ≤ 50 行。验收：最长函数 ≤ 60 行，npm run test:ci 通过。
+- [x] **R189: 拆分 user-insight-analyzer.js 中 180 行巨型函数** — lib/user-insight-analyzer.js 第 144 行 `createUserInsightAnalyzer` 长达 180 行。拆分为数据采集/分析/报告生成等子模块。验收：最长函数 ≤ 60 行，npm run test:ci 通过。
+- [x] **R190: 消除 git-repo-objects.js 中 2 处 silent catch** — lib/git-repo-objects.js 第 217/235 行有 `catch { }` 吞掉 git 操作异常。添加错误日志。验收：grep 确认 0 个 silent catch。
+- [x] **R191: 消除 test-shard.js 中 2 处 silent catch** — lib/test-shard.js 第 28/41 行有 `catch { }` 吞掉测试分片异常。添加错误日志。验收：grep 确认 0 个 silent catch。
+- [ ] **R192: 为 bookmark-semantic-search-hybrid.js (395行) 创建单元测试** — lib/bookmark-semantic-search-hybrid.js (395行) 无测试覆盖。创建 tests/test-bookmark-semantic-search-hybrid.test.js，覆盖：混合搜索/语义匹配/结果排序/空输入/性能边界。验收：npm run test:ci 通过。
+- [ ] **R193: 为 error-handler.js (393行) 创建单元测试** — lib/error-handler.js (393行) 无测试覆盖。创建 tests/test-error-handler.test.js，覆盖：错误捕获/分类/上报/恢复策略/边界情况。验收：npm run test:ci 通过。
