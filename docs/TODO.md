@@ -966,3 +966,11 @@
 - [x] **R370: 消除 sidebar.js 中 6 处 silent catch** — `sidebar/sidebar.js` 第 1432/1443/3388/7254/7658/7671 行有空体 `catch {}` 吞掉各类异常；(1) L1432 JSON.parse 性能数据 → `catch { return false; }` 已有返回值但无日志，改为 `catch (e) { console.debug('[Perf] metric parse failed:', e); return false; }`；(2) L1443 JSON.parse model → `catch {}` → `catch { /* perf metric, non-critical */ }` 添加注释说明意图；(3) L3388 剪贴板降级已有降级逻辑但 catch 无日志 → 添加 `console.debug('[Sidebar] clipboard write failed, using fallback:', e)`；(4) L7254 URL 解析 → `catch { /* invalid url, skip */ }` 添加注释；(5) L7658 相似书签加载 → 添加 `console.debug('[Sidebar] similar bookmarks failed:', e)`；(6) L7671 hostname 提取 → `catch { return ''; }` 已有返回值但添加注释；(7) 验收: `grep -n "catch {" sidebar/sidebar.js` 返回空，`npm run test:ci` 0 fail。复杂度: Easy
 
 - [x] **R371: 消除 ai-client-context-methods.js + evolution.js 中 6 处 silent catch** — `lib/ai-client-context-methods.js` 第 56/103/165 行 + `lib/evolution.js` 第 42/56/233 行有空体 `catch {}`；(1) ai-client-context-methods.js L56: context 读取失败 → `catch (e) { console.debug('[AI-Context] read failed:', e); }`；(2) L103: context 写入失败 → `catch (e) { console.warn('[AI-Context] write failed:', e); }`；(3) L165: context 清理失败 → `catch (e) { console.debug('[AI-Context] cleanup failed:', e); }`；(4) evolution.js L42: signal 采集失败 → `catch (e) { console.debug('[Evolution] signal collect failed:', e); }`；(5) L56: evolution 数据读取 → `catch (e) { console.debug('[Evolution] read failed:', e); }`；(6) L233: evolution 保存 → `catch (e) { console.warn('[Evolution] save failed:', e); }`；(7) 验收: 两个文件 `grep -n "catch {}" lib/ai-client-context-methods.js lib/evolution.js` 返回空，`npm run test:ci` 0 fail。复杂度: Easy
+
+## 自动生成任务 — 2026-06-02 21:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R183: 项目改进** — 根据项目状态进行优化和改进
