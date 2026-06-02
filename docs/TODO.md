@@ -922,3 +922,11 @@
 - [x] **R191: 消除 test-shard.js 中 2 处 silent catch** — lib/test-shard.js 第 28/41 行有 `catch { }` 吞掉测试分片异常。添加错误日志。验收：grep 确认 0 个 silent catch。
 - [x] **R192: 为 bookmark-semantic-search-hybrid.js (395行) 创建单元测试** — lib/bookmark-semantic-search-hybrid.js (395行) 无测试覆盖。创建 tests/test-bookmark-semantic-search-hybrid.test.js，覆盖：混合搜索/语义匹配/结果排序/空输入/性能边界。验收：npm run test:ci 通过。
 - [x] **R193: 为 error-handler.js (393行) 创建单元测试** — lib/error-handler.js (393行) 无测试覆盖。创建 tests/test-error-handler.test.js，覆盖：错误捕获/分类/上报/恢复策略/边界情况。验收：npm run test:ci 通过。
+
+## 自动生成任务 — 2026-06-02 12:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 稳定性提升** — 修复边界情况和错误处理
+- [ ] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
