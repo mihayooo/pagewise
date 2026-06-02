@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.sidePanel.open({ tabId: tab.id });
     // 发送总结指令
     setTimeout(() => {
-      chrome.runtime.sendMessage({ action: 'contextMenuSummarize', tabId: tab.id }).catch(() => {});
+      chrome.runtime.sendMessage({ action: 'contextMenuSummarize', tabId: tab.id }).catch(e => console.debug('[Popup] contextMenuSummarize failed:', e));
     }, 300);
     window.close();
   });
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     await chrome.sidePanel.open({ tabId: tab.id });
     setTimeout(() => {
-      chrome.runtime.sendMessage({ action: 'switchToKnowledge' }).catch(() => {});
+      chrome.runtime.sendMessage({ action: 'switchToKnowledge' }).catch(e => console.debug('[Popup] switchToKnowledge failed:', e));
     }, 300);
     window.close();
   });
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     await chrome.sidePanel.open({ tabId: tab.id });
     setTimeout(() => {
-      chrome.runtime.sendMessage({ action: 'switchToBookmarks' }).catch(() => {});
+      chrome.runtime.sendMessage({ action: 'switchToBookmarks' }).catch(e => console.debug('[Popup] switchToBookmarks failed:', e));
     }, 300);
     window.close();
   });

@@ -194,7 +194,7 @@ if (PW.commands?.onCommand) {
           if (openSidePanels.has(tab.id)) {
             try {
               await closeSidePanel(tab.id);
-            } catch (_e) {}
+            } catch (e) { console.debug('[SW] closeSidePanel failed:', e); }
             openSidePanels.delete(tab.id);
           } else {
             await openSidePanel(tab.id);

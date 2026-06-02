@@ -1231,7 +1231,7 @@ class SidebarApp {
         await chrome.storage.session.remove('pendingAction');
         this.handlePendingAction(pendingAction);
       }
-    } catch (_e) {}
+    } catch (e) { console.warn('[PageWise] checkPendingAction failed:', e); }
   }
 
   handlePendingAction(data) {
@@ -2266,7 +2266,7 @@ class SidebarApp {
 
     // 如果是自定义技能，同步到 IndexedDB
     if (skillId.startsWith('skill_')) {
-      toggleCustomSkill(skillId).catch(() => {});
+      toggleCustomSkill(skillId).catch(e => console.debug('[Sidebar] toggleCustomSkill failed:', e));
     }
 
     // 更新统计
@@ -3556,7 +3556,7 @@ ${fullText.slice(0, 8000)}
             videoTitle,
             this.conversationHistory
           );
-        } catch (_e) {}
+        } catch (e) { console.warn('[PageWise] IDB save failed (videoTitle):', e); }
 
       } catch (error) {
         loadingEl.remove();
@@ -3807,7 +3807,7 @@ ${endpointText}
             apiTitle,
             this.conversationHistory
           );
-        } catch (_e) {}
+        } catch (e) { console.warn('[PageWise] IDB save failed (apiTitle):', e); }
 
       } catch (error) {
         loadingEl.remove();
@@ -4047,7 +4047,7 @@ ${readme || '无法提取 README 内容'}
             `分析仓库: ${repoLabel}`,
             this.conversationHistory
           );
-        } catch (_e) {}
+        } catch (e) { console.warn('[PageWise] IDB save failed (repo):', e); }
 
       } catch (error) {
         loadingEl.remove();
@@ -4306,7 +4306,7 @@ ${sendContent}
           `分析 PDF: ${title}`,
           this.conversationHistory
         );
-      } catch (_e) {}
+      } catch (e) { console.warn('[PageWise] IDB save failed (PDF):', e); }
 
     } catch (error) {
       loadingEl.remove();
@@ -7547,7 +7547,7 @@ ${sendContent}
       btnCopy.addEventListener('click', () => {
         navigator.clipboard.writeText(bm.url).then(() => {
           this.showToast('链接已复制', 'success');
-        }).catch(() => {});
+        }).catch(e => console.debug('[Sidebar] clipboard write failed:', e));
       });
     }
 
