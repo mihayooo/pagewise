@@ -920,5 +920,5 @@
 - [x] **R189: 拆分 user-insight-analyzer.js 中 180 行巨型函数** — lib/user-insight-analyzer.js 第 144 行 `createUserInsightAnalyzer` 长达 180 行。拆分为数据采集/分析/报告生成等子模块。验收：最长函数 ≤ 60 行，npm run test:ci 通过。
 - [x] **R190: 消除 git-repo-objects.js 中 2 处 silent catch** — lib/git-repo-objects.js 第 217/235 行有 `catch { }` 吞掉 git 操作异常。添加错误日志。验收：grep 确认 0 个 silent catch。
 - [x] **R191: 消除 test-shard.js 中 2 处 silent catch** — lib/test-shard.js 第 28/41 行有 `catch { }` 吞掉测试分片异常。添加错误日志。验收：grep 确认 0 个 silent catch。
-- [ ] **R192: 为 bookmark-semantic-search-hybrid.js (395行) 创建单元测试** — lib/bookmark-semantic-search-hybrid.js (395行) 无测试覆盖。创建 tests/test-bookmark-semantic-search-hybrid.test.js，覆盖：混合搜索/语义匹配/结果排序/空输入/性能边界。验收：npm run test:ci 通过。
+- [x] **R192: 为 bookmark-semantic-search-hybrid.js (395行) 创建单元测试** — lib/bookmark-semantic-search-hybrid.js (395行) 无测试覆盖。创建 tests/test-bookmark-semantic-search-hybrid.test.js，覆盖：混合搜索/语义匹配/结果排序/空输入/性能边界。验收：npm run test:ci 通过。
 - [ ] **R193: 为 error-handler.js (393行) 创建单元测试** — lib/error-handler.js (393行) 无测试覆盖。创建 tests/test-error-handler.test.js，覆盖：错误捕获/分类/上报/恢复策略/边界情况。验收：npm run test:ci 通过。
