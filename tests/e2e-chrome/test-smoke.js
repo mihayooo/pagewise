@@ -12,6 +12,8 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   launchChromeWithExtension,
   openSidePanel,
@@ -21,6 +23,7 @@ import {
 
 // ==================== 常量 ====================
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HARD_TIMEOUT = 30_000;       // 每条路径 30s 硬超时
 const MAX_RETRIES = 2;             // 最多重试 2 次（仅 TimeoutError）
 
@@ -162,6 +165,19 @@ describe('E2E Chrome: 最小可行冒烟测试', () => {
             </body>
           </html>
         `, { waitUntil: 'domcontentloaded', timeout: 10000 });
+
+        // FIX: setContent() 创建 about:blank 页面，Chrome 不会对 about:blank 注入 content scripts
+        // 手动注入 manifest.json 中声明的 content scripts（IIFE 格式）
+        const scriptDir = path.resolve(__dirname, '..', '..');
+        for (const script of [
+          'lib/selection-detector-global.js',
+          'lib/selection-handler-global.js',
+          'lib/selection-toolbar-global.js',
+          'lib/explore-mode-global.js',
+          'content/content.js',
+        ]) {
+          await page.addScriptTag({ path: path.join(scriptDir, script) });
+        }
 
         // 等待 content script 注入
         await page.waitForFunction(() => !!window.__AI_ASSISTANT_INJECTED__, {
