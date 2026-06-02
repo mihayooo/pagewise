@@ -938,3 +938,11 @@
 > sidebar/sidebar.js 7720 行超大文件; popup.js/service-worker.js/browser-compat.js 存在 silent catch
 
 - [x] **R368: 消除 6 个空体 catch 块 + 6 个 .catch(() => {}) SilentCatchFinal** — `sidebar/sidebar.js`(L1234/L3559/L3810/L4050/L4309 五处 `catch (_e) {}` 空体) + `background/service-worker.js`(L197 空体) + `popup/popup.js`(L40/L50/L60 三处 `.catch(() => {})`) + `sidebar/sidebar.js`(L2269/L7550 两处 `.catch(() => {})`) + `lib/browser-compat.js`(L232 `.catch(() => {})`)；(1) sidebar.js L1234: `catch (_e) {}` → `catch (e) { console.warn('[PageWise] checkPendingAction failed:', e); }`；(2) sidebar.js L3559/L3810/L4050/L4309: 4 处 saveConversationIDB 空 catch → `catch (e) { console.warn('[PageWise] IDB save failed:', e); }`；(3) service-worker.js L197: `catch (_e) {}` → `catch (e) { console.debug('[SW] closeSidePanel failed:', e); }`；(4) popup.js L40/L50/L60: `.catch(() => {})` → `.catch(e => console.debug('[Popup] message failed:', e))`；(5) sidebar.js L2269/L7550: `.catch(() => {})` → `.catch(e => console.debug('[Sidebar] message failed:', e))`；(6) browser-compat.js L232: `.catch(() => {})` → `.catch(e => console.debug('[Compat] setPanelBehavior failed:', e))`；(7) 验收: `grep -rn "catch (_e) {}" sidebar/ background/` 返回空，`grep -rn "\.catch(() => {})" sidebar/ popup/ lib/browser-compat.js` 返回空，`npm run test:ci` 0 fail。复杂度: Easy
+
+## 自动生成任务 — 2026-06-02 15:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R183: 项目改进** — 根据项目状态进行优化和改进
