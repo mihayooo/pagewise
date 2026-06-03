@@ -998,3 +998,13 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-06-03 09:20 (R288-R290)
+
+> 代码质量审计自动生成（基于实际代码分析：88个silent catch块、131个无测试模块共24250行、语义搜索性能测试848ms超100ms目标）
+
+- [x] **R288: 消除高频 silent catch 块 SilentCatchFix** — 88 个 lib 文件共 88 处 `catch {}` 空块（Top 3: `page-summarizer-extract.js` 3处、`context-retriever.js` 3处、`bookmark-sync.js` 3处），静默吞掉错误导致调试困难；(1) 逐文件审查 88 处 `catch {}`，区分「可忽略的解析错误」和「需要记录的运行时错误」；(2) 对 URL 解析类（`bookmark-graph-engine.js:168`、`bookmark-folder-analyzer.js:351`）保持 catch 但添加 `debugLog()`；(3) 对 IO/DB 类（`bookmark-backup.js` 3处、`bookmark-io.js:246`、`memory.js:330`）改为 `catch(e) { console.warn('[Module]', e.message); }`；(4) 对引擎核心（`skill-engine.js:74`、`error-handler.js:283`）改为 `catch(e) { errorHandler.capture(e, 'module-name'); }`；(5) 确保 `npm run test:ci` 0 fail ≥7870 pass；(6) 新建 `tests/test-silent-catch-audit.js` 验证 catch 块覆盖率。验收标准: catch 块均有日志/错误上报，无纯空 catch。复杂度: Medium
+
+- [x] **R289: knowledge-base-query.js 单元测试覆盖 KnowledgeBaseQueryTest** — `lib/knowledge-base-query.js`（372行）无对应测试文件，是最大无测试模块；该模块负责知识库查询（全文搜索、过滤、排序、分页），是核心数据通路；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 测试用例覆盖：基本查询返回结果/空查询返回空集/多关键词AND搜索/按类型过滤/按时间排序/分页偏移/大数据量性能（1000条<50ms）/错误输入容错/索引缺失降级；(3) mock IndexedDB 环境；(4) 目标 ≥20 用例；(5) `npm run test:ci` 0 fail。验收标准: 覆盖 lib/knowledge-base-query.js 的主要导出函数和边界条件。复杂度: Medium
+
+- [x] **R290: bookmark-advanced-tags.js 单元测试覆盖 AdvancedTagsTest** — `lib/bookmark-advanced-tags.js`（371行）无测试文件，第二大无测试模块；该模块实现高级标签系统（标签层次结构、自动标签建议、标签合并、批量操作）；(1) 新建 `tests/test-bookmark-advanced-tags.js`；(2) 测试用例覆盖：创建标签层次/标签自动建议（基于URL和标题）/标签合并去重/批量标签删除/标签搜索/标签统计/嵌套标签路径解析/空标签容错/重复标签去重；(3) 目标 ≥18 用例；(4) `npm run test:ci` 0 fail。验收标准: 覆盖主要导出函数，标签层次和合并逻辑有边界测试。复杂度: Medium
