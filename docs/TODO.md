@@ -1052,3 +1052,11 @@
 - [x] **R295: bookmark-io-standalone.js 单元测试覆盖 BookmarkIOStandaloneTest** — `lib/bookmark-io-standalone.js`（363行，ES module）无测试文件；独立的书签导入导出IO层；(1) 新建 `tests/test-bookmark-io-standalone-unit.js`；(2) 测试覆盖：`exportBookmarks()` 导出JSON格式（空数组/单条/多条/含特殊字符URL）、`importBookmarks()` 导入（正常JSON/损坏JSON容错/空文件/重复去重）、`validateBookmark()` 校验（合法/缺字段/非法URL/超长title）、`formatForExport()` 格式化（含tags/categories/dates）、`parseImportData()` 解析（JSON/HTML格式检测）；(3) mock chrome.storage.local；(4) 目标 ≥18 用例；(5) `npm run test:ci` 0 fail ≥7932 pass。验收标准: 覆盖导入导出全流程和边界容错。复杂度: Medium
 
 - [x] **R296: 剩余105处console.*调用迁移至Logger（第二批）ConsoleToLoggerBatch2** — R293已处理41处，剩余约105处console.*调用分布在更多lib文件中；(1) `lib/memory.js`（5处warn）→ `debugLog('[Memory]', ...)`；(2) `lib/i18n.js`（5处warn+1处error）→ `debugLog('[I18n]', ...)` / `errorLog(...)`；(3) `lib/bookmark-backup.js`（1处）→ `debugLog`；(4) `lib/bookmark-io.js`（1处）→ `debugLog`；(5) `lib/skill-engine.js`（1处）→ `debugLog`；(6) `lib/skill-store.js`（2处）→ `debugLog`；(7) `lib/docmind-sync-helpers.js`（1处）→ `debugLog`；(8) `lib/explore-mode-global.js`（2处）→ `debugLog`；(9) `lib/test-shard.js`（2处）→ `debugLog`；(10) 扫描剩余所有lib/文件逐一替换；(11) 确保 `npm run test:ci` 0 fail ≥7932 pass；(12) 新建或更新 `tests/test-no-console-in-lib.js` 验证 lib/ 目录（除 log-store.js、error-handler.js、test-shard.js）无 console.* 调用。验收标准: `grep -rn "console\." lib/*.js | grep -v log-store | grep -v error-handler | grep -v test-shard | wc -l` 应为 0。复杂度: Simple
+
+## 自动生成任务 — 2026-06-03 21:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [ ] **R181: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R182: 项目改进** — 根据项目状态进行优化和改进
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进
