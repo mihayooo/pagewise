@@ -1026,3 +1026,11 @@
 - [x] **R292: bookmark-learning-goals.js 单元测试覆盖 LearningGoalsTest** — `lib/bookmark-learning-goals.js`（368行，ES module class）无测试文件；学习目标打卡系统：创建目标→每日打卡→连续天数追踪→成就解锁；(1) 新建 `tests/test-bookmark-learning-goals-unit.js`；(2) 测试用例覆盖：`createGoal()` 创建目标（必填name/可选targetDays/默认值）、`checkIn()` 每日打卡（正常打卡/重复打卡拒绝/跨天打卡）、`getGoal()` 获取目标（存在/不存在）、`getAllGoals()` 获取所有、`deleteGoal()` 删除（存在/不存在）、`getStreak()` 连续天数（0天/3天/7天/断签重置）、`getAchievements()` 成就解锁（初学者🔥3天/坚持者⭐7天/达人🏆14天/大师👑30天/传奇💎100天）、`getStats()` 全局统计、`exportData()`/`importData()` 序列化/反序列化（含损坏数据容错）；(3) 成就里程碑验证 `ACHIEVEMENT_MILESTONES` 常量完整性；(4) 目标 ≥25 用例；(5) `npm run test:ci` 0 fail。验收标准: 覆盖打卡全流程和成就解锁逻辑，含边界和错误输入。复杂度: Medium
 
 - [x] **R293: Top 文件 console.* 调用迁移至 Logger ConsoleToLogger** — 8 个 lib 文件共 41 处 `console.log/warn/error/info` 调用应统一使用项目 logger（`lib/log-store.js` 提供的 `debugLog`/`errorLog`）；(1) `bookmark-advanced-tags.js`（8处）: 逐行替换为 `debugLog('[AdvancedTags]', ...)` 或 `errorLog(...)`；(2) `bookmark-search-history.js`（5处）: 替换为 `debugLog('[SearchHistory]', ...)`；(3) `feedback-collector.js`（5处）: 替换为 `debugLog('[Feedback]', ...)`；(4) `i18n.js`（5处）: 替换为 `debugLog('[I18n]', ...)`；(5) `memory.js`（5处）: 替换为 `debugLog('[Memory]', ...)`；(6) `bookmark-backup-restore.js`（4处）: 替换为 `debugLog('[BackupRestore]', ...)`；(7) `bookmark-sharing.js`（4处）: 替换为 `debugLog('[Sharing]', ...)`；(8) `plugin-system.js`（4处）: 替换为 `debugLog('[Plugin]', ...)`；(9) 确保所有替换后 `npm run test:ci` 0 fail ≥7871 pass；(10) 新建 `tests/test-no-console-in-lib.js` 验证 lib/ 目录无 console.* 调用（允许 log-store.js 和 error-handler.js）。验收标准: lib/ 目录（除 log-store.js 和 error-handler.js）无 console.* 调用，全部使用 logger。复杂度: Simple
+
+## 自动生成任务 — 2026-06-03 15:01
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R183: 项目改进** — 根据项目状态进行优化和改进
