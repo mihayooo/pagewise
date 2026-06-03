@@ -1008,3 +1008,11 @@
 - [x] **R289: knowledge-base-query.js 单元测试覆盖 KnowledgeBaseQueryTest** — `lib/knowledge-base-query.js`（372行）无对应测试文件，是最大无测试模块；该模块负责知识库查询（全文搜索、过滤、排序、分页），是核心数据通路；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 测试用例覆盖：基本查询返回结果/空查询返回空集/多关键词AND搜索/按类型过滤/按时间排序/分页偏移/大数据量性能（1000条<50ms）/错误输入容错/索引缺失降级；(3) mock IndexedDB 环境；(4) 目标 ≥20 用例；(5) `npm run test:ci` 0 fail。验收标准: 覆盖 lib/knowledge-base-query.js 的主要导出函数和边界条件。复杂度: Medium
 
 - [x] **R290: bookmark-advanced-tags.js 单元测试覆盖 AdvancedTagsTest** — `lib/bookmark-advanced-tags.js`（371行）无测试文件，第二大无测试模块；该模块实现高级标签系统（标签层次结构、自动标签建议、标签合并、批量操作）；(1) 新建 `tests/test-bookmark-advanced-tags.js`；(2) 测试用例覆盖：创建标签层次/标签自动建议（基于URL和标题）/标签合并去重/批量标签删除/标签搜索/标签统计/嵌套标签路径解析/空标签容错/重复标签去重；(3) 目标 ≥18 用例；(4) `npm run test:ci` 0 fail。验收标准: 覆盖主要导出函数，标签层次和合并逻辑有边界测试。复杂度: Medium
+
+## 自动生成任务 — 2026-06-03 12:01
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R183: 项目改进** — 根据项目状态进行优化和改进
