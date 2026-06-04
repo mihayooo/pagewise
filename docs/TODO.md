@@ -1103,3 +1103,11 @@
 - [x] **R346: bookmark-io-standalone.js 导入导出IO测试 BookmarkIOTests** — `lib/bookmark-io-standalone.js`（363 行）是独立的书签导入导出IO层，当前无专用测试文件；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试 exportBookmarks(): JSON格式导出（空数组/单条/多条/含特殊字符URL）；(3) 测试 importBookmarks(): 正常JSON/损坏JSON容错/空文件/重复去重；(4) 测试 validateBookmark(): 合法/缺字段/非法URL/超长title；(5) 测试 formatForExport(): 含tags/categories/dates格式化；(6) 测试 parseImportData(): JSON/HTML格式检测；(7) 验收: ≥18 用例，npm run test:ci 0 fail。复杂度: Medium
 
 - [x] **R347: lib/ 目录 console.log 清理 ConsoleLogCleanup** — 8 个 lib 文件中共 9 处 `console.log` 调用（`ring-buffer.js`×2、`user-insight-analyzer.js`、`storage-adapter.js`、`performance-profiler.js`、`performance-monitor.js`、`log-store.js`、`bookmark-release.js`、`async-batch-processor.js`），应替换为结构化日志或移除；(1) `ring-buffer.js` 的 2 处 console.log 改为 debug 级别或移除；(2) 其余 7 文件各 1 处检查是否为调试遗留（删除）或有意的日志输出（改为项目统一的 logStore 记录）；(3) 验收: `grep -r "console\.log" lib/ --include="*.js" --exclude="*.min.*" | wc -l` 输出 0，npm run test:ci 0 fail。复杂度: Low
+
+## 自动生成任务 — 2026-06-04 12:01
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [ ] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [ ] **R183: 项目改进** — 根据项目状态进行优化和改进

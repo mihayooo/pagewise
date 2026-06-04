@@ -25,9 +25,9 @@ describe('R197: VersionSyncAndChangelog', () => {
 
   // ── AC-1: package.json 版本号更新为 3.2.0 ──
   describe('AC-1: package.json version', () => {
-    it('package.json version should be "3.5.0"', () => {
-      const pkg = readJson('package.json');
-      assert.equal(pkg.version, '3.5.0');
+    it('package.json version should be "3.6.0"', () => {
+      const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+      assert.equal(pkg.version, '3.6.0');
     });
 
     it('package.json version should follow SemVer MAJOR.MINOR.PATCH', () => {
@@ -105,9 +105,9 @@ describe('R197: VersionSyncAndChangelog', () => {
 
   // ── AC-3: manifest.json 版本一致性 ──
   describe('AC-3: manifest.json version consistency', () => {
-    it('manifest.json version should be "3.5.0"', () => {
+    it('manifest.json version should be "3.6.0"', () => {
       const manifest = readJson('manifest.json');
-      assert.equal(manifest.version, '3.5.0');
+      assert.equal(manifest.version, '3.6.0');
     });
 
     it('manifest.json should be valid JSON', () => {
@@ -169,9 +169,9 @@ describe('R197: VersionSyncAndChangelog', () => {
       const manifest = readJson('manifest.json');
       const changelog = readFile('docs/CHANGELOG.md');
 
-      assert.equal(pkg.version, '3.5.0');
-      assert.equal(manifest.version, '3.5.0');
-      assert.ok(changelog.includes('[3.5.0]'));
+      assert.equal(pkg.version, '3.6.0');
+      assert.equal(manifest.version, '3.6.0');
+      assert.ok(changelog.includes('[3.6.0]'));
     });
 
     it('CHANGELOG.md should still contain previous versions', () => {
