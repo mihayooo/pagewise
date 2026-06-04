@@ -2156,3 +2156,39 @@ withTimeoutRetry(fn, { maxRetries: 2 })
 - `node --test tests/test-e2e-smoke-helpers.js`: 20 pass / 0 fail ✅
 - `npm run test:ci`: 7907 pass / 0 fail ✅
 - `npm run lint`: 0 errors / 0 warnings ✅
+
+---
+
+## R348: settings-storage.js silent catch 治理 — 消除静默失败盲区 SilentCatch治理
+
+> 日期: 2026-06-04
+> 复杂度: Simple
+> 前置: 代码质量扫描发现 10 个 silent catch 块
+
+### 问题
+
+`lib/settings-storage.js` 有 3 个 catch 块，其中 2 个完全静默吞掉异常：
+- 第 40 行: `storage.get()` 失败时静默返回 `{}`，无任何日志
+- 第 51 行: `storage.set()` 失败时完全静默，用户无感知数据未持久化
+- 第 143 行: `JSON.parse()` 失败时正确 throw，但变量名 `_e` 不规范
+
+### 修改
+
+| 文件 | 行号 | 变更 |
+|------|------|------|
+| `lib/settings-storage.js` | 40 | `catch (_e)` → `catch (err)` + `console.warn('[SettingsStorage] 读取失败，使用默认值:', err)` |
+| `lib/settings-storage.js` | 51 | `catch (_e)` → `catch (err)` + `console.warn('[SettingsStorage] 持久化写入失败:', err)` |
+| `lib/settings-storage.js` | 143 | `catch (_e)` → `catch (err)` (变量名规范化) |
+
+### 设计决策
+
+| 决策点 | 选择 | 原因 |
+|--------|------|------|
+| 日志级别 | console.warn | 非致命错误但需要开发者注意 |
+| 写入失败策略 | 保留 _cache 内存缓存 | 确保当前会话可用，下次写入可能恢复 |
+| 变量命名 | `err` 替代 `_e` | 项目规范，便于调试时有意义的变量名 |
+
+### 验证结果
+
+- `node --test tests/test-settings-storage.js`: 20 pass / 0 fail ✅
+- `npm run test:ci`: 7987 pass / 0 fail ✅

@@ -1119,3 +1119,20 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 稳定性提升** — 修复边界情况和错误处理
 - [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
+
+## Phase AP: Silent Catch 块治理 — 消除静默失败盲区 (R348-R352) — 5 轮
+
+> 飞轮迭代，2026-06-04
+> 来源: 代码质量扫描 — 10 个 silent catch 块分布在 7 个文件
+> 目标: 所有 catch 块至少有 `console.warn` 级别日志，批量操作报告失败计数，关键路径不吞异常
+> 任务生成铁律: 每个任务精确到文件名+行号+问题描述+修复步骤+验收标准
+
+- [x] **R348: settings-storage.js silent catch 治理** — `lib/settings-storage.js` 有 3 个 silent catch 块；(1) 第 40 行: `storage.get()` 失败时静默返回 `{}`，应 `console.warn('[SettingsStorage] 读取失败，使用默认值:', err)`；(2) 第 51 行: `storage.set()` 失败时完全静默，应 `console.warn('[SettingsStorage] 持久化写入失败:', err)` 并保留 `_cache` 内存缓存可用；(3) 第 143 行的 catch 已正确 throw，无需修改；(4) 确保 3 个 catch 块中 `_e` 重命名为有意义的 `err` 变量名；(5) 运行 `node --test tests/test-settings-storage.js` 验证全部通过。验收: 所有 3 个 catch 块均有 console.warn 日志，测试 0 fail
+
+- [x] **R349: spaced-repetition.js localStorage 静默失败增加日志** — `lib/spaced-repetition.js` 第 190 行和第 226 行两个 catch 块静默吞掉 localStorage 异常；(1) 第 190 行 `_loadStreak()`: catch 中增加 `console.warn('[SpacedRepetition] streak 数据读取失败:', err)`；(2) 第 226 行 `_saveStreak()`: catch 中增加 `console.warn('[SpacedRepetition] streak 数据保存失败:', err)`；(3) 两个变量名 `_e` 改为 `err`；(4) 运行 `node --test tests/test-spaced-repetition.js tests/test-bookmark-spaced-repetition.js` 验证。验收: 2 个 catch 块均有 console.warn，测试 0 fail
+
+- [x] **R350: knowledge-base-crud-batch.js 批量操作失败计数** — `lib/knowledge-base-crud-batch.js` 第 37 行和第 68 行在批量删除/更新时静默跳过失败项；(1) 第 37 行 `deleteEntries` 循环: catch 中增加 `console.warn('[KnowledgeBase] 删除条目失败:', id, err)` 并收集失败 ID 到 `failedIds` 数组，方法返回值增加 `failedIds` 字段；(2) 第 68 行 `updateEntries` 循环: catch 中增加 `console.warn('[KnowledgeBase] 更新条目失败:', entry.id, err)` 并同样收集 `failedIds`；(3) 方法签名和返回值不变（向后兼容），`failedIds` 作为额外字段；(4) 变量名 `_e` 改为 `err`；(5) 新增测试用例验证 failedIds 在部分失败时正确收集。验收: 2 个 catch 块有 console.warn + failedIds，测试 0 fail
+
+- [x] **R351: page-sense-dom.js 和 pdf-extractor.js 分析器失败日志** — (1) `lib/page-sense-dom.js` 第 221 行: analyzer.extract() 失败时静默跳过，应增加 `console.warn('[PageSense] 分析器执行失败:', analyzer.name || 'unknown', err)` 并 `continue`；(2) `lib/pdf-extractor.js` 第 77 行: 元数据提取失败静默跳过，应增加 `console.warn('[PDFExtractor] 元数据提取失败:', err)`；(3) 两个变量名 `_e` 改为 `err`；(4) 运行相关测试验证。验收: 2 个 catch 块有 console.warn，测试 0 fail
+
+- [x] **R352: explore-mode.js 和 ai-client-stream.js 最后一批 silent catch** — (1) `lib/explore-mode.js` 第 187 行和第 259 行: chrome.runtime.sendMessage 失败时静默处理，这两个是合理的防御性代码（测试环境无 chrome API），但应增加条件日志 `if (typeof chrome !== 'undefined' && chrome.runtime) console.warn(...)`，避免测试环境噪音；(2) `lib/ai-client-stream.js` 第 91 行: JSON.parse 跳过非 JSON 行是 SSE 协议的正常行为，保留 silent 但将 `_e` 改为更明确的 `_nonJsonLine`；(3) 运行 `node --test tests/test-explore-mode.js tests/test-ai-client-stream.js` 验证。验收: explore-mode 2 个 catch 有条件日志，ai-client-stream 变量名改进，测试 0 fail

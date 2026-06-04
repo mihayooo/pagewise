@@ -12,6 +12,7 @@
 - **学习目标系统测试 (R345)**: bookmark-learning-goals.js 完整测试套件，覆盖目标创建、打卡、连续天数追踪、成就解锁
 - **书签核心模块测试 (R344)**: bookmark-core.js 55 用例全覆盖
 - **稳定性提升 (R181)**: 边界情况和错误处理改进
+- **Silent Catch 治理 (R348)**: settings-storage.js 3 个 catch 块从静默改为 console.warn 日志，变量名规范化
 
 
 ## [3.1.0] - 2026-05-20
