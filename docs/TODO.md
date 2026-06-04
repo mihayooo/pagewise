@@ -1152,3 +1152,17 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 稳定性提升** — 修复边界情况和错误处理
 - [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
+
+## 自动生成任务 — 2026-06-04 20:07 (R33)
+
+> 基于代码质量分析生成（61 silent catch / 66 无测试模块 / 大文件拆分需求）
+
+- [x] **R339: 消除高频 silent catch 块** — `lib/feedback-collector.js`(L68/L83/L97/L182/L200)、`lib/chat-mode.js`(L262/L277/L297/L311/L327)、`lib/stats.js`(4处)、`lib/review-session.js`(4处)、`lib/message-renderer-actions.js`(4处) 共 5 个高频文件；(1) 每个 catch 块增加 `console.debug('[PageWise] <module>:<operation> failed', _e)` 日志；(2) 关键路径（chat-mode AI 调用、stats 数据写入）catch 中增加降级逻辑或用户可见提示；(3) 验收: `grep -rn "catch\s*(_\|catch {" lib/ | wc -l` 从 61 降至 ≤15；`npm run test:ci` 0 fail。复杂度: Simple
+
+- [x] **R340: knowledge-base-query 测试覆盖** — `lib/knowledge-base-query.js`(372行) 是无测试的最大模块；(1) 新建 `tests/test-knowledge-base-query.js`；(2) 覆盖: queryByKeyword 精确/模糊搜索、queryByCategory 分类查询、queryByDateRange 日期范围查询、复合查询（关键词+分类+日期）、空结果/特殊字符/中文查询；(3) mock chrome.storage + IndexedDB；(4) 验收: ≥25 测试用例，`npm run test:ci` 0 fail。复杂度: Medium
+
+- [x] **R341: bookmark-tag-editor-v2 测试覆盖** — `lib/bookmark-tag-editor-v2.js`(345行) 无测试覆盖；(1) 新建 `tests/test-bookmark-tag-editor-v2.js`；(2) 覆盖: addTag/removeTag 批量标签操作、tagAutocomplete 补全逻辑、normalizeTag 规范化、setTags 覆盖写入、getTagsByBookmark 反向查询；(3) 验收: ≥20 测试用例。复杂度: Medium
+
+- [x] **R342: storage-adapter silent catch 治理** — `lib/storage-adapter.js` 有 5 处 silent catch，是存储层核心模块；(1) 将所有 `catch (_e)` 改为 `catch (e)` 并添加结构化日志 `{ module: 'storage-adapter', op, error: e.message }`；(2) storageGet/storageSet 的 catch 增加重试逻辑（最多 2 次，间隔 100ms）；(3) 验收: `grep -c "catch.*(_e)" lib/storage-adapter.js` = 0，现有测试 0 fail。复杂度: Simple
+
+- [x] **R343: i18n.js 函数密度优化** — `lib/i18n.js`(20个导出函数) 函数密度过高且有 2 处 silent catch；(1) 将翻译加载/回退逻辑拆分至 `lib/i18n-loader.js`；(2) 2 处 catch 块增加 fallback 到 en-US 的日志；(3) 验收: i18n.js 函数数 ≤12，`npm run test:ci` 0 fail。复杂度: Simple
