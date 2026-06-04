@@ -1098,7 +1098,7 @@
 > 由代码分析生成（基于静态分析 + 测试状态）
 > 分析依据: npm run test:ci 7987 pass/0 fail；5 个 ≥300 行 lib 模块零测试覆盖
 
-- [ ] **R345: bookmark-learning-goals.js 学习目标系统测试 LearningGoalsTests** — `lib/bookmark-learning-goals.js`（367 行）是学习目标打卡系统（创建目标→每日打卡→连续天数追踪→成就解锁），当前无专用测试文件；(1) 新建 `tests/test-bookmark-learning-goals.js`；(2) 测试 createGoal(): 创建目标（必填name/可选targetDays/默认值）；(3) 测试 checkIn(): 正常打卡/重复打卡拒绝/跨天打卡；(4) 测试 getStreak(): 连续天数（0天/3天/7天/断签重置）；(5) 测试 getAchievements(): 成就里程碑解锁（初学者🔥3天/坚持者⭐7天/达人🏆14天/大师👑30天/传奇💎100天）；(6) 测试 exportData()/importData(): 序列化/反序列化含损坏数据容错；(7) 验收: ≥20 用例，npm run test:ci 0 fail。复杂度: Medium
+- [x] **R345: bookmark-learning-goals.js 学习目标系统测试 LearningGoalsTests** — `lib/bookmark-learning-goals.js`（367 行）是学习目标打卡系统（创建目标→每日打卡→连续天数追踪→成就解锁），当前无专用测试文件；(1) 新建 `tests/test-bookmark-learning-goals.js`；(2) 测试 createGoal(): 创建目标（必填name/可选targetDays/默认值）；(3) 测试 checkIn(): 正常打卡/重复打卡拒绝/跨天打卡；(4) 测试 getStreak(): 连续天数（0天/3天/7天/断签重置）；(5) 测试 getAchievements(): 成就里程碑解锁（初学者🔥3天/坚持者⭐7天/达人🏆14天/大师👑30天/传奇💎100天）；(6) 测试 exportData()/importData(): 序列化/反序列化含损坏数据容错；(7) 验收: ≥20 用例，npm run test:ci 0 fail。复杂度: Medium
 
 - [ ] **R346: bookmark-io-standalone.js 导入导出IO测试 BookmarkIOTests** — `lib/bookmark-io-standalone.js`（363 行）是独立的书签导入导出IO层，当前无专用测试文件；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试 exportBookmarks(): JSON格式导出（空数组/单条/多条/含特殊字符URL）；(3) 测试 importBookmarks(): 正常JSON/损坏JSON容错/空文件/重复去重；(4) 测试 validateBookmark(): 合法/缺字段/非法URL/超长title；(5) 测试 formatForExport(): 含tags/categories/dates格式化；(6) 测试 parseImportData(): JSON/HTML格式检测；(7) 验收: ≥18 用例，npm run test:ci 0 fail。复杂度: Medium
 
