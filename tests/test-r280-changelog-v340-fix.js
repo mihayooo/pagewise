@@ -83,12 +83,12 @@ describe('R280: ChangelogV340Fix', () => {
   describe('AC-3: 版本号一致性 3.5.0', () => {
     it('package.json version 应为 3.5.0', () => {
       const pkg = readJson('package.json');
-      assert.equal(pkg.version, '3.5.0');
+      assert.equal(pkg.version, '3.6.0');
     });
 
     it('manifest.json version 应为 3.5.0', () => {
       const manifest = readJson('manifest.json');
-      assert.equal(manifest.version, '3.5.0');
+      assert.equal(manifest.version, '3.6.0');
     });
 
     it('package.json 和 manifest.json 版本应一致', () => {
@@ -140,9 +140,9 @@ describe('R280: ChangelogV340Fix', () => {
 
     it('test-r197 断言版本应为 3.5.0', () => {
       const content = readFile('tests/test-r197-version-sync.js');
-      assert.ok(content.includes("assert.equal(pkg.version, '3.5.0')"),
+      assert.ok(content.includes("assert.equal(pkg.version, '3.6.0')"),
         'Should assert pkg 3.5.0');
-      assert.ok(content.includes("assert.equal(manifest.version, '3.5.0')"),
+      assert.ok(content.includes("assert.equal(manifest.version, '3.6.0')"),
         'Should assert manifest 3.5.0');
     });
 

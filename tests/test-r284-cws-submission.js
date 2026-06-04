@@ -33,12 +33,12 @@ const fileSize = (rel) => statSync(join(ROOT, rel)).size;
 describe('AC-1: 版本一致性', () => {
   it('package.json version 应为 3.5.0', () => {
     const pkg = JSON.parse(readFile('package.json'));
-    assert.equal(pkg.version, '3.5.0');
+    assert.equal(pkg.version, '3.6.0');
   });
 
   it('manifest.json version 应为 3.5.0', () => {
     const manifest = JSON.parse(readFile('manifest.json'));
-    assert.equal(manifest.version, '3.5.0');
+    assert.equal(manifest.version, '3.6.0');
   });
 
   it('package.json 与 manifest.json 版本一致', () => {
