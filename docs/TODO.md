@@ -1092,3 +1092,14 @@
 - [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R344: bookmark-core.js 核心模块测试 BookmarkCoreTests** — `lib/bookmark-core.js`（370 行）是书签核心存储+CRUD模块（BookmarkCollector/BookmarkIndexer/BookmarkStatusManager/BookmarkContentPreview），当前无专用测试文件；(1) 新建 `tests/test-bookmark-core.js`；(2) 测试 BookmarkCollector: collect() 无 chrome API 返回空数组、normalize() 正确提取字段、getStats() 统计域名片段、_walk() 递归遍历树结构；(3) 测试 BookmarkIndexer: buildIndex() 构建倒排索引、search() 中英文混合查询/AND交集/空查询返回空、addBookmark()/removeBookmark() 增删后索引一致性、getSize() 统计；(4) 测试 BookmarkStatusManager: setStatus/getStatus 状态流转、batchSetStatus 批量设置、getByStatus 按状态筛选、getStatusCounts 统计、getRecentlyRead 排序、无效状态拒绝；(5) 测试 BookmarkContentPreview: extractUrlInfo 解析、generateTextPreview 文本预览、generateHtmlPreview HTML转义、_truncate 截断、_escapeHtml XSS防护；(6) 测试辅助函数: _tokenize 中英文分词、_tokenizeUrl URL解析、_computeIndexScore 评分逻辑；(7) 验收: ≥20 用例，npm run test:ci 0 fail。复杂度: Medium
+
+## 自动生成任务 — 2026-06-04 09:30
+
+> 由代码分析生成（基于静态分析 + 测试状态）
+> 分析依据: npm run test:ci 7987 pass/0 fail；5 个 ≥300 行 lib 模块零测试覆盖
+
+- [ ] **R345: bookmark-learning-goals.js 学习目标系统测试 LearningGoalsTests** — `lib/bookmark-learning-goals.js`（367 行）是学习目标打卡系统（创建目标→每日打卡→连续天数追踪→成就解锁），当前无专用测试文件；(1) 新建 `tests/test-bookmark-learning-goals.js`；(2) 测试 createGoal(): 创建目标（必填name/可选targetDays/默认值）；(3) 测试 checkIn(): 正常打卡/重复打卡拒绝/跨天打卡；(4) 测试 getStreak(): 连续天数（0天/3天/7天/断签重置）；(5) 测试 getAchievements(): 成就里程碑解锁（初学者🔥3天/坚持者⭐7天/达人🏆14天/大师👑30天/传奇💎100天）；(6) 测试 exportData()/importData(): 序列化/反序列化含损坏数据容错；(7) 验收: ≥20 用例，npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R346: bookmark-io-standalone.js 导入导出IO测试 BookmarkIOTests** — `lib/bookmark-io-standalone.js`（363 行）是独立的书签导入导出IO层，当前无专用测试文件；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试 exportBookmarks(): JSON格式导出（空数组/单条/多条/含特殊字符URL）；(3) 测试 importBookmarks(): 正常JSON/损坏JSON容错/空文件/重复去重；(4) 测试 validateBookmark(): 合法/缺字段/非法URL/超长title；(5) 测试 formatForExport(): 含tags/categories/dates格式化；(6) 测试 parseImportData(): JSON/HTML格式检测；(7) 验收: ≥18 用例，npm run test:ci 0 fail。复杂度: Medium
+
+- [ ] **R347: lib/ 目录 console.log 清理 ConsoleLogCleanup** — 8 个 lib 文件中共 9 处 `console.log` 调用（`ring-buffer.js`×2、`user-insight-analyzer.js`、`storage-adapter.js`、`performance-profiler.js`、`performance-monitor.js`、`log-store.js`、`bookmark-release.js`、`async-batch-processor.js`），应替换为结构化日志或移除；(1) `ring-buffer.js` 的 2 处 console.log 改为 debug 级别或移除；(2) 其余 7 文件各 1 处检查是否为调试遗留（删除）或有意的日志输出（改为项目统一的 logStore 记录）；(3) 验收: `grep -r "console\.log" lib/ --include="*.js" --exclude="*.min.*" | wc -l` 输出 0，npm run test:ci 0 fail。复杂度: Low
