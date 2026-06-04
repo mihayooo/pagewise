@@ -1084,3 +1084,11 @@
 - [x] **R181: 稳定性提升** — 修复边界情况和错误处理
 - [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R183: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-06-04 09:16
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R344: bookmark-core.js 核心模块测试 BookmarkCoreTests** — `lib/bookmark-core.js`（370 行）是书签核心存储+CRUD模块（BookmarkCollector/BookmarkIndexer/BookmarkStatusManager/BookmarkContentPreview），当前无专用测试文件；(1) 新建 `tests/test-bookmark-core.js`；(2) 测试 BookmarkCollector: collect() 无 chrome API 返回空数组、normalize() 正确提取字段、getStats() 统计域名片段、_walk() 递归遍历树结构；(3) 测试 BookmarkIndexer: buildIndex() 构建倒排索引、search() 中英文混合查询/AND交集/空查询返回空、addBookmark()/removeBookmark() 增删后索引一致性、getSize() 统计；(4) 测试 BookmarkStatusManager: setStatus/getStatus 状态流转、batchSetStatus 批量设置、getByStatus 按状态筛选、getStatusCounts 统计、getRecentlyRead 排序、无效状态拒绝；(5) 测试 BookmarkContentPreview: extractUrlInfo 解析、generateTextPreview 文本预览、generateHtmlPreview HTML转义、_truncate 截断、_escapeHtml XSS防护；(6) 测试辅助函数: _tokenize 中英文分词、_tokenizeUrl URL解析、_computeIndexScore 评分逻辑；(7) 验收: ≥20 用例，npm run test:ci 0 fail。复杂度: Medium
