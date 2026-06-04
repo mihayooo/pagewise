@@ -1136,3 +1136,11 @@
 - [x] **R351: page-sense-dom.js 和 pdf-extractor.js 分析器失败日志** — (1) `lib/page-sense-dom.js` 第 221 行: analyzer.extract() 失败时静默跳过，应增加 `console.warn('[PageSense] 分析器执行失败:', analyzer.name || 'unknown', err)` 并 `continue`；(2) `lib/pdf-extractor.js` 第 77 行: 元数据提取失败静默跳过，应增加 `console.warn('[PDFExtractor] 元数据提取失败:', err)`；(3) 两个变量名 `_e` 改为 `err`；(4) 运行相关测试验证。验收: 2 个 catch 块有 console.warn，测试 0 fail
 
 - [x] **R352: explore-mode.js 和 ai-client-stream.js 最后一批 silent catch** — (1) `lib/explore-mode.js` 第 187 行和第 259 行: chrome.runtime.sendMessage 失败时静默处理，这两个是合理的防御性代码（测试环境无 chrome API），但应增加条件日志 `if (typeof chrome !== 'undefined' && chrome.runtime) console.warn(...)`，避免测试环境噪音；(2) `lib/ai-client-stream.js` 第 91 行: JSON.parse 跳过非 JSON 行是 SSE 协议的正常行为，保留 silent 但将 `_e` 改为更明确的 `_nonJsonLine`；(3) 运行 `node --test tests/test-explore-mode.js tests/test-ai-client-stream.js` 验证。验收: explore-mode 2 个 catch 有条件日志，ai-client-stream 变量名改进，测试 0 fail
+
+## 自动生成任务 — 2026-06-04 15:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R181: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R182: 稳定性提升** — 修复边界情况和错误处理
+- [x] **R183: 探索性改进** — 代码质量优化、性能提升或新功能原型
