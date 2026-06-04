@@ -26,7 +26,7 @@ describe('R197: VersionSyncAndChangelog', () => {
   // ── AC-1: package.json 版本号更新为 3.2.0 ──
   describe('AC-1: package.json version', () => {
     it('package.json version should be "3.6.0"', () => {
-      const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+      const pkg = readJson('package.json');
       assert.equal(pkg.version, '3.6.0');
     });
 
