@@ -580,3 +580,13 @@
 - [x] **R398: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R399: 探索性改进** — 代码质量优化、性能提升或新功能原型
 - [x] **R401: 项目改进** — 根据项目状态进行优化和改进
+
+## 自动生成任务 — 2026-06-05 20:15 (R28)
+
+> 由飞轮迭代引擎生成（基于代码质量分析：覆盖率 + catch 治理 + 长函数）
+
+- [x] **R402: bookmark-semantic-search-index.js 测试覆盖提升 IndexCovBoost** — `lib/bookmark-semantic-search-index.js` (256行) 当前行覆盖率仅 36.3%，是项目中覆盖率最低的模块；(1) 新建 `tests/test-bookmark-semantic-search-index.js`；(2) 测试 IVF 索引构建: buildIvfIndex 聚类分配、少于 k 个文档时返回 null、空文档集、单文档、自定义 nClusters；(3) 测试 IndexedDB 持久化: persistToIndexedDB 成功/失败路径、loadFromIndexedDB 数据恢复/null 返回；(4) 测试序列化: serializeIndex 输出结构完整性、deserializeIndex 数据一致性、空索引/损坏数据容错；(5) 测试 IVF_DEFAULTS 冻结常量；(6) 目标 ≥25 用例，行覆盖率 ≥70%。验收标准: `npm run test:ci` 0 fail，覆盖率提升可验证。复杂度: Medium
+
+- [x] **R403: bookmark-learning-progress-db.js 测试覆盖提升 LearnProgCovBoost** — `lib/bookmark-learning-progress-db.js` (292行) 当前行覆盖率仅 44.9%；(1) 新建 `tests/test-bookmark-learning-progress-db.js`；(2) 测试数据库初始化与 schema 创建；(3) 测试学习进度 CRUD: add/update/get/delete 操作；(4) 测试查询: 按书签ID/状态/日期范围过滤；(5) 测试边界: null 输入/空数据/重复添加/并发写入；(6) 目标 ≥20 用例，行覆盖率 ≥70%。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
+
+- [x] **R404: console.warn-only catch 块结构化治理 CatchBlockAudit** — 12 个 lib 文件中存在 catch 块仅做 console.warn 而无结构化错误分类（`explore-mode-global.js`, `bookmark-graph-engine.js`, `bookmark-folder-analyzer.js`, `bookmark-user-profile.js`, `bookmark-core.js`, `bookmark-highlight-archive-core.js`, `bookmark-advanced-tags.js`, `stats.js`, `message-renderer-actions.js`, `bookmark-link-checker.js`, `bookmark-smart-collections-matchers.js`, `selection-handler-global.js`）；(1) 逐文件审查 catch 块，分类为：可恢复(用户可见提示)/不可恢复(降级默认值)/调试用(保留 console.debug)；(2) 可恢复错误调用 error-handler 报告机制；(3) 降级路径添加注释说明降级理由；(4) 所有修改不影响现有功能行为；(5) 更新对应测试确保 0 regression。验收标准: `npm run test:ci` 0 fail，`npm run lint` 0 errors。复杂度: Simple
