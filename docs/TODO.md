@@ -554,3 +554,13 @@
 - [x] **R388: 功能迭代** — 基于最近功能开发，继续完善用户体验
 - [x] **R389: 稳定性提升** — 修复边界情况和错误处理
 - [x] **R390: 探索性改进** — 代码质量优化、性能提升或新功能原型
+
+## 自动生成任务 — 2026-06-05 15:13 (代码质量分析)
+
+> 由飞轮迭代引擎 R19 生成（基于零覆盖模块分析 + console.debug silent catch 治理）
+
+- [x] **R391: bookmark-migration-runner.js 单元测试覆盖 MigrationRunnerTest** — `lib/bookmark-migration-runner.js` (351行) 迁移执行与兼容性检查模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-migration-runner.js`；(2) 测试版本检测: getMigrationVersion 识别 v1/v2 数据格式、null/undefined/array/非对象/缺失版本/不支持版本/负数/零 边界；(3) 测试迁移步骤: MIGRATION_STEPS 冻结数组完整性、from/to/description 字段；(4) 测试 v1→v2 迁移: migrateV1ToV2 clusters→collections、statuses→readingProgress、metadata 字段注入、tags/folderPath 默认值、无效状态回退、dateAddedISO 生成、null bookmark 容错；(5) 测试迁移验证: validateMigration 完整性校验、null 输入、版本错误、数量不一致、metadata 缺失、统计信息；(6) 测试 runMigration: 成功迁移、已达标跳过、null 数据、null 目标版本、无效版本、降级拒绝、版本识别失败、warnings 传递；(7) 测试 getMigrationPath: 同版本空路径、v1→v2 步骤、非数字版本、降级、不支持起始/目标版本；(8) 测试 deepCopy: 原始值、深拷贝对象、数组、循环引用容错；(9) 测试 67 用例 ✅ (目标 ≥25)。验收标准: `npm run test:ci` 8106 pass / 0 fail ✅。复杂度: Medium
+
+- [x] **R392: bookmark-documentation-data.js 单元测试覆盖 DocDataTest** — `lib/bookmark-documentation-data.js` (316行) 文档数据管理模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-documentation-data.js`；(2) 测试数据加载与缓存逻辑；(3) 测试数据查询与过滤；(4) 测试数据更新与持久化；(5) 目标 ≥20 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
+
+- [x] **R393: console.debug silent catch 治理 SilentCatchCleanup** — 7 处 `catch (_e) { console.debug(...) }` 模式在生产环境不可见，需要升级为可观测的错误处理；(1) `lib/explore-mode-global.js:84,116` — explore-mode 非关键操作 catch 升级为 console.warn 并添加错误分类标签；(2) `lib/bookmark-highlight-archive-core.js:243` — AI summary 跳过应记录到 error-handler 统一管理；(3) `lib/message-renderer-actions.js:40,71` — renderer action 回调失败升级为 console.warn；(4) `lib/bookmark-link-checker.js:66,74` — onProgress/onComplete 回调错误升级为 console.warn 并添加用户可见的错误状态；(5) 所有修改不影响现有功能行为，仅提升可观测性；(6) 更新对应测试文件确保 0 regression。验收标准: `npm run test:ci` 0 fail，`npm run lint` 0 errors。复杂度: Simple
