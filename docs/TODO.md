@@ -564,3 +564,11 @@
 - [x] **R392: bookmark-documentation-data.js 单元测试覆盖 DocDataTest** — `lib/bookmark-documentation-data.js` (316行) 文档数据管理模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-documentation-data.js`；(2) 测试数据加载与缓存逻辑；(3) 测试数据查询与过滤；(4) 测试数据更新与持久化；(5) 目标 ≥20 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
 
 - [x] **R393: console.debug silent catch 治理 SilentCatchCleanup** — 7 处 `catch (_e) { console.debug(...) }` 模式在生产环境不可见，需要升级为可观测的错误处理；(1) `lib/explore-mode-global.js:84,116` — explore-mode 非关键操作 catch 升级为 console.warn 并添加错误分类标签；(2) `lib/bookmark-highlight-archive-core.js:243` — AI summary 跳过应记录到 error-handler 统一管理；(3) `lib/message-renderer-actions.js:40,71` — renderer action 回调失败升级为 console.warn；(4) `lib/bookmark-link-checker.js:66,74` — onProgress/onComplete 回调错误升级为 console.warn 并添加用户可见的错误状态；(5) 所有修改不影响现有功能行为，仅提升可观测性；(6) 更新对应测试文件确保 0 regression。验收标准: `npm run test:ci` 0 fail，`npm run lint` 0 errors。复杂度: Simple
+
+## 自动生成任务 — 2026-06-05 15:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R394: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R395: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R397: 项目改进** — 根据项目状态进行优化和改进
