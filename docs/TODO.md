@@ -546,3 +546,11 @@
 - [x] **R386: bookmark-io-standalone.js 单元测试覆盖 BookmarkIOStandaloneTest** — `lib/bookmark-io-standalone.js` (363行) 独立书签导入导出模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试导出功能：JSON/HTML/Netscape 格式输出正确性；(3) 测试导入功能：解析 JSON/HTML 书签文件、处理畸形输入；(4) 测试往返一致性：导出→导入→数据不丢失；(5) 目标 ≥22 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
 
 - [x] **R387: bookmark-tag-editor-v2.js 单元测试覆盖 TagEditorV2Test** — `lib/bookmark-tag-editor-v2.js` (345行) 标签编辑器 V2 版本，当前零测试覆盖；(1) 新建 `tests/test-bookmark-tag-editor-v2.js`；(2) 测试标签增删改查；(3) 测试自动补全逻辑；(4) 测试批量操作；(5) 目标 ≥20 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
+
+## 自动生成任务 — 2026-06-05 12:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R388: 功能迭代** — 基于最近功能开发，继续完善用户体验
+- [x] **R389: 稳定性提升** — 修复边界情况和错误处理
+- [x] **R390: 探索性改进** — 代码质量优化、性能提升或新功能原型
