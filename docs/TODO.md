@@ -590,3 +590,11 @@
 - [x] **R403: bookmark-learning-progress-db.js 测试覆盖提升 LearnProgCovBoost** — `lib/bookmark-learning-progress-db.js` (292行) 当前行覆盖率仅 44.9%；(1) 新建 `tests/test-bookmark-learning-progress-db.js`；(2) 测试数据库初始化与 schema 创建；(3) 测试学习进度 CRUD: add/update/get/delete 操作；(4) 测试查询: 按书签ID/状态/日期范围过滤；(5) 测试边界: null 输入/空数据/重复添加/并发写入；(6) 目标 ≥20 用例，行覆盖率 ≥70%。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
 
 - [x] **R404: console.warn-only catch 块结构化治理 CatchBlockAudit** — 12 个 lib 文件中存在 catch 块仅做 console.warn 而无结构化错误分类（`explore-mode-global.js`, `bookmark-graph-engine.js`, `bookmark-folder-analyzer.js`, `bookmark-user-profile.js`, `bookmark-core.js`, `bookmark-highlight-archive-core.js`, `bookmark-advanced-tags.js`, `stats.js`, `message-renderer-actions.js`, `bookmark-link-checker.js`, `bookmark-smart-collections-matchers.js`, `selection-handler-global.js`）；(1) 逐文件审查 catch 块，分类为：可恢复(用户可见提示)/不可恢复(降级默认值)/调试用(保留 console.debug)；(2) 可恢复错误调用 error-handler 报告机制；(3) 降级路径添加注释说明降级理由；(4) 所有修改不影响现有功能行为；(5) 更新对应测试确保 0 regression。验收标准: `npm run test:ci` 0 fail，`npm run lint` 0 errors。复杂度: Simple
+
+## 自动生成任务 — 2026-06-05 21:00
+
+> 由自主任务选择器生成（基于项目状态分析）
+
+- [x] **R405: 探索性改进** — 代码质量优化、性能提升或新功能原型
+- [x] **R407: 项目改进** — 根据项目状态进行优化和改进
+- [x] **R408: 项目改进** — 根据项目状态进行优化和改进
