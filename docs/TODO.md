@@ -543,6 +543,6 @@
 
 - [x] **R385: bookmark-learning-goals.js 单元测试覆盖 LearningGoalsTest** — `lib/bookmark-learning-goals.js` (367行) 学习目标打卡系统，当前零测试覆盖；新建 `tests/test-bookmark-learning-goals.js` 覆盖 createGoal/checkIn/getStreak/成就解锁/exportData/importData；目标 ≥28 用例。验收标准: `npm run test:ci` 0 fail，新用例 52 pass ✅。复杂度: Medium
 
-- [ ] **R386: bookmark-io-standalone.js 单元测试覆盖 BookmarkIOStandaloneTest** — `lib/bookmark-io-standalone.js` (363行) 独立书签导入导出模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试导出功能：JSON/HTML/Netscape 格式输出正确性；(3) 测试导入功能：解析 JSON/HTML 书签文件、处理畸形输入；(4) 测试往返一致性：导出→导入→数据不丢失；(5) 目标 ≥22 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
+- [x] **R386: bookmark-io-standalone.js 单元测试覆盖 BookmarkIOStandaloneTest** — `lib/bookmark-io-standalone.js` (363行) 独立书签导入导出模块，当前零测试覆盖；(1) 新建 `tests/test-bookmark-io-standalone.js`；(2) 测试导出功能：JSON/HTML/Netscape 格式输出正确性；(3) 测试导入功能：解析 JSON/HTML 书签文件、处理畸形输入；(4) 测试往返一致性：导出→导入→数据不丢失；(5) 目标 ≥22 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
 
-- [ ] **R387: bookmark-tag-editor-v2.js 单元测试覆盖 TagEditorV2Test** — `lib/bookmark-tag-editor-v2.js` (345行) 标签编辑器 V2 版本，当前零测试覆盖；(1) 新建 `tests/test-bookmark-tag-editor-v2.js`；(2) 测试标签增删改查；(3) 测试自动补全逻辑；(4) 测试批量操作；(5) 目标 ≥20 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
+- [x] **R387: bookmark-tag-editor-v2.js 单元测试覆盖 TagEditorV2Test** — `lib/bookmark-tag-editor-v2.js` (345行) 标签编辑器 V2 版本，当前零测试覆盖；(1) 新建 `tests/test-bookmark-tag-editor-v2.js`；(2) 测试标签增删改查；(3) 测试自动补全逻辑；(4) 测试批量操作；(5) 目标 ≥20 用例。验收标准: `npm run test:ci` 0 fail。复杂度: Medium
